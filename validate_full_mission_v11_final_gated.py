@@ -14,9 +14,6 @@ if not SOURCE.exists():
 
 text = SOURCE.read_text(encoding="utf-8")
 
-# -----------------------------------------------------------------------------
-# 1) Stage-2 AFCS must be applied on the ACTIVE live FDM after same-FDM attach.
-# -----------------------------------------------------------------------------
 old_attach = '''env2.fdm = fdm
 if hasattr(env2, "phase"):
 '''
@@ -30,10 +27,6 @@ if old_attach not in text:
     raise RuntimeError("Could not locate Stage2 same-FDM attach block")
 text = text.replace(old_attach, new_attach, 1)
 
-# -----------------------------------------------------------------------------
-# 2) Calibrate only the turn policy's bookkeeping coordinate.
-#    Physical JSBSim state remains the real ~160-ft live handoff.
-# -----------------------------------------------------------------------------
 old_turn_distance = '''turn_env.forward_distance = env_forward
 '''
 new_turn_distance = f'''physical_stage2_forward_at_handoff = float(env_forward)
@@ -63,9 +56,6 @@ if old_obs not in text:
     raise RuntimeError("Could not locate turn observation creation block")
 text = text.replace(old_obs, new_obs, 1)
 
-# -----------------------------------------------------------------------------
-# 3) Add the V10 negative collective patch class before helper functions.
-# -----------------------------------------------------------------------------
 marker = '''def rule(text: str):
 '''
 insert = f'''class NegativeCollectivePatch(nn.Module):
@@ -90,9 +80,6 @@ if marker not in text:
     raise RuntimeError("Could not locate helper insertion marker")
 text = text.replace(marker, insert + marker, 1)
 
-# -----------------------------------------------------------------------------
-# 4) Require/load/freeze V10 patch alongside existing final stack.
-# -----------------------------------------------------------------------------
 old_require = '''for path in [TURN_PPO_PATH, V4_ADAPTER_PATH, V7_PATCH_PATH]:
     require_file(path)
 '''
@@ -134,10 +121,6 @@ if old_print not in text:
     raise RuntimeError("Could not locate model print block")
 text = text.replace(old_print, new_print, 1)
 
-# -----------------------------------------------------------------------------
-# 5) Replace runtime turn action with final gated stack:
-#    base PPO + V4 + V7(+200 only) + V10 collective(-50 only).
-# -----------------------------------------------------------------------------
 old_action = '''def turn_action(turn_model, base_adapter, patch, obs):
     """Final runtime turn action. Teacher/controller is not used here."""
     base, _ = turn_model.predict(obs, deterministic=True)
@@ -171,13 +154,10 @@ if old_action not in text:
     raise RuntimeError("Could not locate turn_action function")
 text = text.replace(old_action, new_action, 1)
 
-# -----------------------------------------------------------------------------
-# 6) Add V10 gate status to final summary.
-# -----------------------------------------------------------------------------
-old_summary = '''print("V7 +200 GATE AT TURN ENTRY:", "ON" if patch_gate > 0.5 else "OFF")
+old_summary = '''print(f"V7 +200 GATE AT TURN ENTRY: {'ON' if patch_gate > 0.5 else 'OFF'}")
 '''
-new_summary = '''print("V7 +200 GATE AT TURN ENTRY:", "ON" if patch_gate > 0.5 else "OFF")
-print("V10 -50 GATE AT TURN ENTRY:", "ON" if neg_gate_from_obs(obs_turn) else "OFF")
+new_summary = '''print(f"V7 +200 GATE AT TURN ENTRY: {'ON' if patch_gate > 0.5 else 'OFF'}")
+print(f"V10 -50 GATE AT TURN ENTRY: {'ON' if neg_gate_from_obs(obs_turn) else 'OFF'}")
 '''
 if old_summary not in text:
     raise RuntimeError("Could not locate final gate summary line")

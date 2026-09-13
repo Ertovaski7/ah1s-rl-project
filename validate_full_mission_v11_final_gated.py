@@ -236,11 +236,32 @@ if old_summary not in text:
     raise RuntimeError("Could not locate final gate summary line")
 text = text.replace(old_summary, new_summary, 1)
 
+# Make validation diagnostic-friendly: never throw away the final summary.
+old_fail = '''if not final_pass:
+    raise RuntimeError("FINAL FULL MISSION VALIDATION FAILED")
+'''
+new_fail = '''print("FINAL CRITERION BREAKDOWN | "
+      f"stage1={stage1_pass} | stage2={entry_ok} | turn={turn_pass} | "
+      f"post={post_pass} | same_fdm={fdm_continuity} | post_safety={post_safety_failure}")
+if not final_pass:
+    failed = []
+    if not stage1_pass: failed.append("stage1")
+    if not entry_ok: failed.append("stage2")
+    if not turn_pass: failed.append("turn_capture")
+    if not post_pass: failed.append("post_turn_forward")
+    if not fdm_continuity: failed.append("fdm_continuity")
+    print("FINAL FAILED CRITERIA:", ", ".join(failed) if failed else "unknown")
+'''
+if old_fail not in text:
+    raise RuntimeError("Could not locate final failure raise block")
+text = text.replace(old_fail, new_fail, 1)
+
 print("=" * 120)
 print("FINAL FULL-MISSION V11 - CALIBRATED PROGRESS + GATED -50 COLLECTIVE PATCH")
 print("Runtime teacher/controller OFF. Same JSBSim FDM, no reset between flight phases.")
 print("V7 correction is active only for +200; V10 collective correction is active only for -50.")
 print("Post-turn continuation hands the same FDM back to Stage2 PPO on the captured new heading.")
+print("Validator is exception-free at final summary and prints exact failed criteria.")
 print("=" * 120)
 
 exec(compile(text, str(SOURCE), "exec"), {"__name__": "__main__", "__file__": str(SOURCE)})

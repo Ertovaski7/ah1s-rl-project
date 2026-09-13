@@ -21,27 +21,28 @@ def first_line(text: str, prefix: str) -> str:
 def make_variant(base_text: str, collective: float) -> str:
     text = base_text
 
-    # V19 is a direct validator file, so these are real newlines in source,
-    # not escaped "\\n" text inside another wrapper.
-    old_gate = 'if abs(requested_turn) >= 300.0:\n'
-    new_gate = 'if requested_turn > 0.0:\n'
+    # V19 contains the generated validator body inside a triple-quoted
+    # replacement string. Match only stable substrings so newline escaping
+    # cannot break the sweep script.
+    old_gate = "if abs(requested_turn) >= 300.0:"
+    new_gate = "if requested_turn > 0.0:"
     if old_gate not in text:
         raise RuntimeError("V21 sweep: transition gate not found in V19 source")
     text = text.replace(old_gate, new_gate, 1)
 
-    old_collective = '    transition_collective = 0.590\n'
-    new_collective = f'    transition_collective = {collective:.3f}\n'
+    old_collective = "transition_collective = 0.590"
+    new_collective = f"transition_collective = {collective:.3f}"
     if old_collective not in text:
         raise RuntimeError("V21 sweep: transition collective scalar not found in V19 source")
     text = text.replace(old_collective, new_collective, 1)
 
     text = text.replace(
-        'V19 DIRECT - 360 TRANSITION TRIM 0.590 -> SMOOTH STAGE2 HANDOFF',
-        f'V21 +50 DIAGNOSTIC - TRANSITION COLLECTIVE {collective:.3f}',
+        "V19 DIRECT - 360 TRANSITION TRIM 0.590 -> SMOOTH STAGE2 HANDOFF",
+        f"V21 +50 DIAGNOSTIC - TRANSITION COLLECTIVE {collective:.3f}",
     )
     text = text.replace(
-        '360 transition collective=0.590; max settle=20.0s.',
-        f'+50 diagnostic transition collective={collective:.3f}; max settle=20.0s.',
+        "360 transition collective=0.590; max settle=20.0s.",
+        f"+50 diagnostic transition collective={collective:.3f}; max settle=20.0s.",
     )
     return text
 

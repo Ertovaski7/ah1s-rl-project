@@ -18,7 +18,7 @@ handoff_action[0] = float(np.clip((handoff_collective - 0.620) / 0.030, -1.0, 1.
 handoff_action[1] = float(np.clip((handoff_elevator + 0.145) / 0.035, -1.0, 1.0))
 handoff_action[2] = 0.0
 handoff_action[3] = 0.0
-POST_BLEND_COLLECTIVE_S = 8.0
+POST_BLEND_COLLECTIVE_S = 9.0
 POST_BLEND_ELEVATOR_S = 4.0
 POST_BLEND_LATERAL_S = 1.0
 
@@ -74,7 +74,7 @@ text = text.replace(old_d, new_d, 1)
 print("=" * 120)
 print("FINAL FULL-MISSION V12 - CHANNEL-SPECIFIC SMOOTH TURN -> STAGE2 HANDOFF")
 print("No model weights changed. Validation thresholds unchanged.")
-print("Collective/elevator/lateral channels use 8.0/4.0/1.0 s smoothstep blending.")
+print("Collective/elevator/lateral channels use 9.0/4.0/1.0 s smoothstep blending.")
 print("=" * 120)
 
 exec(compile(text, str(SOURCE), "exec"), {"__name__": "__main__", "__file__": str(SOURCE)})

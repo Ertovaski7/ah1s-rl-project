@@ -29,35 +29,47 @@ new_init = """    plus50_feedback = 45.0 <= requested_turn <= 55.0
     transition_elevator = -0.145
     transition_aileron = 0.19095
     transition_rudder = 0.390
-    transition_max_s = 30.0 if plus50_feedback else 20.0
+    transition_max_s = 35.0 if plus50_feedback else 20.0
 
     while settle_elapsed < transition_max_s:
         if plus50_feedback:
             pre_ms = physical_metrics(fdm)
             lat_abs = abs(pre_ms[\"v_lat\"])
 
-            feedback_target = (
-                0.580
-                + 0.0003 * (300.0 - pre_ms[\"alt\"])
-                - 0.0040 * pre_ms[\"vs\"]
-            )
+            if lat_abs >= 7.0:
+                feedback_target = (
+                    0.580
+                    + 0.0003 * (300.0 - pre_ms[\"alt\"])
+                    - 0.0040 * pre_ms[\"vs\"]
+                )
 
-            if lat_abs >= 18.0:
-                collective_cap = 0.574
-            elif lat_abs >= 14.0:
-                collective_cap = 0.576
-            elif lat_abs >= 10.0:
-                collective_cap = 0.580
-            elif lat_abs >= 7.0:
-                collective_cap = 0.585
+                if lat_abs >= 18.0:
+                    collective_cap = 0.574
+                elif lat_abs >= 14.0:
+                    collective_cap = 0.576
+                elif lat_abs >= 10.0:
+                    collective_cap = 0.580
+                else:
+                    collective_cap = 0.585
+
+                collective_target = float(np.clip(
+                    feedback_target,
+                    0.574,
+                    collective_cap,
+                ))
             else:
-                collective_cap = 0.590
+                # Low-sideslip vertical-recovery phase. At this point the large
+                # translational-lift transient is gone, so use extra collective
+                # authority to arrest descent and return toward 300 ft before
+                # handing the FDM back to Stage2 PPO.
+                collective_target = float(np.clip(
+                    0.590
+                    + 0.0008 * (300.0 - pre_ms[\"alt\"])
+                    - 0.0060 * pre_ms[\"vs\"],
+                    0.580,
+                    0.610,
+                ))
 
-            collective_target = float(np.clip(
-                feedback_target,
-                0.574,
-                collective_cap,
-            ))
             collective_step = float(np.clip(
                 collective_target - transition_collective,
                 -0.0005,
@@ -89,7 +101,7 @@ text = text.replace(
 )
 text = text.replace(
     "360 transition collective=0.590; max settle=20.0s.",
-    "+50 continuous altitude/VS feedback with sideslip-dependent collective cap; +200/+360 remain 0.590.",
+    "+50 transition: sideslip-limited feedback plus low-sideslip vertical recovery; +200/+360 remain 0.590.",
 )
 
 exec(compile(text, str(SOURCE), "exec"), {"__name__": "__main__", "__file__": str(SOURCE)})

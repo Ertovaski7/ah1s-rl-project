@@ -18,7 +18,7 @@ handoff_action[0] = float(np.clip((handoff_collective - 0.620) / 0.030, -1.0, 1.
 handoff_action[1] = float(np.clip((handoff_elevator + 0.145) / 0.035, -1.0, 1.0))
 handoff_action[2] = 0.0
 handoff_action[3] = 0.0
-POST_HANDOFF_BLEND_S = 2.0
+POST_HANDOFF_BLEND_S = 4.0
 
 env2.fdm = fdm
 '''
@@ -60,7 +60,7 @@ text = text.replace(old_d, new_d, 1)
 print("=" * 120)
 print("FINAL FULL-MISSION V12 - SMOOTH TURN -> STAGE2 POLICY HANDOFF")
 print("No model weights changed. Validation thresholds unchanged.")
-print("Only the policy handoff is cross-faded for 2.0 seconds to suppress actuator discontinuity.")
+print("Only the policy handoff is cross-faded for 4.0 seconds to suppress actuator discontinuity.")
 print("=" * 120)
 
 exec(compile(text, str(SOURCE), "exec"), {"__name__": "__main__", "__file__": str(SOURCE)})

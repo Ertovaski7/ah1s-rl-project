@@ -29,11 +29,11 @@ text = text.replace(old_attach, new_attach, 1)
 old_turn_distance = '''turn_env.forward_distance = env_forward
 '''
 new_turn_distance = f'''# IMPORTANT: forward_distance is ENVIRONMENT BOOKKEEPING, not a JSBSim
-# physical state.  V7 was trained with this coordinate near
-# {TRAINING_ENTRY_FORWARD_FT:.3f} ft at turn activation.  The live mission's
+# physical state. V7 was trained with this coordinate near
+# {TRAINING_ENTRY_FORWARD_FT:.3f} ft at turn activation. The live mission's
 # Stage-2 counter starts from a different origin, so using its ~160-ft value
 # creates a large observation-coordinate mismatch even though the physical
-# aircraft state is already correct.  Calibrate only this bookkeeping origin;
+# aircraft state is already correct. Calibrate only this bookkeeping origin;
 # the live FDM state is untouched.
 physical_stage2_forward_at_handoff = float(env_forward)
 turn_env.forward_distance = {TRAINING_ENTRY_FORWARD_FT:.3f}
@@ -62,9 +62,15 @@ if old_obs_line not in text:
     raise RuntimeError("Could not locate turn observation creation block")
 text = text.replace(old_obs_line, new_obs_line, 1)
 
-# Make the training-entry reference available to the executed source.
-prefix = f"TRAINING_ENTRY_FORWARD_FT = {TRAINING_ENTRY_FORWARD_FT!r}\n"
-patched = prefix + text
+# Keep Python's future import at the legal first executable position.
+future_line = "from __future__ import annotations\n"
+if not text.startswith(future_line):
+    raise RuntimeError("Expected future import at start of V7 source")
+text = text.replace(
+    future_line,
+    future_line + f"TRAINING_ENTRY_FORWARD_FT = {TRAINING_ENTRY_FORWARD_FT!r}\n",
+    1,
+)
 
 print("=" * 120)
 print("FINAL FULL-MISSION V9 - LIVE PHYSICS + CALIBRATED TURN PROGRESS COORDINATE")
@@ -73,4 +79,4 @@ print("Stage2 active-FDM AFCS settings are restored explicitly after same-FDM at
 print("Turn forward_progress bookkeeping is expressed in the coordinate used during V7 training.")
 print("=" * 120)
 
-exec(compile(patched, str(SOURCE), "exec"), {"__name__": "__main__", "__file__": str(SOURCE)})
+exec(compile(text, str(SOURCE), "exec"), {"__name__": "__main__", "__file__": str(SOURCE)})

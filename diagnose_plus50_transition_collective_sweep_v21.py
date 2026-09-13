@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 BASE = Path("validate_full_mission_v19_360_transition_trim_0590.py")
-CANDIDATES = [0.540, 0.550, 0.560, 0.570, 0.580, 0.590]
+CANDIDATES = [0.572, 0.574, 0.576, 0.578]
 ANGLE = 50
 LOG_DIR = Path("diagnostic_plus50_sweep_v21")
 
@@ -52,7 +52,7 @@ def main() -> int:
     LOG_DIR.mkdir(exist_ok=True)
 
     print("=" * 120)
-    print("V21 +50 TRANSITION COLLECTIVE SWEEP")
+    print("V21 +50 TRANSITION COLLECTIVE FINE SWEEP")
     print("Fresh full mission per candidate; validation thresholds unchanged.")
     print("Only the +50 post-turn transition collective is varied.")
     print("Candidates:", ", ".join(f"{x:.3f}" for x in CANDIDATES))
@@ -66,10 +66,6 @@ def main() -> int:
         print("=" * 120)
 
         variant = make_variant(base_text, collective)
-
-        # IMPORTANT: keep the temporary validator in the repository root.
-        # Running a script from /tmp makes sys.path[0] point at /tmp, which
-        # hides project-local modules imported by the compiled V11 validator.
         tmp_path = Path.cwd() / f"_v21_validate_plus50_c{collective:.3f}.py"
         tmp_path.write_text(variant, encoding="utf-8")
 
@@ -118,7 +114,7 @@ def main() -> int:
             break
 
     print("\n" + "=" * 120)
-    print("V21 +50 SWEEP SUMMARY")
+    print("V21 +50 FINE SWEEP SUMMARY")
     print("=" * 120)
     print(f"{'COLLECTIVE':>12} | {'RESULT':^8} | TRANSITION")
     print("-" * 120)
@@ -132,7 +128,7 @@ def main() -> int:
         print(f"\nBEST VERIFIED +50 COLLECTIVE: {winners[0][0]:.3f}")
         return 0
 
-    print("\nNO +50 FULL PASS FOUND IN THIS SWEEP.")
+    print("\nNO +50 FULL PASS FOUND IN THIS FINE SWEEP.")
     print("Use the transition telemetry above to decide the next targeted change; do not loosen thresholds.")
     return 1
 

@@ -18,7 +18,9 @@ handoff_action[0] = float(np.clip((handoff_collective - 0.620) / 0.030, -1.0, 1.
 handoff_action[1] = float(np.clip((handoff_elevator + 0.145) / 0.035, -1.0, 1.0))
 handoff_action[2] = 0.0
 handoff_action[3] = 0.0
-POST_HANDOFF_BLEND_S = 4.0
+POST_BLEND_COLLECTIVE_S = 8.0
+POST_BLEND_ELEVATOR_S = 4.0
+POST_BLEND_LATERAL_S = 1.0
 
 env2.fdm = fdm
 '''
@@ -39,8 +41,19 @@ old_c = '''    action_post, _ = stage2_model.predict(obs_post, deterministic=Tru
 '''
 new_c = '''    policy_action, _ = stage2_model.predict(obs_post, deterministic=True)
     policy_action = np.asarray(policy_action, dtype=np.float32)
-    blend_alpha = float(np.clip(post_elapsed / POST_HANDOFF_BLEND_S, 0.0, 1.0))
-    action_post = (1.0 - blend_alpha) * handoff_action + blend_alpha * policy_action
+
+    alpha_c = float(np.clip(post_elapsed / POST_BLEND_COLLECTIVE_S, 0.0, 1.0))
+    alpha_e = float(np.clip(post_elapsed / POST_BLEND_ELEVATOR_S, 0.0, 1.0))
+    alpha_l = float(np.clip(post_elapsed / POST_BLEND_LATERAL_S, 0.0, 1.0))
+    alpha_c = alpha_c * alpha_c * (3.0 - 2.0 * alpha_c)
+    alpha_e = alpha_e * alpha_e * (3.0 - 2.0 * alpha_e)
+    alpha_l = alpha_l * alpha_l * (3.0 - 2.0 * alpha_l)
+
+    action_post = policy_action.copy()
+    action_post[0] = (1.0 - alpha_c) * handoff_action[0] + alpha_c * policy_action[0]
+    action_post[1] = (1.0 - alpha_e) * handoff_action[1] + alpha_e * policy_action[1]
+    action_post[2] = (1.0 - alpha_l) * handoff_action[2] + alpha_l * policy_action[2]
+    action_post[3] = (1.0 - alpha_l) * handoff_action[3] + alpha_l * policy_action[3]
     action_post = np.clip(action_post, -1.0, 1.0).astype(np.float32)
     obs_post, _, terminated_post, truncated_post, info_post = env2.step(action_post)
 '''
@@ -51,16 +64,17 @@ text = text.replace(old_c, new_c, 1)
 old_d = '''    f"new_heading_ref={post_target_heading:.2f}deg | same_fdm={id(env2.fdm) == active_fdm_id}"
 '''
 new_d = '''    f"new_heading_ref={post_target_heading:.2f}deg | same_fdm={id(env2.fdm) == active_fdm_id} | "
-    f"blend={POST_HANDOFF_BLEND_S:.1f}s | handoff_action={np.array2string(handoff_action, precision=3)}"
+    f"blend_c/e/lat={POST_BLEND_COLLECTIVE_S:.1f}/{POST_BLEND_ELEVATOR_S:.1f}/{POST_BLEND_LATERAL_S:.1f}s | "
+    f"handoff_action={np.array2string(handoff_action, precision=3)}"
 '''
 if old_d not in text:
     raise RuntimeError("Could not locate post-turn handoff print")
 text = text.replace(old_d, new_d, 1)
 
 print("=" * 120)
-print("FINAL FULL-MISSION V12 - SMOOTH TURN -> STAGE2 POLICY HANDOFF")
+print("FINAL FULL-MISSION V12 - CHANNEL-SPECIFIC SMOOTH TURN -> STAGE2 HANDOFF")
 print("No model weights changed. Validation thresholds unchanged.")
-print("Only the policy handoff is cross-faded for 4.0 seconds to suppress actuator discontinuity.")
+print("Collective/elevator/lateral channels use 8.0/4.0/1.0 s smoothstep blending.")
 print("=" * 120)
 
 exec(compile(text, str(SOURCE), "exec"), {"__name__": "__main__", "__file__": str(SOURCE)})

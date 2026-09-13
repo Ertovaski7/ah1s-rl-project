@@ -3,7 +3,7 @@ import csv, json, math
 import numpy as np
 
 AUTH_SOURCE = Path("diagnose_forward_turn_authority_v1.py")
-RESULT_DIR = Path("results_forward_parametric_turn_v3")
+RESULT_DIR = Path("results_forward_parametric_turn_v4")
 RESULT_DIR.mkdir(parents=True, exist_ok=True)
 
 TARGET_TURN_DEG = float(input("Kaç derece dönsün? (örn: 50, 200, 360, -50): "))
@@ -17,7 +17,7 @@ prefix = prefix.replace(
     'BASE_SOURCE = Path("diagnose_stage4_entry_margin_v3.py")',
     'BASE_SOURCE = Path("deneme/diagnose_stage4_entry_margin_v3.py")',
 )
-ns = {"__name__": "parametric_turn_v3_base", "__file__": str(AUTH_SOURCE)}
+ns = {"__name__": "parametric_turn_v4_base", "__file__": str(AUTH_SOURCE)}
 exec(compile(prefix, str(AUTH_SOURCE), "exec"), ns)
 ns["TURN_ENTRY_FORWARD_FT"] = 160.0
 
@@ -33,13 +33,23 @@ def wrap_deg(x):
 TURN_AILERON_SCALE = 0.300
 TURN_RUDDER_SCALE = 0.500
 MAX_BANK_DEG = 5.0
-MAX_YAW_RATE_DEG_S = 1.50
 TARGET_HEADING_TOL_DEG = 1.0
 TARGET_YAW_RATE_TOL_DEG_S = 0.50
 TARGET_MAX_ABS_ROLL_DEG = 5.0
 TARGET_HOLD_SECONDS = 2.0
 POST_TURN_FORWARD_SECONDS = 10.0
 MAX_TEST_TIME_S = max(45.0, abs(TARGET_TURN_DEG) / 1.20 + 40.0)
+
+# Damped altitude hold: Stage-2 collective remains the baseline.
+# Altitude error becomes a bounded vertical-speed target; only a small
+# physical collective residual is added. This avoids the large P/D
+# oscillation seen in V3.
+ALT_TO_VS_GAIN = 0.08
+MAX_ALT_HOLD_VS_FPS = 0.60
+VS_TO_COLLECTIVE_GAIN = 0.010
+MAX_COLLECTIVE_RESIDUAL = 0.012
+PHYS_COLLECTIVE_MIN = 0.565
+PHYS_COLLECTIVE_MAX = 0.615
 
 SAFE_ALT_MIN_FT = 285.0
 SAFE_ALT_MAX_FT = 315.0
@@ -74,7 +84,7 @@ def safety_reason(state):
     return ""
 
 print("=" * 120)
-print("PARAMETRIC FORWARD-FLIGHT TURN V3")
+print("PARAMETRIC FORWARD-FLIGHT TURN V4")
 print(f"REQUESTED TURN = {TARGET_TURN_DEG:+.2f} deg")
 print(f"MAX TEST TIME = {MAX_TEST_TIME_S:.1f} s")
 print("=" * 120)
@@ -90,13 +100,38 @@ try:
     env2.mapped_aileron_scale = TURN_AILERON_SCALE
 
     original_apply_action = env2._apply_action
+    last_alt_hold = {"base_collective": float("nan"), "desired_vs": 0.0, "residual": 0.0, "collective": float("nan")}
+
     def turn_apply_action(action):
         controls = original_apply_action(action)
         alt = float(fdm["position/h-agl-ft"])
         vs = float(fdm["velocities/h-dot-fps"])
-        collective = float(np.clip(0.587 + 0.0010*(300.0-alt) - 0.0060*vs, 0.575, 0.600))
+        base_collective = float(fdm["fcs/collective-cmd-norm"])
+
+        desired_vs = float(np.clip(
+            ALT_TO_VS_GAIN * (300.0 - alt),
+            -MAX_ALT_HOLD_VS_FPS,
+            +MAX_ALT_HOLD_VS_FPS,
+        ))
+        collective_residual = float(np.clip(
+            VS_TO_COLLECTIVE_GAIN * (desired_vs - vs),
+            -MAX_COLLECTIVE_RESIDUAL,
+            +MAX_COLLECTIVE_RESIDUAL,
+        ))
+        collective = float(np.clip(
+            base_collective + collective_residual,
+            PHYS_COLLECTIVE_MIN,
+            PHYS_COLLECTIVE_MAX,
+        ))
         fdm["fcs/collective-cmd-norm"] = collective
+        last_alt_hold.update(
+            base_collective=base_collective,
+            desired_vs=desired_vs,
+            residual=collective_residual,
+            collective=collective,
+        )
         return controls
+
     env2._apply_action = turn_apply_action
 
     initial = snapshot(fdm, lat0, lon0, mission_heading)
@@ -112,10 +147,8 @@ try:
 
     prev_hdg = initial_hdg
     cumulative = 0.0
-    hold_s = 0.0
-    post_s = 0.0
-    complete = False
-    success = False
+    hold_s = post_s = 0.0
+    complete = success = False
     termination = "time_limit"
     trace = []
 
@@ -129,8 +162,8 @@ try:
 
         if not complete:
             a2, a3, desired_roll, desired_yaw_rate = turn_teacher(before, remaining)
-            alt_corr = float(np.clip(0.050*(300.0-before["altitude_ft"]) - 0.120*before["vertical_speed_fps"], -0.40, +0.40))
-            action[0] = float(np.clip(base[0] + alt_corr, -1.0, +1.0))
+            # Collective is intentionally left at Stage-2 base action here.
+            # turn_apply_action() adds the one and only altitude-hold residual.
             action[2] = a2
             action[3] = a3
         else:
@@ -177,8 +210,10 @@ try:
             "desired_yaw_rate_deg_s": float(desired_yaw_rate),
             "teacher_a2": float(a2),
             "teacher_a3": float(a3),
-            "used_a2": float(used[2]),
-            "used_a3": float(used[3]),
+            "base_collective": float(last_alt_hold["base_collective"]),
+            "desired_vs_fps": float(last_alt_hold["desired_vs"]),
+            "collective_residual": float(last_alt_hold["residual"]),
+            "physical_collective": float(last_alt_hold["collective"]),
             "turn_complete": bool(complete),
         })
 
@@ -190,7 +225,13 @@ try:
         if success:
             break
         if step % max(1, int(1.0/dt)) == 0:
-            print(f"t={(step+1)*dt:6.1f}s | TURN={cumulative:+7.2f}/{TARGET_TURN_DEG:+7.2f} | REM={remaining:+7.2f} | HDG={state['heading_error_deg']:+7.2f} | ROLL={roll:+6.2f} | YR={yaw_rate:+6.2f} | ALT={state['altitude_ft']:7.2f} | V={state['forward_speed_fps']:6.2f}")
+            print(
+                f"t={(step+1)*dt:6.1f}s | TURN={cumulative:+7.2f}/{TARGET_TURN_DEG:+7.2f} | "
+                f"REM={remaining:+7.2f} | HDG={state['heading_error_deg']:+7.2f} | "
+                f"ROLL={roll:+6.2f} | YR={yaw_rate:+6.2f} | ALT={state['altitude_ft']:7.2f} | "
+                f"VS={state['vertical_speed_fps']:+6.2f} | COLL={last_alt_hold['collective']:.4f} | "
+                f"V={state['forward_speed_fps']:6.2f}"
+            )
 
     if trace:
         with (RESULT_DIR/"parametric_turn_trace.csv").open("w", newline="", encoding="utf-8") as f:

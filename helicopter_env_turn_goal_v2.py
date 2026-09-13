@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import numpy as np
 
-from helicopter_env_turn_goal import HelicopterEnvTurnGoal
+from helicopter_env_turn_goal import HelicopterEnvTurnGoal, wrap_deg
 
 
 class HelicopterEnvTurnGoalV2(HelicopterEnvTurnGoal):

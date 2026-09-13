@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 BASE = Path("validate_full_mission_v19_360_transition_trim_0590.py")
@@ -21,9 +20,6 @@ def first_line(text: str, prefix: str) -> str:
 def make_variant(base_text: str, collective: float) -> str:
     text = base_text
 
-    # V19 contains the generated validator body inside a triple-quoted
-    # replacement string. Match only stable substrings so newline escaping
-    # cannot break the sweep script.
     old_gate = "if abs(requested_turn) >= 300.0:"
     new_gate = "if requested_turn > 0.0:"
     if old_gate not in text:
@@ -70,17 +66,28 @@ def main() -> int:
         print("=" * 120)
 
         variant = make_variant(base_text, collective)
-        tmp_path = Path(tempfile.gettempdir()) / f"validate_plus50_c{collective:.3f}.py"
+
+        # IMPORTANT: keep the temporary validator in the repository root.
+        # Running a script from /tmp makes sys.path[0] point at /tmp, which
+        # hides project-local modules imported by the compiled V11 validator.
+        tmp_path = Path.cwd() / f"_v21_validate_plus50_c{collective:.3f}.py"
         tmp_path.write_text(variant, encoding="utf-8")
 
-        proc = subprocess.run(
-            [sys.executable, str(tmp_path)],
-            input=f"{ANGLE}\n",
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            cwd=Path.cwd(),
-        )
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(tmp_path)],
+                input=f"{ANGLE}\n",
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                cwd=Path.cwd(),
+            )
+        finally:
+            try:
+                tmp_path.unlink()
+            except FileNotFoundError:
+                pass
+
         output = proc.stdout
 
         log_path = LOG_DIR / f"plus50_collective_{collective:.3f}.log"
@@ -97,6 +104,11 @@ def main() -> int:
         print(post or "POST-TURN FORWARD: not found")
         print(safety or "SAFETY FAILURE: not found")
         print(full or "FULL MISSION PASS: not found")
+
+        if not turn and not full:
+            print("--- validator startup/error output ---")
+            print(output[-4000:] if output else "<no subprocess output>")
+            print("--- end startup/error output ---")
 
         passed = proc.returncode == 0 and full == "FULL MISSION PASS: True"
         results.append((collective, passed, transition, post, safety, str(log_path)))

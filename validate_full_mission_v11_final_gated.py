@@ -154,6 +154,79 @@ if old_action not in text:
     raise RuntimeError("Could not locate turn_action function")
 text = text.replace(old_action, new_action, 1)
 
+# Replace the old post-turn behavior. The old validator kept executing the
+# turn policy stack after capture. Final mission semantics require a handoff
+# back to Stage2 PPO on the SAME live FDM and a new yaw/heading reference.
+post_start_marker = '''# turn_env.step() has already terminated after its success hold, so continue
+# the exact same learned stack manually on the same FDM. No reset/teacher/controller.
+'''
+post_end_marker = '''if post_final is None:
+'''
+post_start = text.find(post_start_marker)
+post_end = text.find(post_end_marker, post_start)
+if post_start < 0 or post_end < 0:
+    raise RuntimeError("Could not locate post-turn continuation block")
+
+new_post = '''# Final mission handoff: TURN -> STAGE2 PPO, same live FDM.
+# Rebase the AFCS yaw trim to the captured new heading, then let the learned
+# Stage2 policy manage forward speed/altitude for the 10-second continuation.
+post_target_heading = heading_deg(fdm)
+env2.fdm = fdm
+env2.phase = 1
+env2.forward_distance = 0.0
+env2.previous_action = np.zeros(4, dtype=np.float32)
+env2.steps = 0
+fdm["ap/afcs/psi-trim-rad"] = math.radians(post_target_heading)
+fdm["ap/afcs/pitch-channel-active-norm"] = 0.5
+fdm["ap/afcs/roll-channel-active-norm"] = 1.0
+fdm["ap/afcs/yaw-channel-active-norm"] = 1.0
+obs_post = np.asarray(env2._get_obs(), dtype=np.float32)
+
+print(
+    "POST-TURN POLICY HANDOFF | policy=Stage2 PPO | "
+    f"new_heading_ref={post_target_heading:.2f}deg | same_fdm={id(env2.fdm) == active_fdm_id}"
+)
+
+post_steps = int(math.ceil(POST_TURN_FORWARD_S / env2.CONTROL_DT))
+for _ in range(post_steps):
+    action_post, _ = stage2_model.predict(obs_post, deterministic=True)
+    obs_post, _, terminated_post, truncated_post, info_post = env2.step(action_post)
+    obs_post = np.asarray(obs_post, dtype=np.float32)
+
+    m = physical_metrics(fdm)
+    current_hdg = heading_deg(fdm)
+    heading_error = wrap_deg(post_target_heading - current_hdg)
+    remaining = heading_error
+    completed_equiv = requested_turn - remaining
+    post_elapsed += env2.CONTROL_DT
+
+    post_min_alt = min(post_min_alt, m["alt"])
+    post_max_alt = max(post_max_alt, m["alt"])
+    post_min_speed = min(post_min_speed, m["u"])
+    post_max_abs_heading_error = max(post_max_abs_heading_error, abs(remaining))
+    post_max_abs_vs = max(post_max_abs_vs, abs(m["vs"]))
+    post_max_abs_roll = max(post_max_abs_roll, abs(m["roll"]))
+    post_max_abs_yaw_rate = max(post_max_abs_yaw_rate, abs(m["r"]))
+
+    stable = bool(
+        abs(remaining) <= TURN_CAPTURE_TOL_DEG
+        and TURN_ALT_MIN_FT <= m["alt"] <= TURN_ALT_MAX_FT
+        and abs(m["vs"]) <= TURN_MAX_ABS_VS_FPS
+        and m["u"] >= TURN_MIN_SPEED_FPS
+        and abs(m["roll"]) <= TURN_MAX_ABS_ROLL_DEG
+        and abs(m["r"]) <= TURN_MAX_ABS_YAW_RATE_DEG_S
+    )
+    post_stable_time = post_stable_time + env2.CONTROL_DT if stable else 0.0
+    env_failed = bool((terminated_post or truncated_post) and not bool(info_post.get("success", False)))
+    post_safety_failure = post_safety_failure or env_failed or (not hard_safe(m))
+    post_final = {**m, "remaining": remaining, "completed": completed_equiv}
+
+    if post_safety_failure:
+        break
+
+'''
+text = text[:post_start] + new_post + text[post_end:]
+
 old_summary = '''print(f"V7 +200 GATE AT TURN ENTRY: {'ON' if patch_gate > 0.5 else 'OFF'}")
 '''
 new_summary = '''print(f"V7 +200 GATE AT TURN ENTRY: {'ON' if patch_gate > 0.5 else 'OFF'}")
@@ -167,6 +240,7 @@ print("=" * 120)
 print("FINAL FULL-MISSION V11 - CALIBRATED PROGRESS + GATED -50 COLLECTIVE PATCH")
 print("Runtime teacher/controller OFF. Same JSBSim FDM, no reset between flight phases.")
 print("V7 correction is active only for +200; V10 collective correction is active only for -50.")
+print("Post-turn continuation hands the same FDM back to Stage2 PPO on the captured new heading.")
 print("=" * 120)
 
 exec(compile(text, str(SOURCE), "exec"), {"__name__": "__main__", "__file__": str(SOURCE)})

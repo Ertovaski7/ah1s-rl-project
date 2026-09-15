@@ -75,7 +75,7 @@ def fdm_float(fdm, key: str, default=float("nan")) -> float:
         return float(default)
 
 
-def recover_bumpless(fdm, fdm_id: int):
+def recover_bumpless(fdm, fdm_id: int, progress_callback=None):
     """Validated SAME-FDM primitive-to-primitive recovery."""
     env, _ = v7.make_env_on_fdm(fdm, 1.0)
     env.turn_active = False
@@ -168,6 +168,9 @@ def recover_bumpless(fdm, fdm_id: int):
             roll = math.degrees(float(s["roll"]))
             pitch = math.degrees(float(s["pitch"]))
             yaw = math.degrees(float(s["r_rate"]))
+
+            if progress_callback is not None and i % 5 == 0:
+                progress_callback("TURN / RECOVERY")
 
             max_alt = max(max_alt, alt)
             min_alt = min(min_alt, alt)

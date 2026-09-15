@@ -140,7 +140,13 @@ def release_wrapper(env):
         pass
 
 
-def run_rl_primitive(stack, fdm, target: float, fdm_id: int):
+def run_rl_primitive(
+    stack,
+    fdm,
+    target: float,
+    fdm_id: int,
+    progress_callback=None,
+):
     bm, ba, p200, p50, p21 = stack
     env, obs = make_env_on_fdm(fdm, target)
     specialist = v5.in_existing_specialist_gate(float(target))
@@ -160,7 +166,7 @@ def run_rl_primitive(stack, fdm, target: float, fdm_id: int):
     max_steps = int(max(100.0, abs(float(target)) + 80.0) / env.CONTROL_DT)
 
     try:
-        for _ in range(max_steps):
+        for step_idx in range(max_steps):
             if id(fdm) != fdm_id:
                 raise RuntimeError("Shared FDM identity changed inside RL primitive")
 
@@ -190,6 +196,10 @@ def run_rl_primitive(stack, fdm, target: float, fdm_id: int):
 
             obs, _, terminated, truncated, info = env.step(action)
             obs = np.asarray(obs, dtype=np.float32)
+            if progress_callback is not None and (
+                step_idx % 5 == 0 or terminated or truncated
+            ):
+                progress_callback("TURN / RL")
             if terminated or truncated:
                 success = bool(info.get("success", False))
                 break
@@ -220,7 +230,12 @@ def run_rl_primitive(stack, fdm, target: float, fdm_id: int):
         release_wrapper(env)
 
 
-def fine_afcs_tail(fdm, delta_deg: float, fdm_id: int):
+def fine_afcs_tail(
+    fdm,
+    delta_deg: float,
+    fdm_id: int,
+    progress_callback=None,
+):
     """Small residual heading capture on the same FDM, with live V5 vertical trim."""
     env, _ = make_env_on_fdm(fdm, float(delta_deg))
     start_hdg = heading_deg(fdm)
@@ -239,7 +254,7 @@ def fine_afcs_tail(fdm, delta_deg: float, fdm_id: int):
         fdm["ap/afcs/yaw-channel-active-norm"] = 1.0
 
         max_steps = int(35.0 / env.CONTROL_DT)
-        for _ in range(max_steps):
+        for step_idx in range(max_steps):
             if id(fdm) != fdm_id:
                 raise RuntimeError("Shared FDM identity changed inside AFCS tail")
 
@@ -265,6 +280,9 @@ def fine_afcs_tail(fdm, delta_deg: float, fdm_id: int):
             hdg_err = wrap_deg(target_hdg - heading_deg(fdm))
             roll_deg = abs(math.degrees(float(s["roll"])))
             yaw_deg = abs(math.degrees(float(s["r_rate"])))
+
+            if progress_callback is not None and step_idx % 5 == 0:
+                progress_callback("TURN / AFCS CAPTURE")
 
             safety = bool(
                 (not js_ok)

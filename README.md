@@ -32,6 +32,24 @@ Google Colab kullanılıyorsa repository zaten klonlanmışsa:
 !pip install -r requirements.txt
 ```
 
+### Colab içinde canlı target-heading dashboard
+
+`run_colab_live_heading_dashboard.py`, Gradio/Hugging Face veya localhost
+kullanmadan doğrudan Colab hücresinin içinde çalışır. Stage 1'den itibaren aynı
+JSBSim FDM'i korur; kullanıcı çalışma devam ederken `0–359°` absolute target
+heading girer. 3D rota, top view, altitude profile ve telemetri gerçek simülasyon
+state'i ile canlı güncellenir.
+
+```python
+%cd /content/ah1s-rl-project
+%run run_colab_live_heading_dashboard.py
+```
+
+Panelde `FORWARD / READY` görüldüğünde `Target Heading` alanına değer girilip
+`Fly to Heading` düğmesine basılır. Sistem komut başladığı andaki current heading
+ile hedef arasındaki en kısa relatif dönüşü hesaplar. Örneğin `350° -> 10°`,
+`+20°` komutuna çevrilir.
+
 `requirements.txt` içindeki temel paketler:
 
 ```text

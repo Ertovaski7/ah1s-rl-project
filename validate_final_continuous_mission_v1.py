@@ -47,7 +47,13 @@ def parse_args():
     return p.parse_args()
 
 
-def execute_command_same_fdm(stack, fdm, fdm_id: int, target: float):
+def execute_command_same_fdm(
+    stack,
+    fdm,
+    fdm_id: int,
+    target: float,
+    progress_callback=None,
+):
     """Execute one arbitrary relative command on the already-running FDM."""
     if id(fdm) != fdm_id:
         raise RuntimeError("Shared FDM identity changed before command")
@@ -74,9 +80,15 @@ def execute_command_same_fdm(stack, fdm, fdm_id: int, target: float):
                 angle = live_rem
 
         if kind == "rl":
-            r = v7.run_rl_primitive(stack, fdm, angle, fdm_id)
+            r = v7.run_rl_primitive(
+                stack, fdm, angle, fdm_id,
+                progress_callback=progress_callback,
+            )
         else:
-            r = v7.fine_afcs_tail(fdm, angle, fdm_id)
+            r = v7.fine_afcs_tail(
+                fdm, angle, fdm_id,
+                progress_callback=progress_callback,
+            )
 
         executed.append(r)
         total_done += float(r["done"])
@@ -94,7 +106,9 @@ def execute_command_same_fdm(stack, fdm, fdm_id: int, target: float):
 
         # Preserve V11's proven recovery between consecutive RL primitives.
         if idx < len(plan) and plan[idx][0] == "rl":
-            rec = v11.recover_bumpless(fdm, fdm_id)
+            rec = v11.recover_bumpless(
+                fdm, fdm_id, progress_callback=progress_callback
+            )
             recoveries.append(rec)
             total_done += float(rec["heading_delta"])
             safety = safety or bool(rec["safe"])
@@ -113,7 +127,9 @@ def execute_command_same_fdm(stack, fdm, fdm_id: int, target: float):
     # failure from the high-lateral +50 specialist endpoint.
     final_recovery = None
     if ok:
-        final_recovery = v11.recover_bumpless(fdm, fdm_id)
+        final_recovery = v11.recover_bumpless(
+            fdm, fdm_id, progress_callback=progress_callback
+        )
         recoveries.append(final_recovery)
         total_done += float(final_recovery["heading_delta"])
         safety = safety or bool(final_recovery["safe"])
@@ -132,7 +148,10 @@ def execute_command_same_fdm(stack, fdm, fdm_id: int, target: float):
     correction = None
     final_rem = float(target - total_done)
     if ok and 0.5 <= abs(final_rem) <= 10.0:
-        correction = v7.fine_afcs_tail(fdm, final_rem, fdm_id)
+        correction = v7.fine_afcs_tail(
+            fdm, final_rem, fdm_id,
+            progress_callback=progress_callback,
+        )
         total_done += float(correction["done"])
         safety = safety or bool(correction["safe"])
         print(

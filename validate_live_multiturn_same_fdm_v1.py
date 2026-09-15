@@ -135,7 +135,7 @@ def physical_safety_ok(fdm) -> bool:
     )
 
 
-def build_initial_live_mission():
+def build_initial_live_mission(progress_callback=None):
     print("\n[1/2] Stage1: takeoff -> stable 300 ft hover")
     env1 = Env1(teacher_model_path=None, training_mode=False)
     obs1, _ = env1.reset(seed=SEED)
@@ -144,9 +144,11 @@ def build_initial_live_mission():
     dt1 = env_control_dt(env1)
     stable_time = 0.0
 
-    for _ in range(int(STAGE1_MAX_TIME / dt1)):
+    for step_idx in range(int(STAGE1_MAX_TIME / dt1)):
         action, _ = stage1_model.predict(obs1, deterministic=True)
         obs1, _, terminated, truncated, info = env1.step(action)
+        if progress_callback is not None and step_idx % 5 == 0:
+            progress_callback("STAGE 1 — TAKEOFF / HOVER", fdm)
 
         alt = info_float(info, "altitude")
         vs = info_float(info, "vertical_speed")
@@ -188,10 +190,12 @@ def build_initial_live_mission():
     obs2 = np.asarray(env2._get_obs(), dtype=np.float32)
     dt2 = env_control_dt(env2)
 
-    for _ in range(int(70.0 / dt2)):
+    for step_idx in range(int(70.0 / dt2)):
         action, _ = stage2_model.predict(obs2, deterministic=True)
         obs2, _, terminated, truncated, _ = env2.step(action)
         obs2 = np.asarray(obs2, dtype=np.float32)
+        if progress_callback is not None and step_idx % 5 == 0:
+            progress_callback("STAGE 2 — FORWARD FLIGHT", fdm)
 
         if env2.forward_distance >= ENTRY_FORWARD_FT:
             break

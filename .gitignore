@@ -1,4 +1,15 @@
 __pycache__/
 *.pyc
+.ipynb_checkpoints/
+
+# Eski yedek arşivleri
 AH1S_PROGRESS_2026_09_06.zip
 stage3_complete_backup_2026_09_06.tar.gz
+
+# Çalıştırınca üretilen çıktılar (repo'yu şişirmesin diye commit'lenmez;
+# kanıt olarak saklamak istediğin bir sonucu `git add -f` ile ekleyebilirsin)
+results_*/
+*.gif
+
+# training/make_v13_from_v7.py tarafından V7 şablonundan üretilen script
+training/train_turn_full_entry_v13_gated_50_patch.py

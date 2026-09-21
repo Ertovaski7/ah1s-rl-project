@@ -20,7 +20,7 @@ En önemli tasarım kararı, fazlar arasında simülasyonun yeniden başlatılma
 
 ## 1.1. Colab (önerilen)
 
-`stajım.ipynb` defterini Colab'da aç, ilk kod hücresindeki `REPO_URL` satırına kendi fork'unun adresini yaz ve hücreleri sırayla çalıştır:
+`stajım.ipynb` defterini Colab'da aç ve hücreleri sırayla çalıştır (`REPO_URL` bu fork'u gösteriyor; başka bir fork kullanıyorsan değiştir):
 
 1. **Kurulum** — repo klonlanır/güncellenir, `requirements.txt` kurulur
 2. **Hızlı kontrol** — model checksum'ları, derleme, kontrol yığınının yüklenmesi
@@ -30,7 +30,7 @@ En önemli tasarım kararı, fazlar arasında simülasyonun yeniden başlatılma
 ## 1.2. Terminal
 
 ```bash
-git clone https://github.com/<KULLANICI_ADIN>/ah1s-rl-project.git
+git clone https://github.com/Ertovaski7/ah1s-rl-project.git
 cd ah1s-rl-project
 pip install -r requirements.txt
 

@@ -140,7 +140,7 @@ def combined_action(base_model, base_adapter, patch_200, patch_50, obs):
 
 def require_file(path: Path):
     if not path.exists():
-        raise FileNotFoundError(f"Missing required model: {path}\nRun restore_post_v5_for_v14.py first.")
+        raise FileNotFoundError(f"Missing required model: {path}\nRun training/restore_current_turn_stack_v1.py first.")
 
 
 def load_adapter(path: Path, scale):

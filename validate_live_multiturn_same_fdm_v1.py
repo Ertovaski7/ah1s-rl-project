@@ -30,7 +30,6 @@ commands arrive while the simulation is running.
 import argparse
 import math
 import types
-from pathlib import Path
 
 import numpy as np
 
@@ -42,8 +41,6 @@ import test_turn_full_entry_v22_v21_runtime as v22
 
 SEED = 42
 DEFAULT_TARGETS = [20.0, -30.0]
-BASE_SOURCE = Path("deneme/diagnose_stage4_entry_margin_v3.py")
-MARKER = 'rule("A — LOCKED STAGE1 -> STAGE2 -> STAGE3 FULL QUALIFICATION")'
 ENTRY_FORWARD_FT = 160.0
 INTER_TURN_FORWARD_S = 5.0
 POLICY_FORWARD_COORD = 403.424
@@ -62,13 +59,12 @@ def parse_args():
 
 
 def load_locked_defs():
-    text = BASE_SOURCE.read_text(encoding="utf-8")
-    if MARKER not in text:
-        raise RuntimeError("Locked Stage1/2 definitions marker not found")
-    prefix = text.split(MARKER, 1)[0]
-    ns = {"__name__": "live_multiturn_defs", "__file__": str(BASE_SOURCE)}
-    exec(compile(prefix, str(BASE_SOURCE), "exec"), ns)
-    return ns
+    # Kilitli Stage 1 / Stage 2 modelleri ve handoff yardımcıları.
+    # (Eskiden deneme/diagnose_stage4_entry_margin_v3.py'nin ilk kısmı exec
+    # ile çalıştırılıyordu; aynı tanımlar artık locked_stage1_stage2.py'de.)
+    import locked_stage1_stage2
+
+    return vars(locked_stage1_stage2)
 
 
 ns = load_locked_defs()

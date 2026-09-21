@@ -1,7 +1,14 @@
+# training/ klasöründen çalıştırılabilmesi için: repo kökünü import yoluna ekle
+# ve çalışma dizinini köke al (model/sonuç yolları köke göredir).
+import os as _os, sys as _sys
+_REPO_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+_sys.path.insert(0, _REPO_ROOT)
+_os.chdir(_REPO_ROOT)
+
 from pathlib import Path
 
-src = Path("train_turn_full_entry_v7_gated_200_patch.py")
-dst = Path("train_turn_full_entry_v13_gated_50_patch.py")
+src = Path("training/train_turn_full_entry_v7_gated_200_patch.py")
+dst = Path("training/train_turn_full_entry_v13_gated_50_patch.py")
 
 if not src.exists():
     raise FileNotFoundError(src)

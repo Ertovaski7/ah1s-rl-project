@@ -17,7 +17,7 @@ ONEMLI:
 - Sonunda V22 robustness testini calistirir.
 
 Kullanim:
-    python restore_current_turn_stack_v1.py
+    python training/restore_current_turn_stack_v1.py
 
 Uzun surebilir; ozellikle BC/RL/V3/V5/V4/V7/V13/V17/V21 egitimleri CPU'da zaman alir.
 Runtime teacher final testte OFF'tur; teacher yalnizca yeniden egitim adimlarinda
@@ -29,7 +29,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]  # repo kökü
 os.chdir(ROOT)
 
 ENV = os.environ.copy()
@@ -50,7 +50,7 @@ V7 = MODELS / "AH1S_TURN_FULL_ENTRY_V7_GATED_200_PATCH.pt"
 V13 = MODELS / "AH1S_TURN_FULL_ENTRY_V13_GATED_50_PATCH.pt"
 V17 = MODELS / "AH1S_TURN_FULL_ENTRY_V17_ROBUST_50_PATCH.pt"
 V21 = MODELS / "AH1S_TURN_FULL_ENTRY_V21_STRONG_TERMINAL_50_PATCH.pt"
-V13_SCRIPT = ROOT / "train_turn_full_entry_v13_gated_50_patch.py"
+V13_SCRIPT = ROOT / "training" / "train_turn_full_entry_v13_gated_50_patch.py"
 
 
 def banner(text: str):
@@ -91,53 +91,53 @@ status()
 
 # 1) Teacher dataset + behavior cloning warm-start.
 if not DATASET.exists() or not BC.exists():
-    run("build_turn_hybrid_v1.py")
+    run("training/build_turn_hybrid_v1.py")
 need(DATASET, "teacher dataset")
 need(BC, "BC warm-start")
 
 # 2) PPO fine-tune V2.
 if not V2.exists():
-    run("deneme/fine_tune_turn_rl_v2.py")
+    run("training/fine_tune_turn_rl_v2.py")
 need(V2, "V2 PPO")
 
 # 3) Post-RL repair V3.
 if not V3.exists():
-    run("deneme/repair_turn_hybrid_v3.py")
+    run("training/repair_turn_hybrid_v3.py")
 need(V3, "V3 repaired")
 
 # 4) V5 collective-only repair: general turn base.
 if not V5.exists():
-    run("repair_turn_hybrid_v5_collective_only.py")
+    run("training/repair_turn_hybrid_v5_collective_only.py")
 need(V5, "V5 base turn PPO")
 
 # 5) Live-entry residual adapter V4 (script name V12, output intentionally V4).
 if not V4.exists():
-    run("train_turn_live_entry_v12_residual_all_targets.py")
+    run("training/train_turn_live_entry_v12_residual_all_targets.py")
 need(V4, "V4 live-entry residual")
 
 # 6) +200 specialist V7.
 if not V7.exists():
-    run("train_turn_full_entry_v7_gated_200_patch.py")
+    run("training/train_turn_full_entry_v7_gated_200_patch.py")
 need(V7, "V7 +200 patch")
 
 # 7) Generate +50 V13 training script from V7 template if source file is absent.
 if not V13_SCRIPT.exists():
-    run("make_v13_from_v7.py")
+    run("training/make_v13_from_v7.py")
 need(V13_SCRIPT, "V13 training script")
 
 # 8) +50 V13 specialist.
 if not V13.exists():
-    run("train_turn_full_entry_v13_gated_50_patch.py")
+    run("training/train_turn_full_entry_v13_gated_50_patch.py")
 need(V13, "V13 +50 patch")
 
 # 9) Robust +50 V17. Historical best can remain equivalent to V13; that is OK.
 if not V17.exists():
-    run("train_turn_full_entry_v17_robust_50_patch.py")
+    run("training/train_turn_full_entry_v17_robust_50_patch.py")
 need(V17, "V17 robust +50 patch")
 
 # 10) Strong terminal +50 V21.
 if not V21.exists():
-    run("train_turn_full_entry_v21_strong_terminal_50_patch.py")
+    run("training/train_turn_full_entry_v21_strong_terminal_50_patch.py")
 need(V21, "V21 terminal +50 patch")
 
 status()

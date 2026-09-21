@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+# training/ klasöründen çalıştırılabilmesi için: repo kökünü import yoluna ekle
+# ve çalışma dizinini köke al (model/sonuç yolları köke göredir).
+import os as _os, sys as _sys
+_REPO_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+_sys.path.insert(0, _REPO_ROOT)
+_os.chdir(_REPO_ROOT)
+
 import math
 from pathlib import Path
 
@@ -12,8 +19,6 @@ from helicopter_env_turn_goal_v2 import HelicopterEnvTurnGoalV2
 
 SEED = 42
 TARGETS = [-50.0, 50.0, 200.0, 360.0]
-BASE_SOURCE = Path("deneme/diagnose_stage4_entry_margin_v3.py")
-MARKER = 'rule("A — LOCKED STAGE1 -> STAGE2 -> STAGE3 FULL QUALIFICATION")'
 BASE_MODEL = Path("models_turn_hybrid/AH1S_TURN_HYBRID_V5_COLLECTIVE_ONLY.zip")
 OUT_DIR = Path("models_turn_hybrid")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -47,11 +52,11 @@ class ResidualAdapter(nn.Module):
 
 
 def load_locked_defs():
-    text = BASE_SOURCE.read_text(encoding="utf-8")
-    prefix = text.split(MARKER, 1)[0]
-    ns = {"__name__": "v12_locked_defs", "__file__": str(BASE_SOURCE)}
-    exec(compile(prefix, str(BASE_SOURCE), "exec"), ns)
-    return ns
+    # Kilitli Stage 1 / Stage 2 tanımları (eskiden deneme/ altındaki bir
+    # Stage-4 diagnostic dosyasından exec ile alınıyordu).
+    import locked_stage1_stage2
+
+    return vars(locked_stage1_stage2)
 
 
 ns = load_locked_defs()

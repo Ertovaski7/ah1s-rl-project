@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+# training/ klasöründen çalıştırılabilmesi için: repo kökünü import yoluna ekle
+# ve çalışma dizinini köke al (model/sonuç yolları köke göredir).
+import os as _os, sys as _sys
+_REPO_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+_sys.path.insert(0, _REPO_ROOT)
+_os.chdir(_REPO_ROOT)
+
 import json
 import math
 from pathlib import Path

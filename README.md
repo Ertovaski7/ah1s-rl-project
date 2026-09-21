@@ -2,9 +2,13 @@
 
 Bu proje, **JSBSim içindeki `ah1s` helikopter modelini** kullanarak AH-1S için çok aşamalı bir uçuş görevinin **PPO tabanlı reinforcement learning (RL)**, **teacher–student / policy distillation**, **residual düzeltmeler** ve **AFCS destekli geçiş kontrolü** ile gerçekleştirilmesini amaçlar.
 
-Temel görev zinciri:
+Repodaki iki görev zinciri:
 
-> **Stage 1: Kalkış ve 300 ft hover → Stage 2: İleri uçuş → Stage 3: Relative turn → Recovery: Dönüş sonrası stabilizasyon → Post-turn Stage 2: Yeni heading üzerinde ileri uçuş**
+> **Heading görevi:** Stage 1: Kalkış ve 300 ft hover → Stage 2: İleri uçuş → Turn: Relative turn → Recovery: Dönüş sonrası stabilizasyon → Post-turn Stage 2: Yeni heading üzerinde ileri uçuş
+>
+> **Durma görevi:** Stage 1: Kalkış ve 300 ft hover → Stage 2: İleri uçuş → Stage 3: 300 ft ilerideki hedef noktada durma + stabil hover
+
+**İsimlendirme notu:** Dosya adlarındaki `stage3` (`models_stage3_hybrid_final/`, `validate_stage3_stop_hover.py`) *durma + hover* görevidir. Eski dokümanlarda ve canlı dashboard'un legend'ında dönüş fazı da "Stage 3 — Turn" diye geçer; bu README'de karışmaması için dönüş fazına **Turn** deniyor.
 
 En önemli tasarım kararı, fazlar arasında simülasyonun yeniden başlatılmamasıdır. **Aynı JSBSim FDM (Flight Dynamics Model) ve aynı helikopter state’i bir sonraki faza aktarılır.** Böylece her policy yalnızca ideal bir başlangıç durumunda değil, önceki fazın gerçek dinamik çıktısı üzerinden çalışır.
 
@@ -21,7 +25,7 @@ En önemli tasarım kararı, fazlar arasında simülasyonun yeniden başlatılma
 1. **Kurulum** — repo klonlanır/güncellenir, `requirements.txt` kurulur
 2. **Hızlı kontrol** — model checksum'ları, derleme, kontrol yığınının yüklenmesi
 3. **Canlı dashboard** — `%run run_colab_live_heading_dashboard.py`
-4. **Doğrulama testleri** ve 5. **GIF görselleştirme** (isteğe bağlı)
+4. **Doğrulama testleri** (heading görevi, Stage 3 durma + hover, turn robustness) ve 5. **GIF görselleştirme** (isteğe bağlı)
 
 ## 1.2. Terminal
 
@@ -31,7 +35,8 @@ cd ah1s-rl-project
 pip install -r requirements.txt
 
 sha256sum -c models_sha256.txt                              # modeller sağlam mı?
-python validate_final_continuous_mission_v1.py 20 -30 75    # final görev (headless)
+python validate_final_continuous_mission_v1.py 20 -30 75    # heading görevi (headless)
+python validate_stage3_stop_hover.py                        # Stage 1 → 2 → 3: hedefte durma + hover
 python visualize_final_multiturn.py 20 -30 75               # aynı görev -> ah1s_final_multiturn.gif
 ```
 
@@ -56,7 +61,8 @@ Panelde `FORWARD / READY` görüldüğünde `Target Heading` alanına değer gir
 ah1s-rl-project/
 ├── stajım.ipynb                             Colab defteri (kurulum → kontrol → dashboard → testler)
 ├── run_colab_live_heading_dashboard.py      Canlı target-heading dashboard (Colab içinde)
-├── validate_final_continuous_mission_v1.py  Final görev: Stage1 → Stage2 → komutlar → recovery (headless)
+├── validate_final_continuous_mission_v1.py  Heading görevi: Stage1 → Stage2 → komutlar → recovery (headless)
+├── validate_stage3_stop_hover.py            Durma görevi: Stage1 → Stage2 → Stage3 hedefte durma + 5 s hover
 ├── visualize_final_multiturn.py             Aynı görevi uçurup GIF olarak kaydeder
 │
 │   Environment'lar (Gymnasium + JSBSim)
@@ -65,12 +71,12 @@ ah1s-rl-project/
 ├── helicopter_env_stage2.py                 Stage 2 temel env: hover → ileri uçuş
 ├── helicopter_env_stage2_refine.py          Stage 2 refine: reset'te hazır hover, PPO sadece ileri uçuşu öğrenir
 ├── helicopter_env_stage2_refine_mapped.py   Stage 2: lateral/yaw action'larının fiziksel mapping'i
-├── helicopter_env_turn_goal.py              Stage 3: goal-conditioned relative turn (16 feature)
+├── helicopter_env_turn_goal.py              Turn: goal-conditioned relative turn (16 feature)
 ├── helicopter_env_turn_goal_v2.py           Turn env, PPO fine-tune için güçlendirilmiş reward
 ├── helicopter_env_turn_goal_full_entry.py   Turn'ü gerçek Stage1→Stage2 giriş koşullarından başlatır
 │
 │   Final runtime modülleri (dosya adları tarihsel; "test_" olanlar da runtime'da kullanılır)
-├── locked_stage1_stage2.py                  Kilitli Stage 1/2 modelleri + handoff yardımcıları
+├── locked_stage1_stage2.py                  Kilitli Stage 1/2 modelleri + handoff yardımcıları (iki görev de kullanır)
 ├── validate_live_multiturn_same_fdm_v1.py   Stage1→Stage2 başlatma, aynı FDM'de ileri uçuş yardımcıları
 ├── test_turn_full_entry_v16_randomized_entry_robustness.py   Residual adapter sınıfı, randomized entry env
 ├── test_turn_full_entry_v22_v21_runtime.py  Turn stack action'ı (V5+V4+V7+V17+V21) + 20/20 testi
@@ -83,12 +89,16 @@ ah1s-rl-project/
 ├── training/                                Mevcut modelleri yeniden üreten scriptler (bkz. bölüm 5)
 ├── models_stage1_early_distilled/           Stage 1 modeli
 ├── models_stage2_hybrid_final/              Stage 2 modeli
+├── models_stage3_hybrid_final/              Stage 3 (durma + hover) modeli
 ├── models_turn_hybrid/                      Turn stack modelleri + eğitim zincirinin ara checkpoint'leri
 ├── models_sha256.txt                        Model dosyalarının SHA-256 listesi
+├── results_stage2_hybrid_final/             Stage 2 modelinin doğrulama kanıtı (summary + trace)
+├── results_stage3_hybrid_final/             Stage 3 modelinin doğrulama kanıtı
+├── results_stage3_lateral_*/                Stage 3 eğitim zincirinin girdileri (tanılama + teacher kalibrasyonu)
 └── requirements.txt
 ```
 
-Import zinciri (dashboard'dan aşağı doğru):
+Import zinciri — heading görevi (dashboard'dan aşağı doğru):
 
 ```text
 run_colab_live_heading_dashboard.py / visualize_final_multiturn.py
@@ -103,6 +113,13 @@ run_colab_live_heading_dashboard.py / visualize_final_multiturn.py
             └── helicopter_env_turn_goal_full_entry → helicopter_env_turn_goal_v2 → helicopter_env_turn_goal
 ```
 
+Durma görevi:
+
+```text
+validate_stage3_stop_hover.py          build_stage3_hover_handoff(), Stage 3 modeli
+└── locked_stage1_stage2.py            Stage 1/2 modelleri → helicopter_env_stage1_distill, ..._stage2_refine_mapped
+```
+
 Repository’deki `vN` numaraları çoğunlukla **repair / training / validator sürümü**dür; görev stage numarası değildir.
 
 ---
@@ -113,6 +130,7 @@ Repository’deki `vN` numaraları çoğunlukla **repair / training / validator 
 |---|---|---|
 | `models_stage1_early_distilled/AH1S_STAGE1_EARLY_DISTILLED.zip` | Stage 1 policy (kilitli) | runtime |
 | `models_stage2_hybrid_final/AH1S_STAGE2_HYBRID_FINAL.zip` | Stage 2 policy (kilitli) | runtime |
+| `models_stage3_hybrid_final/AH1S_STAGE3_HYBRID_FINAL.zip` | Stage 3 policy — hedefte durma + hover (kilitli) | runtime (`validate_stage3_stop_hover.py`) |
 | `models_turn_hybrid/AH1S_TURN_HYBRID_V5_COLLECTIVE_ONLY.zip` | V5 — base turn PPO | runtime |
 | `models_turn_hybrid/AH1S_TURN_FULL_ENTRY_V4_RESIDUAL_ADAPTER.pt` | V4 — live-entry residual adapter | runtime |
 | `models_turn_hybrid/AH1S_TURN_FULL_ENTRY_V7_GATED_200_PATCH.pt` | V7 — +200° gated patch | runtime |
@@ -121,7 +139,7 @@ Repository’deki `vN` numaraları çoğunlukla **repair / training / validator 
 | `models_turn_hybrid/AH1S_TURN_FULL_ENTRY_V13_GATED_50_PATCH.pt` | V13 — V17 eğitiminin başlangıç noktası | training |
 | `models_turn_hybrid/AH1S_TURN_BC_WARMSTART.zip`, `..._V2_LAST.zip`, `..._V3_REPAIRED.zip` | Turn eğitim zincirinin ara adımları | training |
 
-Runtime turn modelleri, orijinal "V22 20/20" doğrulamasında kullanılan dosyalarla byte-byte aynıdır. Kontrol için: `sha256sum -c models_sha256.txt`.
+Runtime turn modelleri, orijinal "V22 20/20" doğrulamasında kullanılan dosyalarla; Stage 3 modeli de önceki geliştiricinin kilitlediği SHA-256 değeriyle byte-byte aynıdır. Kontrol için: `sha256sum -c models_sha256.txt`.
 
 **Önemli:** Bu checkpoint'ler silinir ya da bozulursa training scriptlerini yeniden çalıştırmak aynı ağırlıkları birebir geri getirmez. Önce git geçmişinden geri yükleyin.
 
@@ -130,9 +148,13 @@ Runtime turn modelleri, orijinal "V22 20/20" doğrulamasında kullanılan dosyal
 # 4. Doğrulama
 
 ```bash
-# Final görev: Stage 1 → Stage 2 → sırayla relative turn komutları → recovery → ileri uçuş
+# Heading görevi: Stage 1 → Stage 2 → sırayla relative turn komutları → recovery → ileri uçuş
 # (hepsi aynı FDM'de). Beklenen son satır: FINAL CONTINUOUS MISSION: PASS
 python validate_final_continuous_mission_v1.py 20 -30 75 -90 --forward-seconds 3
+
+# Durma görevi: Stage 1 → Stage 2 → Stage 3, hedef noktada durma + 5 s hover (aynı FDM).
+# Beklenen son satır: STAGE 3 STOP + HOVER: PASS
+python validate_stage3_stop_hover.py
 
 # Turn stack robustness: -50°, +50°, +200°, +360° × 5 randomized entry = 20 koşu.
 # Beklenen: RANDOMIZED-ENTRY TOTAL: PASS=20/20 | SAFETY_FAILURES=0/20
@@ -148,6 +170,16 @@ Komut açıları `1 <= |açı| <= 360` aralığında olmalıdır; `+` sağa (saa
 Final sistemi çalıştırmak için eğitim **gerekmez**. `training/` klasörü, repodaki modellerin nasıl üretildiğini belgeler ve gerektiğinde yeniden üretmeye yarar. Scriptler repo kökünden ya da herhangi bir yerden çalıştırılabilir (`python training/<script>.py`); kendilerini repo köküne göre ayarlarlar. CPU'da uzun sürer.
 
 **Stage 2** — `training/build_stage2_hybrid_final.py`: gerçek Stage 1 → Stage 2 handoff'unu yeniden üretir, script içine gömülü doğrulanmış referans uçuştan bir teacher kurar → behavior cloning warm-start → PPO fine-tune → teacher-OFF doğrulama. Çıktıyı `models_stage2_hybrid_final/AH1S_STAGE2_HYBRID_FINAL.zip` üzerine yazar; çalıştırmadan önce yedek alın.
+
+**Stage 3 (durma + hover)** — üç adımlık zincir; her adımın girdisi repoda olduğu için yalnızca son adım da tek başına çalıştırılabilir:
+
+```text
+training/diagnose_stage3_lateral_v2.py          düşük hızda aileron authority tanılaması → results_stage3_lateral_diagnostic_v2/
+→ training/calibrate_stage3_lateral_teacher_v3.py   lateral teacher kazanç kalibrasyonu → results_stage3_lateral_teacher_v3/final_summary.json
+→ training/build_stage3_hybrid_final_v3.py          locked teacher → behavior cloning → PPO fine-tune → teacher-OFF doğrulama
+```
+
+Son adım `models_stage3_hybrid_final/AH1S_STAGE3_HYBRID_FINAL.zip`'in ve `results_stage3_hybrid_final/` kanıtlarının üzerine yazar; çalıştırmadan önce yedek alın.
 
 **Turn stack** — `training/restore_current_turn_stack_v1.py` aşağıdaki zinciri sırayla çalıştırır, yalnızca eksik checkpoint'leri üretir ve sonunda V22 testini koşar:
 
@@ -175,6 +207,7 @@ Bu zincirlerin çoğu saf PPO değil, **hybrid RL + distillation** (behavior clo
 
 - **Hangi env'den başlanır?** İleri uçuşta irtifa/hız değişimi gibi senaryolar için `HelicopterEnvStage2RefineMapped`, heading değişimi için `HelicopterEnvTurnGoal` en yakın başlangıç noktalarıdır. Observation/reward/success kriterleri bu sınıflar alt-sınıflanarak değiştirilebilir.
 - **Gerçekçi başlangıç state'i:** Yeni fazı ideal bir reset'ten değil, önceki fazın bıraktığı state'ten başlatmak için `validate_live_multiturn_same_fdm_v1.build_initial_live_mission()` ile Stage 1 → Stage 2 sonrası canlı FDM'i alıp env'e bağlama desenini (`make_turn_env()`: `env.fdm = fdm`, `reset()` çağrılmaz) örnek alın.
+- **Hover'dan başlayan görevler:** `validate_stage3_stop_hover.build_stage3_hover_handoff()` canlı FDM'i hedef noktada 5 s stabil hover'da geri döndürür (`env1`, `env2`, `fdm`, `lat0/lon0`, `mission_heading`). İniş veya irtifa değişimi gibi yeni bir curriculum bu state'ten başlatılabilir; iş bitince `close_handoff(start)` çağrılır.
 - **Eğitim:** Stable-Baselines3 `PPO("MlpPolicy", env, ...)` CPU'da çalışır. Yeni modeli ayrı bir `models_<curriculum>/` klasörüne kaydedin ve `models_sha256.txt`'ye ekleyin.
 - **Düzen:** Deneme/ara sürüm scriptlerini köke eklemek yerine ayrı bir branch'te veya `experiments/` altında tutun; köke yalnızca doğrulanmış final dosyaları alın. Sonuç klasörleri (`results_*/`) `.gitignore`'dadır.
 
@@ -182,21 +215,23 @@ Bu zincirlerin çoğu saf PPO değil, **hybrid RL + distillation** (behavior clo
 
 # 7. Temizlik notu (2026-09-21)
 
-Repo, final sistemin kullanmadığı dosyalardan temizlendi (410 → 47 dosya, ~97 MB → ~3 MB; notebook 20 MB → 6 KB). Silinen her şey git geçmişinde durur; temizlik öncesi commit'i `pre-cleanup` tag'i ile işaretleyin (ya da upstream `selincyr/ah1s-rl-project` reposuna bakın).
+Repo, final sistemin kullanmadığı dosyalardan temizlendi (410 → 64 dosya, ~97 MB → ~4 MB; notebook 20 MB → 6 KB). Silinen her şey git geçmişinde durur; temizlik öncesi commit'i `pre-cleanup` tag'i ile işaretleyin (ya da upstream `selincyr/ah1s-rl-project` reposuna bakın).
 
 Silinenler:
 
-- `deneme/` — tarihsel env / train / test / kalibrasyon / diagnostic scriptleri. İçindeki 3 çekirdek env dosyası köke, 2 eğitim scripti `training/`'e taşındı.
+- `deneme/` — tarihsel env / train / test / kalibrasyon / diagnostic scriptleri. İçindeki 3 çekirdek env dosyası köke, 3 eğitim scripti `training/`'e taşındı.
 - Eski hedef-bazlı full-mission validator zinciri (`validate_full_mission_v7…v23`, `run_final_regression_v23…v25`, `run_targeted_regression_v26…v29`) ve bunlara bağlı HTML replay üreticileri. Yerini `validate_final_continuous_mission_v1.py` + canlı dashboard aldı.
 - Ara arbitrary-turn / full-entry deneyleri (v2, v4, v6, v8, v9, v10, v14, v15, v18, v20), `diagnose_*`, eski Gradio dashboard.
-- **Stage 3 — hedef noktada durma + hover** (tamamlanmıştı) ve **Stage 4 — iniş** (yarım kalmıştı; Eylül başındaki son notta teacher-off iniş henüz doğrulanmamıştı) çalışmaları: modeller, build/kalibrasyon scriptleri, `results_*` verileri (~60 MB). İniş curriculum'u tekrar ele alınacaksa `pre-cleanup` tag'indeki `STAGE4_PROGRESS_2026_09_06.md` başlangıç noktasıdır.
-- Kopya/ara checkpoint'ler (kökteki `AH1S_*.zip` kopyaları, Stage 2 BC/RL ara adımları, `*_BEST.pt`).
+- **Stage 4 — iniş** çalışması (yarım kalmıştı; Eylül başındaki son notta teacher-off iniş henüz doğrulanmamıştı): modeller, teacher/DAgger/distillation scriptleri, `results_stage4_*` verileri (~60 MB) ve Stage 3'ün kilitli sürümden önceki deneme scriptleri. İniş curriculum'u tekrar ele alınacaksa `pre-cleanup` tag'indeki `STAGE4_PROGRESS_2026_09_06.md` başlangıç noktasıdır.
+- Kopya/ara checkpoint'ler (kökteki `AH1S_*.zip` kopyaları, Stage 2 BC/RL ara adımları, `*_BEST.pt`) ve kullanılmayan tanılama çıktıları.
 
 Bir dosyayı geri almak için: `git checkout pre-cleanup -- <yol>`
 
 ---
 
 # 8. Genel algoritma akışı
+
+Aşağıdaki akış heading görevini gösterir. Durma görevinde Stage 2, 80 ft ileride Stage 3'e devreder; Stage 3 hedef noktada durup hover tutar (bkz. bölüm 14).
 
 ```mermaid
 flowchart TD
@@ -213,7 +248,7 @@ flowchart TD
     H -- Hayır --> G
     H -- Evet --> I[Dönüş başlangıç heading'i kaydedilir]
 
-    I --> J[Stage 3 Goal-Conditioned Relative Turn]
+    I --> J[Turn: Goal-Conditioned Relative Turn]
     J --> K[Base turn PPO + residual/specialist corrections]
     K --> L{Turn success koşulları 3 s korunuyor mu?}
     L -- Hayır --> J
@@ -322,7 +357,7 @@ a2 → mevcut aileron trim + 0.026 * a2
 a3 → mevcut rudder  trim + 0.040 * a3
 ```
 
-## Stage 3 turn mapping
+## Turn mapping
 
 ```python
 collective = clip(0.540 + 0.080 * a0, 0.460, 0.620)
@@ -418,7 +453,48 @@ Standalone training environment’ında hedef forward distance 300 ft’dir. Ful
 
 ---
 
-# 14. Stage 3 — Relative turn
+# 14. Stage 3 — Hedef noktada durma + hover
+
+Stage 2'nin ileri uçuşu, Stage 1 hover noktasından **80 ft** ileride Stage 3 policy'sine devredilir. Stage 3, **300 ft** ilerideki hedef noktada frenleyip durur ve orada stabil hover tutar. Görev aynı FDM üzerinde, teacher OFF çalışır (`validate_stage3_stop_hover.py`).
+
+Observation (14 feature):
+
+```text
+altitude error, vertical speed, hedefe konum hatası, forward speed,
+cross-track, lateral speed, sin(heading error), cos(heading error),
+pitch, roll, roll rate p, pitch rate q, yaw rate r, rotor RPM
+```
+
+Action: 4 boyutlu PPO action'ı, Stage 2'nin fiziksel mapping'i (`HelicopterEnvStage2RefineMapped._apply_action`) üzerinden uygulanır.
+
+Başarı — aşağıdakiler **5 s boyunca aynı anda** sağlanmalı:
+
+```text
+|konum hatası| <= 5 ft        |forward speed| <= 0.6 ft/s
+|cross-track| <= 5 ft         |lateral speed| <= 0.6 ft/s
+295 ft <= altitude <= 305 ft  |vertical speed| <= 0.75 ft/s
+|heading error| <= 1°
+```
+
+Safety: irtifa 288–312 ft, |pitch| <= 8°, |roll| <= 10°, |cross-track| <= 15 ft.
+
+Yöntem: kalibre edilmiş klasik teacher → behavior cloning → reward-based PPO fine-tune → teacher-OFF sürekli doğrulama.
+
+Kilitli modelin sonucu (`results_stage3_hybrid_final/final_summary.json`):
+
+```text
+final forward        : 301.84 ft  (hedefe hata -1.84 ft)
+final forward speed  : 0.47 ft/s   lateral speed: -0.20 ft/s
+final cross-track    : -0.01 ft    max |cross-track|: 4.14 ft
+final altitude       : 299.34 ft   aralık: 298.65–304.86 ft
+final vertical speed : +0.01 ft/s  heading error: 0.09°
+max |pitch| / |roll| : 0.82° / 2.92°
+endpoint hover 5 s   : PASS
+```
+
+---
+
+# 15. Turn — Relative turn (eski dokümanlarda "Stage 3")
 
 Relative turn, dönüşün başladığı andaki heading’i referans alıp verilen açı kadar dönmektir.
 
@@ -469,7 +545,7 @@ JSBSim failure
 
 ---
 
-# 15. Turn policy stack’i
+# 16. Turn policy stack’i
 
 Final turn yaklaşımı tek bir modelden ibaret değildir:
 
@@ -519,7 +595,7 @@ Bu hybrid bir supervisory controller'dır: tek bir PPO policy'nin her açıya ge
 
 ---
 
-# 16. Teacher–Student / Policy Distillation
+# 17. Teacher–Student / Policy Distillation
 
 Teacher final runtime controller değildir.
 
@@ -550,7 +626,7 @@ Teacher ağırlıkları runtime’da student’a aktarılmaz. Teacher eğitim s�
 
 ---
 
-# 17. Transition neden var?
+# 18. Transition neden var?
 
 Dönüşün geometrik olarak tamamlanması ile helikopterin stabilize olması aynı şey değildir.
 
@@ -590,7 +666,7 @@ Güncel implementasyon: `test_turn_arbitrary_angles_v11_bumpless_supervisor.reco
 
 ---
 
-# 18. Post-turn Stage 2
+# 19. Post-turn Stage 2
 
 Transition’dan sonra aynı Stage 2 forward-flight policy yeniden kullanılır, fakat artık referans heading dönüş sonrası yeni yöndür.
 
@@ -605,7 +681,7 @@ Bu faz, helikopterin yalnızca hedef açıyı yakalamadığını, o yeni yönde 
 
 ---
 
-# 19. Neden fazlar arasında reset yok?
+# 20. Neden fazlar arasında reset yok?
 
 Görev zinciri:
 
@@ -631,7 +707,7 @@ Böylece sonraki policy, yapay olarak ideal bir başlangıç state’inden deği
 
 ---
 
-# 20. PPO bu projede nasıl çalışıyor?
+# 21. PPO bu projede nasıl çalışıyor?
 
 Training döngüsü basitleştirilmiş haliyle:
 
@@ -657,7 +733,7 @@ Runtime sırasında training update yapılmaz.
 
 ---
 
-# 21. Reward tasarımının genel mantığı
+# 22. Reward tasarımının genel mantığı
 
 ## Stage 1
 
@@ -690,7 +766,7 @@ Buna altitude, vertical speed, forward speed, roll, yaw-rate ve action smoothnes
 
 ---
 
-# 22. Doğrulama yaklaşımı
+# 23. Doğrulama yaklaşımı
 
 Turn sistemi yalnızca tek ideal başlangıç state’inde denenmemiştir. Full-entry robustness testlerinde Stage 2 fiziksel olarak farklı sürelerde devam ettirilerek farklı turn-entry state’leri oluşturulmuştur.
 
@@ -710,7 +786,7 @@ Keyfi açılı ve ardışık komutlar için final mimari (planner + capture + bu
 
 ---
 
-# 23. Kısa teknik özet
+# 24. Kısa teknik özet
 
 ```text
 Simulator        : JSBSim
@@ -721,6 +797,7 @@ Action space     : Box(-1, 1, shape=(4,))
 Core controls    : collective, longitudinal cyclic, lateral cyclic, pedal
 Base observation : 12 features
 Stage1 distilled : 18 features
+Stage3 (durma)   : 14 features, hedefte durma + hover
 Turn observation : 16 features, goal-conditioned
 Target altitude  : ~300 ft AGL
 Turn examples    : -50°, +50°, +200°, +360°
@@ -731,6 +808,6 @@ Post-turn logic  : AFCS transition → Stage 2 PPO
 
 ---
 
-# 24. Tek cümlede proje
+# 25. Tek cümlede proje
 
 > **AH-1S helikopteri JSBSim üzerinde PPO tabanlı policy’lerle 300 ft’e kaldıran, ileri uçuran, mevcut heading’e göre parametrik relative turn yaptıran, dönüş sonrası dinamikleri AFCS transition ile sönümleyip yeni heading üzerinde tekrar ileri uçuşa devam ettiren kesintisiz çok-aşamalı bir RL uçuş kontrol sistemidir.**

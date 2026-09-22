@@ -1,0 +1,171 @@
+{
+  "level_index": 14,
+  "level": "R1",
+  "timesteps": 2239676,
+  "history": [
+    {
+      "level": "H1",
+      "level_index": 0,
+      "success_rate": 0.8,
+      "episodes": 112,
+      "steps_at_level": 133776,
+      "total_steps": 133776,
+      "wall_min_at_level": 2.3137847661972044
+    },
+    {
+      "level": "H2",
+      "level_index": 1,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 120000,
+      "total_steps": 253776,
+      "wall_min_at_level": 2.0563382347424826
+    },
+    {
+      "level": "H3",
+      "level_index": 2,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 120000,
+      "total_steps": 373776,
+      "wall_min_at_level": 2.0524521470069885
+    },
+    {
+      "level": "H4",
+      "level_index": 3,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 120000,
+      "total_steps": 493776,
+      "wall_min_at_level": 1.9836541056632995
+    },
+    {
+      "level": "H5",
+      "level_index": 4,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 146166,
+      "total_steps": 639942,
+      "wall_min_at_level": 2.4646300872166953
+    },
+    {
+      "level": "H6",
+      "level_index": 5,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 159734,
+      "total_steps": 799676,
+      "wall_min_at_level": 2.6752720872561135
+    },
+    {
+      "level": "V1",
+      "level_index": 6,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 160000,
+      "total_steps": 959676,
+      "wall_min_at_level": 2.753429178396861
+    },
+    {
+      "level": "V2",
+      "level_index": 7,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 160000,
+      "total_steps": 1119676,
+      "wall_min_at_level": 2.6650113344192503
+    },
+    {
+      "level": "V3",
+      "level_index": 8,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 160000,
+      "total_steps": 1279676,
+      "wall_min_at_level": 2.6232069691022235
+    },
+    {
+      "level": "A1",
+      "level_index": 9,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 160000,
+      "total_steps": 1439676,
+      "wall_min_at_level": 2.671208151181539
+    },
+    {
+      "level": "A2",
+      "level_index": 10,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 160000,
+      "total_steps": 1599676,
+      "wall_min_at_level": 2.649642745653788
+    },
+    {
+      "level": "A3",
+      "level_index": 11,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 160000,
+      "total_steps": 1759676,
+      "wall_min_at_level": 2.6785563230514526
+    },
+    {
+      "level": "A4",
+      "level_index": 12,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 160000,
+      "total_steps": 1919676,
+      "wall_min_at_level": 2.7546764334042866
+    },
+    {
+      "level": "C1",
+      "level_index": 13,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 160000,
+      "total_steps": 2079676,
+      "wall_min_at_level": 2.6701165437698364
+    },
+    {
+      "level": "R1",
+      "level_index": 14,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "steps_at_level": 160000,
+      "total_steps": 2239676,
+      "wall_min_at_level": 2.6592101017634073
+    }
+  ],
+  "args": {
+    "out": "/home/claude/runs/cmd_v1",
+    "total_steps": 3000000,
+    "level": "H1",
+    "stop_after": null,
+    "promote": true,
+    "window": 100,
+    "min_episodes": 100,
+    "threshold": 0.8,
+    "resume": false,
+    "init_model": null,
+    "n_envs": 2,
+    "vec": "subproc",
+    "seed": 42,
+    "lr": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 256,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.0,
+    "target_kl": null,
+    "log_std_init": -1.0,
+    "net": "128,128",
+    "save_freq": 100000,
+    "smoke": false
+  },
+  "saved_at": "2026-09-22 16:10:42"
+}

@@ -601,6 +601,20 @@ class HelicopterEnvCommand(gym.Env):
     # COMMANDS / ERRORS / OBS
     # =================================================================
 
+    def queue_command(self, delta: dict) -> float:
+        """Canlı kullanım (görselleştirme / arayüz): Δ komutunu kuyruğa ekle.
+
+        Komut bir sonraki `step()`'in başında, o anki ölçülen değerlere göre
+        uygulanır — eğitimdeki zamanlanmış komutlarla aynı yol (güvenli aralık
+        dışına taşan Δ'nın işareti çevrilir / kırpılır, önceki pencere kapanır).
+        Dönen değer komutun zamanı [s].
+        """
+        t_cmd = self.steps * CONTROL_DT
+        if self.schedule and t_cmd < self.schedule[-1][0]:
+            t_cmd = self.schedule[-1][0]
+        self.schedule.append((t_cmd, {a: float(delta.get(a, 0.0)) for a in AXES}))
+        return t_cmd
+
     def _issue_due_commands(self, t: float, s: dict):
         cfg = self.cfg
         while self.next_cmd < len(self.schedule) and t >= self.schedule[self.next_cmd][0] - 1e-9:

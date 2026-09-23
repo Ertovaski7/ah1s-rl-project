@@ -65,7 +65,11 @@ python train_command_curriculum.py --out runs/cmd --total-steps 6000000      # P
 python evaluate_command_policy.py --model runs/cmd/models/level_00_H1.zip --level H1 --zero-baseline
 # eğitmeden, hazır modelle: tek uçuşta art arda komutlar
 python evaluate_command_policy.py --model models_command_curriculum/v2_R1_final.zip --mission 5:heading:+90 40:speed:+8 75:altitude:+100
+# canlı 3D görselleştirme: komut ver, helikopteri ve metrikleri izle (bölüm 27)
+python command_viz.py                                                        # → http://127.0.0.1:8765
 ```
+
+Colab'da canlı görselleştirme: `import command_viz; command_viz.colab()` (defterin 8. bölümü).
 
 ---
 
@@ -82,6 +86,8 @@ ah1s-rl-project/
 ├── train_command_curriculum.py              PPO eğitimi + otomatik seviye atlama (başarı ≥ %80)
 ├── evaluate_command_policy.py               Step response değerlendirmesi (+ a=0 karşılaştırması)
 ├── diagnose_command_env.py                  Eğitimsiz sağlık kontrolü (başlatma, açık-döngü tepkiler, hız)
+├── command_viz.py                           Canlı 3D görselleştirme: sunucu + Colab + kayıt (bölüm 27)
+├── viz/                                     Sayfa (command_viz.html), helikopter modeli (heli_bell.glb), demo uçuşları
 ├── models_command_curriculum/               Bu curriculum'un ilk koşularından modeller (v2_R1_final önerilen)
 ├── docs/command_curriculum/                 İlk koşuların kanıtları (ilerleme CSV, doğrulama, grafikler)
 │
@@ -967,4 +973,57 @@ Tek uçuşta 6 ardışık komut (+90°, +8 ft/s, +100 ft, −45° & −60 ft, �
 - **Toleranslar / kuplaj sınırları öneri:** 1.5° / 1.5 ft/s / 10 ft (son 10 s) ve 5° / 4 ft/s / 25 ft (kuplaj). Mentorla netleştirilmeli.
 - **Başlangıç koşulu:** teleport + reset-only PI stabilizasyonu; gerçek görevde ajan önceki fazın bıraktığı durumdan devralacak (Stage 2 → komut ajanı geçişi henüz yapılmadı).
 - Tek seed ile eğitildi; farklı seed'lerle tekrar önerilir.
+- **Yana kayma (sideslip):** 3D görselleştirmede görüldü (bölüm 27). "Heading" burnun yönü; v2 son modeli kararlı uçuşta
+  ~8 ft/s yanal hızla uçuyor (15 ft/s'de iz burundan 25–33° sağda, 23 ft/s'de ~20°). v1 modelinde 1–2 ft/s (~5°). Yanal hız
+  cezası zayıf (`pen_side` 0.02·|v|) ve v2'nin kumanda-hızı cezası ajanı yanal cyclic'ten uzak tutuyor. Δheading'in
+  "gidiş yönünü çevir" anlamına gelmesi isteniyorsa: başarı kriterine |v| sınırı (ör. ≤ 2 ft/s), daha güçlü yanal hız
+  cezası ya da heading yerine yer izi (track) komutu. Rüzgâr eklenince bu fark daha da önem kazanır.
 
+---
+
+# 27. Canlı 3D görselleştirme — `command_viz.py` (2026-09-23)
+
+Komut ajanını tarayıcıda izlemek için: istediğin an **Δheading / Δhız / Δirtifa** ver, helikopterin (low-poly Bell modeli)
+3D hareketini, ajanın kumandalarını ve komutun metriklerini gör. Uçuş gerçek JSBSim + PPO; sayfa yalnızca gösterir.
+
+```bash
+python command_viz.py                                           # → http://127.0.0.1:8765 (son model v2_R1_final)
+python command_viz.py --model runs/cmd/models/level_00_H1.zip   # başka bir model (ör. yalnızca ±5° eğitilmiş)
+python command_viz.py --start-alt 600 --start-speed 20 --start-heading 90 --port 8766
+python command_viz.py record --out viz/demo_flights.json        # sayfanın kayıt modu için demo uçuşları üret
+```
+
+Colab (localhost / paylaşım linki yok; eski dashboard gibi kernel callback'leri): `import command_viz; command_viz.colab()`.
+
+**Sayfada**
+
+| Bölüm | İçerik |
+|---|---|
+| 3D görünüm | Helikopter (ana ve kuyruk rotoru döner), iz + yere inen yarı saydam perde (irtifa algısı), magenta hedef heading çizgisi ve dönüş yayı, hedef irtifa halkası, gölge, 100 ft ızgara, başlangıç pisti (H, kuzey oku). Kamera: Takip / Serbest (fare ile döndür) / Üstten (kuzey yukarı) / Yandan; tekerlek = yakınlaştır. |
+| HUD | Heading bandı (magenta hedef imi, ◇ yer izi = gerçek gidiş yönü), hız (ft/s, kt, yanal hız), irtifa AGL ve dikey hız, aktif komut. |
+| Komut ver | Üç Δ alanı + hızlı seçim düğmeleri; eğitim aralığı / güvenli aralık uyarısı; hız çarpanı 1–10×, duraklat, yeniden başlat (irtifa, hız, heading ya da rastgele). |
+| Aktif komut | Komut verilen eksen: anlık hata, yükselme (%10→%90), aşma %, oturma; verilmeyen eksen: en büyük sapma / kuplaj sınırı; "tüm eksenler tolerans içinde" süresi (10 s gerekli); pencere kapanınca env'in başarı kararı. |
+| Komut kaydı | Her komut: zaman, uygulanan Δ (env işaret çevirdiyse görünür), oturma, aşma, son hata, kuplaj, sonuç. |
+| Zaman serileri | Heading, hız, irtifa (hedef + tolerans bandı), ajanın 4 kumandası (trim'e eklenen, −1…+1), yatış / yunuslama, ödül; imleç tüm grafiklerde senkron; komut anları dikey çizgi; pencere 60 s / 3 dk / tümü; tablo görünümü. |
+| Dışa aktarma | JSON (sayfada «Kayıt aç» ile oynatılır) ve ACMI (Tacview). Colab'da «Uçuşu diske kaydet» → `/content/ah1s_flights/`. |
+
+**Nasıl çalışıyor**
+
+- `LiveFlight` tek bir `HelicopterEnvCommand` + PPO'yu arka plan iş parçacığında gerçek zamanlı (× hız çarpanı) yürütür.
+  Komutlar `env.queue_command()` ile bir sonraki adıma girer: eğitim ve `evaluate_command_policy.py` ile **aynı yol**
+  (güvenli aralık dışına taşan Δ'nın işareti çevrilir, önceki pencere env kuralıyla kapanır). Güvenlik ihlalinde uçuş
+  biter, sayfa sebebi gösterir. Canlı uçuşta zaman sınırı 4 saat.
+- Metrikler `command_metrics()` (Python) ve sayfadaki eşi (JS) ile aynı tanımla hesaplanır; `evaluate_command_policy.py`
+  metrikleriyle aynı sonucu verdiği test edildi (fark yalnızca telemetri yuvarlaması, < 1e-3). Başarı kararı env'den gelir.
+- Telemetri: her kontrol adımında (0.075 s) 31 sütun — konum (doğu / kuzey ft, JSBSim enlem / boylamından), irtifa,
+  heading, u / v / dikey hız, roll / pitch / yaw rate, rotor rpm, hedefler, hatalar, PPO action, filtrelenmiş action,
+  kumandalar, ödül. Sunucu yalnızca standart kütüphane (`http.server`); sayfa three.js 0.169 + uPlot 1.6 (CDN).
+- `viz/heli_bell.glb`: `viz/tools/obj_to_glb.py` ile Heli_bell.obj'den üretildi (zemin düzlemi atıldı; gövde, ana ve
+  kuyruk rotoru ayrı node, rotor pivotları göbekte; orijin ≈ ağırlık merkezi; boy 13.6 m = AH-1S). Görsel amaçlı: uçuş
+  dinamiği JSBSim AH-1S modelinden.
+- Kayıt modu: sayfa `command_viz.py` olmadan açılırsa (ör. yayımlanmış sayfa) `viz/demo_flights.json`'daki uçuşları oynatır:
+  6 ardışık komut, büyük dönüşler, 800 ft / 22 ft/s başlangıç ve karşılaştırma için v1 modeli (v2 kriteriyle 3/6 —
+  dönüşlerde hız kuplajı 5.8–7.2 ft/s > 4).
+
+**Görselleştirmenin ortaya çıkardığı:** helikopter burnunu komut edilen heading'e tutuyor ama yana kayarak uçuyor
+(bkz. 26.6 "Yana kayma"). HUD'daki ◇ İZ ile heading arasındaki fark ve 3D'de izin burna göre açısı bunu doğrudan gösterir.

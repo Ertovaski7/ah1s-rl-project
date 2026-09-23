@@ -1,0 +1,1287 @@
+<title>AH-1S Komut Uçuşu</title>
+<meta name="description" content="PPO ajanının Δheading / Δhız / Δirtifa komutlarına verdiği cevabı 3D ve metriklerle izleme sayfası.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --page:#eef1f2; --surface:#fafbfb; --surface-2:#f2f5f6; --ink:#101518; --ink-2:#48535a; --muted:#78838a;
+  --hair:#dce2e5; --line:#c3cbd0; --target:#b5179e; --target-wash:rgba(181,23,158,.10); --target-ink:#9c1288;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --good:#0ca30c; --good-ink:#006300; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --focus:#2a78d6; --btn:#e6ebed; --btn-hover:#dbe2e5; --shadow:0 1px 2px rgba(16,21,24,.06);
+  --sky-top:#9fc3dc; --sky-horizon:#e3ecef; --sky-bottom:#cfc6b3; --ground:#d8cfbc; --grid-minor:rgba(70,62,48,.16);
+  --grid-major:rgba(70,62,48,.34); --trail:#27414f; --curtain:#27414f; --cue-ink:#1b2a33;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-inst: "B612", "Segoe UI", system-ui, sans-serif;
+  --font-num: "B612 Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --page:#0c1013; --surface:#141a1e; --surface-2:#1a2126; --ink:#eef3f5; --ink-2:#b3bec5; --muted:#7f8a92;
+    --hair:#242c32; --line:#364049; --target:#e26bd0; --target-wash:rgba(226,107,208,.14); --target-ink:#ec8fdd;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --good-ink:#0ca30c; --focus:#6da7ec; --btn:#1f272d; --btn-hover:#29333a; --shadow:none;
+    --sky-top:#1d3346; --sky-horizon:#4d6272; --sky-bottom:#2b2a26; --ground:#35332d; --grid-minor:rgba(230,220,200,.10);
+    --grid-major:rgba(230,220,200,.22); --trail:#d6e3ea; --curtain:#a9c4d3; --cue-ink:#e6eef2;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --page:#0c1013; --surface:#141a1e; --surface-2:#1a2126; --ink:#eef3f5; --ink-2:#b3bec5; --muted:#7f8a92;
+  --hair:#242c32; --line:#364049; --target:#e26bd0; --target-wash:rgba(226,107,208,.14); --target-ink:#ec8fdd;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --good-ink:#0ca30c; --focus:#6da7ec; --btn:#1f272d; --btn-hover:#29333a; --shadow:none;
+  --sky-top:#1d3346; --sky-horizon:#4d6272; --sky-bottom:#2b2a26; --ground:#35332d; --grid-minor:rgba(230,220,200,.10);
+  --grid-major:rgba(230,220,200,.22); --trail:#d6e3ea; --curtain:#a9c4d3; --cue-ink:#e6eef2;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--page)}
+body{margin:0;color:var(--ink);font:14px/1.45 var(--font-ui);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+.app{max-width:1680px;margin:0 auto;padding-inline:16px;padding-block:14px 32px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.num{font-family:var(--font-ui);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .ink2{color:var(--ink-2)}
+h1,h2,h3{margin:0;font-weight:700;text-wrap:balance}
+h2{font-family:var(--font-inst);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+
+/* ---------- header ---------- */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px}
+.brand h1{font-family:var(--font-inst);font-size:21px;letter-spacing:.01em}
+.brand .sub{color:var(--ink-2);font-size:12.5px;margin-top:2px}
+.brand .sub b{font-weight:600;color:var(--ink)}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;background:var(--surface);
+  border:1px solid var(--hair);font-size:12.5px;white-space:nowrap}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.chip.live .dot{background:var(--good)} .chip.warn .dot{background:var(--warning)} .chip.bad .dot{background:var(--critical)}
+.mode{font-family:var(--font-inst);font-size:11px;letter-spacing:.1em;font-weight:700}
+.seg{display:inline-flex;border:1px solid var(--hair);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:5px 10px;cursor:pointer;font-size:12.5px;border-right:1px solid var(--hair)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.btn{border:1px solid var(--hair);background:var(--btn);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;white-space:nowrap}
+.btn:hover{background:var(--btn-hover)}
+.btn.primary{background:var(--target);border-color:var(--target);color:#fff;font-weight:600}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* ---------- replay bar ---------- */
+.replay > *{min-width:0}
+.replay{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px 14px;align-items:center;background:var(--surface);
+  border:1px solid var(--hair);border-radius:10px;padding:10px 12px}
+.replay select{width:100%;max-width:340px;padding:5px 8px;border-radius:8px;border:1px solid var(--hair);background:var(--surface-2)}
+.replay .formrow{flex-wrap:nowrap}
+.replay .desc{grid-column:1/-1;color:var(--ink-2);font-size:12.5px;margin-top:-4px}
+.scrub{position:relative;padding-top:14px}
+.scrub input{width:100%;accent-color:var(--ink)}
+.scrub .marks{position:absolute;left:0;right:0;top:0;height:14px;pointer-events:none}
+.scrub .marks span{position:absolute;transform:translateX(-50%);font:10px var(--font-ui);color:var(--muted)}
+.scrub .marks span::after{content:"";position:absolute;left:50%;top:12px;width:1px;height:8px;background:var(--line)}
+
+/* ---------- main ---------- */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 388px;gap:14px;align-items:stretch}
+.view{position:relative;min-height:560px;height:100%;width:100%;border-radius:10px;overflow:hidden;
+  background:var(--sky-horizon);border:1px solid var(--hair)}
+.view canvas.gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.side{display:grid;gap:14px;align-content:start}
+.card{background:var(--surface);border:1px solid var(--hair);border-radius:10px;padding:14px;box-shadow:var(--shadow);min-width:0}
+.card > h2{margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+/* ---------- HUD (sabit kokpit renkleri: her iki temada koyu cam) ---------- */
+.hud{position:absolute;inset:0;pointer-events:none;color:#f2f6f8;font-family:var(--font-inst)}
+.glass{background:rgba(9,14,18,.58);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border-radius:8px}
+.tape{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:min(560px,64%);height:58px}
+.tape canvas{width:100%;height:100%;display:block}
+.hdg-box{position:absolute;left:50%;top:-2px;transform:translateX(-50%);padding:1px 8px;border-radius:5px;background:#0b1115;
+  border:1px solid rgba(255,255,255,.55);font:700 15px var(--font-inst)}
+.ro{position:absolute;top:84px;padding:8px 10px;min-width:118px;display:grid;gap:1px}
+.ro.left{left:10px} .ro.right{right:10px;text-align:right}
+.ro .lbl{font-size:10.5px;letter-spacing:.12em;opacity:.8}
+.ro .val{font:700 22px/1.1 var(--font-inst);font-variant-numeric:tabular-nums}
+.ro .val small{font:400 11px var(--font-inst);opacity:.8;margin-left:3px}
+.ro .sub{font:12px var(--font-inst);opacity:.85}
+.ro .tgt{font:12px var(--font-inst);color:#ff8ff0}
+.cmdchip{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);padding:6px 10px;font-size:12px;max-width:44%;display:grid;gap:2px;text-align:center}
+.cmdchip .k{font:700 12px var(--font-inst);color:#ff8ff0}
+.cam{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;padding:4px;pointer-events:auto}
+.cam button{border:0;background:transparent;color:#e9f0f3;padding:4px 9px;border-radius:5px;cursor:pointer;font:12px var(--font-inst)}
+.cam button[aria-pressed="true"]{background:rgba(255,255,255,.9);color:#0b1115}
+.compass{position:absolute;right:10px;bottom:10px;width:46px;height:46px;display:grid;place-items:center}
+.compass svg{width:34px;height:34px;transition:transform .08s linear}
+.scaleinfo{position:absolute;right:64px;bottom:14px;font:11px var(--font-inst);padding:3px 7px;opacity:.9}
+.banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:min(460px,86%);padding:14px 16px;text-align:center;
+  pointer-events:auto;display:grid;gap:10px;font-family:var(--font-ui)}
+.banner b{font-family:var(--font-inst)}
+.loading{position:absolute;inset:auto 0 42% 0;text-align:center;font:13px var(--font-inst);color:var(--ink-2)}
+
+/* ---------- command form ---------- */
+.form{display:grid;gap:10px}
+.axis{display:grid;grid-template-columns:86px 1fr;gap:4px 10px;align-items:center}
+.axis label{font-weight:600;font-size:13px}
+.inwrap{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);overflow:hidden}
+.inwrap:focus-within{outline:2px solid var(--focus);outline-offset:1px}
+.inwrap input{border:0;background:transparent;width:100%;padding:7px 9px;font:600 15px var(--font-ui);font-variant-numeric:tabular-nums;outline:none;min-width:0}
+.inwrap span{padding:0 10px;color:var(--muted);font-size:12.5px;white-space:nowrap}
+.quick{grid-column:2;display:flex;flex-wrap:wrap;gap:4px}
+.quick button{border:1px solid var(--hair);background:transparent;border-radius:6px;padding:1px 7px;cursor:pointer;font:12px var(--font-ui);font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.quick button:hover{background:var(--btn);color:var(--ink)}
+.formrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hint{font-size:12px;color:var(--ink-2);min-height:1.45em}
+.hint.warn::before{content:"⚠ ";color:var(--serious)}
+.hint.err::before{content:"✗ ";color:var(--critical)}
+.hint.ok::before{content:"✓ ";color:var(--good)}
+details.reset{border-top:1px solid var(--hair);padding-top:10px}
+details.reset summary{cursor:pointer;font-size:13px;color:var(--ink-2)}
+.resetgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.resetgrid label{font-size:11.5px;color:var(--ink-2);display:grid;gap:3px}
+.resetgrid input{width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);font:13px var(--font-ui);font-variant-numeric:tabular-nums}
+.limits{font-size:11.5px;color:var(--muted);line-height:1.5}
+
+/* ---------- active command ---------- */
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;
+  border:1px solid var(--hair);background:var(--surface-2);text-transform:none;letter-spacing:0;font-family:var(--font-ui);color:var(--ink)}
+.pill i{font-style:normal}
+.pill.good i{color:var(--good)} .pill.bad i{color:var(--critical)} .pill.serious i{color:var(--serious)} .pill.run i{color:var(--muted)}
+.act-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+.act-head .what{font:700 15px var(--font-ui);font-variant-numeric:tabular-nums}
+.act-head .when{font-size:12px;color:var(--muted)}
+.mrow{display:grid;grid-template-columns:78px 1fr;gap:2px 10px;padding:8px 0;border-top:1px solid var(--hair)}
+.mrow .ax{font-weight:600;font-size:13px}
+.mrow .ax small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+.mgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px 8px}
+.mgrid div{display:grid}
+.mgrid span{font-size:10.5px;color:var(--muted)}
+.mgrid b{font:600 13px var(--font-ui);font-variant-numeric:tabular-nums}
+.meter{height:6px;border-radius:3px;background:var(--surface-2);border:1px solid var(--hair);overflow:hidden;margin-top:5px}
+.meter > i{display:block;height:100%;background:var(--ink-2);width:0}
+.meter.over > i{background:var(--serious)}
+.meter.done > i{background:var(--good)}
+.coup{display:flex;justify-content:space-between;font:12.5px var(--font-ui);font-variant-numeric:tabular-nums}
+.verdict{margin-top:8px;font-size:12px;color:var(--ink-2)}
+.empty{color:var(--muted);font-size:13px;padding:6px 0}
+
+/* ---------- log table ---------- */
+.tablewrap{overflow-x:auto;max-height:250px;overflow-y:auto}
+.note{font-size:13px;color:var(--ink-2);display:grid;gap:6px}
+.note code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:var(--surface-2);border:1px solid var(--hair);border-radius:5px;padding:1px 5px;color:var(--ink)}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{padding:4px 6px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--hair)}
+th{position:sticky;top:0;background:var(--surface);font-weight:600;color:var(--ink-2);font-size:11px}
+td:first-child,th:first-child{text-align:left}
+td.cmd,th.cmd{text-align:left}
+td{font-variant-numeric:tabular-nums}
+tr.active td{background:var(--target-wash)}
+.res-ok{color:var(--good-ink)} .res-bad{color:var(--critical)}
+
+/* ---------- charts ---------- */
+.charts-card{display:grid;gap:12px}
+.filters{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.filters .grow{flex:1}
+.charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px}
+.chart{position:relative;min-width:0}
+.chart header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:2px}
+.chart h3{font-size:13px;font-weight:600}
+.chart h3 small{font-weight:400;color:var(--muted);margin-left:4px}
+.legend{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11.5px;color:var(--ink-2);margin-bottom:4px;min-height:16px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{display:inline-block;width:14px;height:2px;border-radius:1px}
+.legend i.band{height:8px;border-radius:2px;opacity:1}
+.plot{height:172px}
+.tip{position:absolute;z-index:3;pointer-events:none;background:var(--surface);border:1px solid var(--hair);border-radius:7px;
+  padding:6px 8px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.12);min-width:140px}
+.tip .t{color:var(--muted);font-size:11px;margin-bottom:2px}
+.tip .r{display:grid;grid-template-columns:14px auto 1fr;gap:6px;align-items:center}
+.tip .r i{height:2px;border-radius:1px}
+.tip .r b{font:600 12.5px var(--font-ui);font-variant-numeric:tabular-nums}
+.tip .r span{color:var(--ink-2)}
+.datatable{display:none}
+.datatable.on{display:block}
+.notes{font-size:12px;color:var(--ink-2);display:grid;gap:4px;max-width:120ch}
+.notes b{color:var(--ink)}
+.exports{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.exports a{font-size:13px}
+a{color:var(--s1)}
+
+/* uPlot (satır içi; resmi stil dosyasından sadeleştirildi) */
+.uplot,.uplot *,.uplot *::before,.uplot *::after{box-sizing:border-box}
+.uplot{font-family:var(--font-ui);line-height:1.5;width:min-content}
+.u-wrap{position:relative;user-select:none}
+.u-over,.u-under{position:absolute}
+.u-under{overflow:hidden}
+.uplot canvas{display:block;position:relative;width:100%;height:100%}
+.u-axis{position:absolute}
+.u-select{background:rgba(0,0,0,.07);position:absolute;pointer-events:none}
+.u-cursor-x,.u-cursor-y{position:absolute;left:0;top:0;pointer-events:none;will-change:transform}
+.u-hz .u-cursor-x{height:100%;border-right:1px solid var(--muted)}
+.u-hz .u-cursor-y{width:100%;border-bottom:0}
+.u-cursor-pt{position:absolute;top:0;left:0;border-radius:50%;border:0 solid;pointer-events:none;will-change:transform;background-clip:padding-box!important}
+.u-axis.u-off,.u-select.u-off,.u-cursor-x.u-off,.u-cursor-y.u-off,.u-cursor-pt.u-off{display:none}
+
+@media (max-width:1180px){
+  .main{grid-template-columns:minmax(0,1fr)}
+  .view{height:auto;aspect-ratio:16/10;min-height:360px}
+  .side{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .charts{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:720px){
+  .side{grid-template-columns:1fr}
+  .charts{grid-template-columns:1fr}
+  .view{aspect-ratio:4/4.4;min-height:320px}
+  .replay{grid-template-columns:1fr auto}
+  .replay select{max-width:100%}
+  .scrub{grid-column:1/-1}
+  .tape{width:74%;top:8px;height:52px}
+  .ro{top:auto;bottom:52px;min-width:0;padding:6px 8px}
+  .ro .val{font-size:18px}
+  .cmdchip{display:none}
+  .scaleinfo{display:none}
+  .axis{grid-template-columns:74px 1fr}
+}
+@media (prefers-reduced-motion: reduce){ .compass svg{transition:none} }
+</style>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">
+      <h1>AH-1S Komut Uçuşu</h1>
+      <div class="sub" id="sub">PPO ajanı · JSBSim AH-1S · yükleniyor…</div>
+    </div>
+    <div class="controls">
+      <span class="chip" id="modeChip"><span class="dot"></span><span class="mode" id="modeTxt">…</span><span id="statusTxt" class="ink2"></span></span>
+      <span class="chip num" id="clock">t = 0.0 s</span>
+      <div class="seg" id="scaleSeg" role="group" aria-label="Simülasyon hız çarpanı" hidden>
+        <button type="button" data-scale="1" aria-pressed="true">1×</button><button type="button" data-scale="2" aria-pressed="false">2×</button><button type="button" data-scale="5" aria-pressed="false">5×</button><button type="button" data-scale="10" aria-pressed="false">10×</button>
+      </div>
+      <button class="btn" id="pauseBtn" type="button" hidden>Duraklat</button>
+      <button class="btn" id="toLiveBtn" type="button" hidden>Canlıya dön</button>
+    </div>
+  </header>
+
+  <section class="replay" id="replayBar" hidden aria-label="Kayıt oynatma">
+    <select id="flightSel" aria-label="Kayıtlı uçuş"></select>
+    <div class="formrow">
+      <button class="btn" id="playBtn" type="button">Oynat</button>
+      <select id="speedSel" aria-label="Oynatma hızı"><option value="0.5">0.5×</option><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option><option value="8">8×</option></select>
+    </div>
+    <div class="scrub"><div class="marks" id="scrubMarks"></div><input type="range" id="scrub" min="0" max="100" step="0.05" value="0" aria-label="Zaman"></div>
+    <span class="num" id="scrubTxt">0.0 / 0.0 s</span>
+    <div class="desc" id="flightDesc"></div>
+  </section>
+
+  <div class="main">
+    <div class="view" id="view">
+      <div class="hud" id="hud">
+        <div class="tape glass" id="tape"><canvas id="tapeCanvas"></canvas><div class="hdg-box" id="hdgBox">000°</div></div>
+        <div class="ro left glass"><span class="lbl">HIZ</span><span class="val"><span id="hudSpd">—</span><small>ft/s</small></span><span class="sub" id="hudKt">— kt</span><span class="tgt" id="hudSpdT"></span></div>
+        <div class="ro right glass"><span class="lbl">İRTİFA AGL</span><span class="val"><span id="hudAlt">—</span><small>ft</small></span><span class="sub" id="hudVs">— ft/s</span><span class="tgt" id="hudAltT"></span></div>
+        <div class="cmdchip glass" id="cmdChip" hidden><span class="k" id="cmdChipK"></span><span id="cmdChipTxt"></span></div>
+        <div class="cam glass" role="group" aria-label="Kamera">
+          <button type="button" data-cam="chase" aria-pressed="true">Takip</button><button type="button" data-cam="free" aria-pressed="false">Serbest</button><button type="button" data-cam="top" aria-pressed="false">Üstten</button><button type="button" data-cam="side" aria-pressed="false">Yandan</button>
+        </div>
+        <div class="scaleinfo glass" id="scaleInfo">ızgara 100 ft</div>
+        <div class="compass glass" title="Kuzey"><svg viewBox="-17 -17 34 34" id="compassSvg" aria-label="Kuzey oku"><path d="M0,-14 L6,6 L0,2 L-6,6 Z" fill="#f2f6f8"/><text x="0" y="15.5" text-anchor="middle" font-size="7" fill="#f2f6f8" font-family="B612, sans-serif">N</text></svg></div>
+        <div class="banner glass" id="banner" hidden><div id="bannerTxt"></div><div><button class="btn primary" type="button" id="bannerBtn">Yeniden başlat</button></div></div>
+      </div>
+      <div class="loading" id="loading">Helikopter modeli yükleniyor…</div>
+    </div>
+
+    <div class="side">
+      <section class="card" id="cmdCard" aria-labelledby="cmdTitle">
+        <h2 id="cmdTitle">Komut ver</h2>
+        <div class="note" id="replayNote" hidden></div>
+        <form class="form" id="cmdForm" autocomplete="off">
+          <div class="axis">
+            <label for="inHdg">Δ Heading</label>
+            <div class="inwrap"><input id="inHdg" inputmode="decimal" placeholder="0" aria-describedby="cmdHint"><span>°</span></div>
+            <div class="quick" data-for="inHdg"><button type="button">-90</button><button type="button">-45</button><button type="button">-10</button><button type="button">+10</button><button type="button">+45</button><button type="button">+90</button><button type="button">+180</button></div>
+          </div>
+          <div class="axis">
+            <label for="inSpd">Δ Hız</label>
+            <div class="inwrap"><input id="inSpd" inputmode="decimal" placeholder="0" aria-describedby="cmdHint"><span>ft/s</span></div>
+            <div class="quick" data-for="inSpd"><button type="button">-6</button><button type="button">-3</button><button type="button">+3</button><button type="button">+6</button><button type="button">+10</button></div>
+          </div>
+          <div class="axis">
+            <label for="inAlt">Δ İrtifa</label>
+            <div class="inwrap"><input id="inAlt" inputmode="decimal" placeholder="0" aria-describedby="cmdHint"><span>ft</span></div>
+            <div class="quick" data-for="inAlt"><button type="button">-50</button><button type="button">-25</button><button type="button">+25</button><button type="button">+50</button><button type="button">+100</button></div>
+          </div>
+          <div class="formrow">
+            <button class="btn primary" id="sendBtn" type="submit">Komutu gönder</button>
+            <button class="btn" id="clearBtn" type="button">Temizle</button>
+          </div>
+          <div class="hint" id="cmdHint" role="status"></div>
+          <div class="limits" id="limitsTxt">Eğitim aralığı: Δψ ±180°, Δv ±10 ft/s, Δh ±100 ft · başlangıç 200–1000 ft, 10–25 ft/s.</div>
+        </form>
+        <details class="reset" id="resetBox">
+          <summary>Uçuşu yeniden başlat</summary>
+          <div class="resetgrid">
+            <label>İrtifa (ft)<input id="rsAlt" inputmode="decimal" value="300"></label>
+            <label>Hız (ft/s)<input id="rsSpd" inputmode="decimal" value="15"></label>
+            <label>Heading (°)<input id="rsHdg" inputmode="decimal" value="0" placeholder="rastgele"></label>
+          </div>
+          <div class="formrow" style="margin-top:10px"><button class="btn" id="resetBtn" type="button">Yeniden başlat</button><span class="hint" id="resetHint"></span></div>
+        </details>
+      </section>
+
+      <section class="card" id="actCard" aria-labelledby="actTitle">
+        <h2 id="actTitle"><span>Aktif komut</span><span class="pill run" id="actPill"><i>•</i><span>Komut yok</span></span></h2>
+        <div id="actBody"><div class="empty">Henüz komut verilmedi. Soldaki 3D görünüm düz uçuşu gösteriyor.</div></div>
+      </section>
+
+    </div>
+  </div>
+
+  <section class="card log" aria-labelledby="logTitle">
+    <h2 id="logTitle"><span>Komut kaydı</span><span class="muted" id="logCount" style="font-family:var(--font-ui);letter-spacing:0;text-transform:none;font-size:12px"></span></h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>K</th><th>t (s)</th><th class="cmd">Komut</th><th>Oturma</th><th>Aşma</th><th>Son hata</th><th>Kuplaj / sınır</th><th>Sonuç</th></tr></thead>
+        <tbody id="logBody"><tr><td colspan="8" class="empty" style="font-family:var(--font-ui)">—</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card charts-card" aria-labelledby="chartsTitle">
+    <div class="filters">
+      <h2 id="chartsTitle">Zaman serileri</h2>
+      <div class="seg" id="winSeg" role="group" aria-label="Zaman penceresi">
+        <button type="button" data-win="60" aria-pressed="false">Son 60 s</button><button type="button" data-win="180" aria-pressed="true">Son 3 dk</button><button type="button" data-win="0" aria-pressed="false">Tümü</button>
+      </div>
+      <button class="btn" id="tableBtn" type="button" aria-pressed="false">Tablo</button>
+      <span class="grow"></span>
+      <div class="exports" id="exports"></div>
+    </div>
+    <div class="charts" id="charts"></div>
+    <div class="datatable" id="dataTable"><div class="tablewrap" style="max-height:340px"><table><thead id="dtHead"></thead><tbody id="dtBody"></tbody></table></div></div>
+    <div class="notes">
+      <div><b>Başarı</b> eğitimdeki kuralla aynı: komut penceresinin son 10 s'si boyunca aynı anda |eψ| ≤ 1.5°, |ev| ≤ 1.5 ft/s, |eh| ≤ 10 ft; komut verilmeyen eksen pencere boyunca kuplaj sınırında (5°, 4 ft/s, 25 ft). Kararı pencere kapanınca (yeni komut ya da uçuş sonu) env verir.</div>
+      <div><b>Metrikler</b>: yükselme = hedefe giden yolun %10'undan %90'ına süre; aşma = hedefin ötesine geçen kısım (|Δ|'nın %'si); oturma = tolerans bandına girip bir daha çıkmadığı an (komuttan itibaren); son hata = son 10 s ortalaması.</div>
+      <div><b>Güvenlik</b>: yatış 40°, yunuslama 30°, irtifa 50 ft altı, rotor 280–380 rpm, komut bandından 75 ft / 12 ft/s sapma, heading'in 30°'den fazla ters yöne gitmesi → uçuş biter. Güvenli aralık dışına taşan Δ'nın işareti env tarafından çevrilir (eğitimdeki gibi).</div>
+      <div><b>HUD</b>: magenta = komut / hedef (aviyonik geleneği). Heading bandındaki ◇ ve «İZ» yer izidir (helikopterin gerçekten gittiği yön); burun yönünden farkı yana kaymadır — hız kutusundaki «yanal» değeri.</div>
+      <div class="muted">3D model: low-poly Bell (AH-1S yerine görsel amaçlı), boyu AH-1S'e (13.6 m) ölçeklendi. Uçuş dinamiği JSBSim AH-1S modeli.</div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.169.0/+esm";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/loaders/GLTFLoader.js/+esm";
+import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js/+esm";
+
+// =====================================================================
+// yardımcılar
+// =====================================================================
+const $ = (s, r = document) => r.querySelector(s);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const mod360 = d => ((d % 360) + 360) % 360;
+const wrap180 = d => { const w = mod360(d + 180) - 180; return w === -180 ? 180 : w; };
+const pad3 = d => String(Math.round(mod360(d)) % 360).padStart(3, "0");
+const fin = x => typeof x === "number" && Number.isFinite(x);
+const fmt = (x, n = 1) => fin(x) ? x.toFixed(n).replace("-", "−") : "—";
+const sgn = (x, n = 1) => fin(x) ? (x > 0 ? "+" : x < 0 ? "−" : "±") + Math.abs(x).toFixed(n) : "—";
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const tok = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const AXES = ["heading", "speed", "altitude"];
+const AX = {
+  heading: { name: "Heading", d: "Δψ", unit: "°", err: "e_psi", nd: 1, sym: "ψ" },
+  speed: { name: "Hız", d: "Δv", unit: "ft/s", err: "e_u", nd: 1, sym: "v" },
+  altitude: { name: "İrtifa", d: "Δh", unit: "ft", err: "e_h", nd: 0, sym: "h" },
+};
+const DEFAULT_LIMITS = {
+  tol: { heading: 1.5, speed: 1.5, altitude: 10 }, coupling: { heading: 5, speed: 4, altitude: 25 }, hold_s: 10,
+  safety: { cmd_speed_range: [3, 60], cmd_min_alt_ft: 150 },
+  trained: { heading: 180, speed: 10, altitude: 100, start_alt_ft: [200, 1000], start_speed_fps: [10, 25] },
+};
+const REASONS = {
+  roll_limit: "yatış 40° sınırını aştı", pitch_limit: "yunuslama 30° sınırını aştı", yaw_rate_limit: "yaw hızı 45°/s sınırını aştı",
+  roll_rate_limit: "yatış hızı 90°/s sınırını aştı", too_low: "irtifa 50 ft'in altına indi", rotor_rpm: "rotor devri 280–380 rpm dışına çıktı",
+  speed_limit: "hız sınır dışına çıktı", altitude_deviation: "irtifa komut bandından 75 ft'ten fazla saptı",
+  speed_deviation: "hız komut bandından 12 ft/s'den fazla saptı", heading_wrong_way: "heading ters yöne 30°'den fazla gitti",
+  heading_overshoot: "heading hedefi 30°'den fazla aştı", jsbsim_stopped: "JSBSim durdu", non_finite_state: "sayısal hata (NaN)",
+  time_limit: "süre sınırı doldu", mission_end: "görev sonu",
+};
+const cmdText = c => AXES.filter(a => c && c[a]).map(a => `${AX[a].d} ${sgn(c[a], a === "altitude" ? 0 : (Math.abs(c[a]) % 1 ? 1 : 0))}${AX[a].unit === "°" ? "°" : " " + AX[a].unit}`).join(" · ") || "—";
+function lowerBound(arr, x) { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < x) lo = m + 1; else hi = m; } return lo; }
+function upperBound(arr, x) { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] <= x) lo = m + 1; else hi = m; } return lo; }
+
+// =====================================================================
+// uçuş verisi (sütunlu)
+// =====================================================================
+let FLIGHT_UID = 0;
+class Flight {
+  constructor(cols, opts = {}) {
+    this.uid = ++FLIGHT_UID;
+    this.cols = cols; this.ix = Object.fromEntries(cols.map((c, i) => [c, i]));
+    this.data = cols.map(() => []); this.n = 0;
+    this.psiU = []; this.tgtU = [];
+    this.commands = []; this.events = []; this.meta = opts.meta || {}; this.limits = opts.limits || DEFAULT_LIMITS;
+    this.controlDt = opts.control_dt || 0.075; this.termination = opts.termination || null;
+    this.serverId = opts.serverId ?? null; this.title = opts.title || ""; this.description = opts.description || "";
+    this.version = 0;
+  }
+  static fromExport(o) {
+    const f = new Flight(o.cols, { meta: o.meta, limits: o.limits, control_dt: o.control_dt, termination: o.termination, title: o.title, description: o.description });
+    const n = o.data.t.length;
+    f.data = o.cols.map(c => (o.data[c] || new Array(n).fill(null)).map(v => v == null ? NaN : v));
+    f.n = n; f._unwrapFrom(0);
+    f.commands = (o.commands || []).map(c => ({ ...c })); f.events = o.events || [];
+    f.version++;
+    return f;
+  }
+  col(name) { return this.data[this.ix[name]] || []; }
+  append(rows) {
+    for (const r of rows) { for (let j = 0; j < this.cols.length; j++) this.data[j].push(r[j] == null ? NaN : r[j]); }
+    const from = this.n; this.n += rows.length; this._unwrapFrom(from); if (rows.length) this.version++;
+  }
+  _unwrapFrom(from) {
+    const psi = this.col("psi"), ep = this.col("e_psi");
+    for (let i = from; i < this.n; i++) {
+      const u = i === 0 ? psi[0] : this.psiU[i - 1] + wrap180(psi[i] - psi[i - 1]);
+      this.psiU[i] = fin(u) ? u : (i ? this.psiU[i - 1] : 0);
+      this.tgtU[i] = this.psiU[i] + (fin(ep[i]) ? ep[i] : 0);
+    }
+  }
+  get t() { return this.col("t"); }
+  get tEnd() { return this.n ? this.col("t")[this.n - 1] : 0; }
+  sample(T) {
+    const t = this.col("t"); if (!this.n) return null;
+    let i = upperBound(t, T) - 1; i = clamp(i, 0, this.n - 1);
+    const j = Math.min(i + 1, this.n - 1); const span = t[j] - t[i]; const w = span > 0 ? clamp((T - t[i]) / span, 0, 1) : 0;
+    const L = name => { const c = this.col(name); const a = c[i], b = c[j]; return fin(a) && fin(b) ? a + (b - a) * w : (fin(a) ? a : b); };
+    const psi = mod360(this.psiU[i] + (this.psiU[j] - this.psiU[i]) * w);
+    const tgt = this.tgtU[i] + (this.tgtU[j] - this.tgtU[i]) * w;
+    return { i, t: T, x: L("x"), y: L("y"), h: L("h"), psi, psiU: this.psiU[i] + (this.psiU[j] - this.psiU[i]) * w, psiRefU: tgt,
+      psi_ref: mod360(tgt), u: L("u"), v: L("v"), vs: L("vs"), phi: L("phi"), theta: L("theta"), r: L("r"), rpm: L("rpm"),
+      u_ref: L("u_ref"), h_ref: L("h_ref"), e_psi: L("e_psi"), e_u: L("e_u"), e_h: L("e_h"), rew: L("rew"),
+      f: [L("f0"), L("f1"), L("f2"), L("f3")], c: [L("c0"), L("c1"), L("c2"), L("c3")] };
+  }
+}
+
+// =====================================================================
+// komut metrikleri — command_viz.command_metrics ile aynı tanım
+// =====================================================================
+const METRIC_CACHE = new Map();
+function commandMetrics(fl, cmd, tEnd, terminated) {
+  const key = `${fl.uid}:${cmd.id}:${tEnd.toFixed(3)}:${fl.n}:${terminated ? 1 : 0}`;
+  if (METRIC_CACHE.has(key)) return METRIC_CACHE.get(key);
+  const L = fl.limits || DEFAULT_LIMITS, tol = L.tol, lim = L.coupling;
+  const t = fl.col("t"), dt = fl.controlDt;
+  const i0 = lowerBound(t, cmd.t + dt - 1e-9), i1 = upperBound(t, tEnd + 1e-9) - 1;
+  const out = { axes: {}, streak_s: 0, coupling_exceeded: false, n: Math.max(0, i1 - i0 + 1), success_live: false };
+  if (i1 < i0) return out;
+  const applied = cmd.applied || cmd.requested || {};
+  const inside = new Uint8Array(out.n).fill(1);
+  const iL = lowerBound(t, t[i1] - 10 - 1e-9);
+  for (const a of AXES) {
+    const e = fl.col(AX[a].err), d = +applied[a] || 0;
+    let sumF = 0, nF = 0;
+    for (let i = i0; i <= i1; i++) { if (!(Math.abs(e[i]) <= tol[a])) inside[i - i0] = 0; if (i >= iL && fin(e[i])) { sumF += e[i]; nF++; } }
+    const final = nF ? sumF / nF : NaN, now = e[i1];
+    if (d !== 0) {
+      let i10 = -1, i90 = -1, fmax = -Infinity, lastOut = -1;
+      for (let i = i0; i <= i1; i++) {
+        const fr = (d - e[i]) / d;
+        if (i10 < 0 && fr >= 0.1) i10 = i; if (i90 < 0 && fr >= 0.9) i90 = i; if (fr > fmax) fmax = fr;
+        if (Math.abs(e[i]) > tol[a]) lastOut = i;
+      }
+      const settle = lastOut < 0 ? 0 : (lastOut < i1 ? t[lastOut + 1] - cmd.t : NaN);
+      out.axes[a] = { commanded: true, delta: d, rise_s: i10 >= 0 && i90 >= i10 ? t[i90] - t[i10] : NaN,
+        overshoot_pct: Math.max(0, fmax - 1) * 100, settle_s: settle, final, now };
+    } else {
+      let peak = 0; for (let i = i0; i <= i1; i++) if (Math.abs(e[i]) > peak) peak = Math.abs(e[i]);
+      const limit = lim ? lim[a] : null, exceeded = limit != null && peak > limit;
+      out.coupling_exceeded ||= exceeded;
+      out.axes[a] = { commanded: false, coupling: peak, limit, exceeded, final, now };
+    }
+  }
+  let run = 0; for (let k = out.n - 1; k >= 0 && inside[k]; k--) run++;
+  out.streak_s = run * dt;
+  out.success_live = !terminated && out.streak_s >= L.hold_s - 1e-9 && !out.coupling_exceeded;
+  if (METRIC_CACHE.size > 400) METRIC_CACHE.clear();
+  METRIC_CACHE.set(key, out);
+  return out;
+}
+// komutun penceresi, verilen gösterim zamanında
+function windowOf(fl, k, T) {
+  const cmds = fl.commands, c = cmds[k], next = cmds[k + 1];
+  const endEv = fl.events.find(e => e.type === "end");
+  const flightEnd = endEv ? endEv.t : Infinity;
+  const hardEnd = next ? next.t : Math.min(flightEnd, fl.tEnd);
+  const tEnd = Math.min(T, hardEnd);
+  const closed = (next && T >= next.t - 1e-9) || (endEv && T >= flightEnd - 1e-9);
+  const terminated = !next && endEv && T >= flightEnd - 1e-9 && !["time_limit", "mission_end"].includes(endEv.reason);
+  return { c, tEnd, closed, terminated };
+}
+
+// =====================================================================
+// taşıyıcılar: yerel HTTP, Colab kernel, kayıt
+// =====================================================================
+class HttpTransport {
+  constructor() { this.kind = "http"; this.pollMs = 140; }
+  async _get(p) { const r = await fetch(p, { cache: "no-store" }); if (!r.ok) throw new Error(`${p}: ${r.status}`); return r.json(); }
+  async _post(p, b) { const r = await fetch(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b || {}) }); return r.json(); }
+  hello() { return this._get("api/hello"); }
+  state(f, s) { return this._get(`api/state?flight=${f ?? ""}&since=${s}`); }
+  command(d) { return this._post("api/command", d); }
+  reset(o) { return this._post("api/reset", o); }
+  control(o) { return this._post("api/control", o); }
+  async model() { const r = await fetch("heli_bell.glb"); if (!r.ok) throw new Error("model " + r.status); return r.arrayBuffer(); }
+}
+class ColabTransport {
+  constructor() { this.kind = "colab"; this.pollMs = 260; }
+  async _call(name, args = []) { const r = await google.colab.kernel.invokeFunction(name, args, {}); return r.data["application/json"]; }
+  hello() { return this._call("ah1s_viz.hello"); }
+  state(f, s) { return this._call("ah1s_viz.state", [f ?? null, s]); }
+  command(d) { return this._call("ah1s_viz.command", [d]); }
+  reset(o) { return this._call("ah1s_viz.reset", [o]); }
+  control(o) { return this._call("ah1s_viz.control", [o]); }
+  save() { return this._call("ah1s_viz.save"); }
+  async model() { const { b64 } = await this._call("ah1s_viz.model"); const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer; }
+}
+async function staticModel() {
+  for (const url of ["heli_bell.glb.b64.json", "heli_bell.glb"]) {      // yayımlanmış sayfa .glb sunmaz → base64 JSON
+    try {
+      const r = await fetch(url); if (!r.ok) continue;
+      if (url.endsWith(".glb")) return await r.arrayBuffer();
+      const { b64 } = await r.json(); const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer;
+    } catch (e) { /* sonraki */ }
+  }
+  throw new Error("model bulunamadı");
+}
+
+// =====================================================================
+// 3D sahne
+// =====================================================================
+const FT_PER_M = 3.28084;
+class FlightScene {
+  constructor(host) {
+    this.host = host;
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, powerPreference: "high-performance" });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    this.renderer.domElement.className = "gl";
+    host.prepend(this.renderer.domElement);
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(48, 1.6, 1.5, 120000);
+    this.camera.position.set(0, 340, 180);
+    this.mode = "chase"; this.dist = { chase: 125, top: 750, side: 280, free: 0 }; this.snap = true; this.camPsi = 0;
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enabled = false; this.controls.enableDamping = true; this.controls.dampingFactor = 0.12;
+    this.controls.minDistance = 25; this.controls.maxDistance = 6000; this.controls.maxPolarAngle = Math.PI * 0.495;
+    this.lastHeli = new THREE.Vector3();
+    this.renderer.domElement.addEventListener("wheel", e => {
+      if (this.mode === "free") return;
+      e.preventDefault();
+      const k = Math.exp(Math.sign(e.deltaY) * 0.12);
+      const lim = { chase: [45, 900], top: [150, 6000], side: [60, 1500] }[this.mode];
+      this.dist[this.mode] = clamp(this.dist[this.mode] * k, lim[0], lim[1]);
+    }, { passive: false });
+
+    // ışık
+    this.hemi = new THREE.HemisphereLight(0xdfeaf2, 0x8a7a60, 1.5); this.scene.add(this.hemi);
+    this.sun = new THREE.DirectionalLight(0xffffff, 2.3); this.sun.position.set(-0.45, 1, 0.35).multiplyScalar(1000); this.scene.add(this.sun); this.scene.add(this.sun.target);
+    // gökyüzü kubbesi
+    this.skyMat = new THREE.ShaderMaterial({
+      uniforms: { top: { value: new THREE.Color() }, horizon: { value: new THREE.Color() }, bottom: { value: new THREE.Color() } },
+      vertexShader: "varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      fragmentShader: "uniform vec3 top; uniform vec3 horizon; uniform vec3 bottom; varying vec3 vDir; void main(){ float h = vDir.y; vec3 c = h > 0.0 ? mix(horizon, top, pow(h, 0.55)) : mix(horizon, bottom, pow(-h, 0.35)); gl_FragColor = vec4(c, 1.0);\n#include <colorspace_fragment>\n}",
+      side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
+    });
+    this.sky = new THREE.Mesh(new THREE.SphereGeometry(100000, 32, 16), this.skyMat); this.sky.renderOrder = -1000; this.scene.add(this.sky);
+    this.scene.fog = new THREE.Fog(0xe3ecef, 5000, 42000);
+    // zemin (1 karo = 1000 ft, ince çizgi = 100 ft)
+    this.gridCanvas = document.createElement("canvas"); this.gridCanvas.width = this.gridCanvas.height = 1024;
+    this.gridTex = new THREE.CanvasTexture(this.gridCanvas); this.gridTex.wrapS = this.gridTex.wrapT = THREE.RepeatWrapping;
+    this.gridTex.repeat.set(160, 160); this.gridTex.colorSpace = THREE.SRGBColorSpace;
+    this.gridTex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    this.ground = new THREE.Mesh(new THREE.PlaneGeometry(160000, 160000), new THREE.MeshLambertMaterial({ map: this.gridTex }));
+    this.ground.rotation.x = -Math.PI / 2; this.scene.add(this.ground);
+    // başlangıç pisti (orijin) — kuzey oku ile
+    this.padCanvas = document.createElement("canvas"); this.padCanvas.width = this.padCanvas.height = 512;
+    this.padTex = new THREE.CanvasTexture(this.padCanvas); this.padTex.colorSpace = THREE.SRGBColorSpace;
+    this.pad = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), new THREE.MeshLambertMaterial({ map: this.padTex, transparent: true }));
+    this.pad.rotation.x = -Math.PI / 2; this.pad.position.y = 0.4; this.scene.add(this.pad);
+    // helikopter
+    this.heli = new THREE.Group(); this.heli.rotation.order = "YXZ"; this.scene.add(this.heli);
+    this.holder = new THREE.Group(); this.holder.rotation.y = Math.PI; this.holder.scale.setScalar(FT_PER_M); this.heli.add(this.holder);
+    this.rotor = null; this.tail = null; this._placeholder();
+    // gölge
+    const sh = document.createElement("canvas"); sh.width = sh.height = 128; const g = sh.getContext("2d");
+    const grd = g.createRadialGradient(64, 64, 4, 64, 64, 64); grd.addColorStop(0, "rgba(0,0,0,0.55)"); grd.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
+    this.shadow = new THREE.Mesh(new THREE.CircleGeometry(34, 40), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sh), transparent: true, depthWrite: false }));
+    this.shadow.rotation.x = -Math.PI / 2; this.shadow.position.y = 0.7; this.scene.add(this.shadow);
+    // iz + perde + yer izi
+    this.MAX = 24000;
+    this.trailPos = new Float32Array(this.MAX * 3);
+    this.trailGeo = new THREE.BufferGeometry(); this.trailGeo.setAttribute("position", new THREE.BufferAttribute(this.trailPos, 3).setUsage(THREE.DynamicDrawUsage));
+    this.trailMat = new THREE.LineBasicMaterial({ color: 0x27414f, transparent: true, opacity: 0.9 });
+    this.trail = new THREE.Line(this.trailGeo, this.trailMat); this.trail.frustumCulled = false; this.scene.add(this.trail);
+    this.trackPos = new Float32Array(this.MAX * 3);
+    this.trackGeo = new THREE.BufferGeometry(); this.trackGeo.setAttribute("position", new THREE.BufferAttribute(this.trackPos, 3).setUsage(THREE.DynamicDrawUsage));
+    this.trackMat = new THREE.LineBasicMaterial({ color: 0x27414f, transparent: true, opacity: 0.35 });
+    this.track = new THREE.Line(this.trackGeo, this.trackMat); this.track.frustumCulled = false; this.scene.add(this.track);
+    this.curtPos = new Float32Array(this.MAX * 6);
+    const idx = new Uint32Array((this.MAX - 1) * 6);
+    for (let i = 0; i < this.MAX - 1; i++) { const a = 2 * i; idx.set([a, a + 1, a + 2, a + 1, a + 3, a + 2], i * 6); }
+    this.curtGeo = new THREE.BufferGeometry(); this.curtGeo.setAttribute("position", new THREE.BufferAttribute(this.curtPos, 3).setUsage(THREE.DynamicDrawUsage));
+    this.curtGeo.setIndex(new THREE.BufferAttribute(idx, 1));
+    this.curtMat = new THREE.MeshBasicMaterial({ color: 0x27414f, transparent: true, opacity: 0.10, side: THREE.DoubleSide, depthWrite: false });
+    this.curtain = new THREE.Mesh(this.curtGeo, this.curtMat); this.curtain.frustumCulled = false; this.scene.add(this.curtain);
+    this.trailN = 0; this.trailT = -Infinity; this.trailFlight = null;
+    // hedef işaretleri (magenta) ve mevcut heading
+    const lineOf = (n, mat) => { const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3)); const l = new THREE.Line(geo, mat); l.frustumCulled = false; this.scene.add(l); return l; };
+    this.tgtMat = new THREE.LineBasicMaterial({ color: 0xb5179e });
+    this.tgtLine = lineOf(2, this.tgtMat);
+    this.arc = lineOf(49, this.tgtMat);
+    this.curMat = new THREE.LineBasicMaterial({ color: 0x1b2a33, transparent: true, opacity: 0.85 });
+    this.curLine = lineOf(2, this.curMat);
+    this.stemMat = new THREE.LineDashedMaterial({ color: 0xb5179e, dashSize: 8, gapSize: 6 });
+    this.stem = lineOf(2, this.stemMat);
+    this.ringMat = new THREE.MeshBasicMaterial({ color: 0xb5179e, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
+    this.ring = new THREE.Mesh(new THREE.RingGeometry(58, 66, 72), this.ringMat); this.ring.rotation.x = -Math.PI / 2; this.scene.add(this.ring);
+    this.discMat = new THREE.MeshBasicMaterial({ color: 0x0b1115, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false });
+    this.tmp = new THREE.Vector3(); this.tmp2 = new THREE.Vector3();
+    new ResizeObserver(() => this.resize()).observe(host); this.resize();
+  }
+  _placeholder() {
+    const m = new THREE.MeshStandardMaterial({ color: 0x4493a4, roughness: 0.6 });
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.2, 4.5, 6, 12), m); body.rotation.x = Math.PI / 2;
+    const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.4, 7, 8), m); boom.rotation.x = Math.PI / 2; boom.position.set(0, 0.6, -5.5);
+    this.placeholder = new THREE.Group(); this.placeholder.add(body, boom); this.holder.add(this.placeholder);
+  }
+  setModel(gltfScene) {
+    if (this.placeholder) { this.holder.remove(this.placeholder); this.placeholder = null; }
+    this.holder.add(gltfScene);
+    this.rotor = gltfScene.getObjectByName("main_rotor"); this.tail = gltfScene.getObjectByName("tail_rotor");
+    if (this.rotor) {
+      const disc = new THREE.Mesh(new THREE.CircleGeometry(7.45, 64), this.discMat); disc.rotation.x = -Math.PI / 2;
+      disc.position.copy(this.rotor.position); disc.position.y += 0.05; this.rotor.parent.add(disc);
+    }
+  }
+  setTheme() {
+    const C = n => new THREE.Color(tok(n) || "#888");
+    this.skyMat.uniforms.top.value = C("--sky-top"); this.skyMat.uniforms.horizon.value = C("--sky-horizon"); this.skyMat.uniforms.bottom.value = C("--sky-bottom");
+    this.scene.fog.color = C("--sky-horizon");
+    const dark = tok("color-scheme") === "dark" || C("--page").getHSL({}).l < 0.3;
+    this.hemi.intensity = dark ? 1.15 : 1.5; this.sun.intensity = dark ? 1.7 : 2.3;
+    const gc = this.gridCanvas.getContext("2d"), S = 1024;
+    gc.fillStyle = tok("--ground"); gc.fillRect(0, 0, S, S);
+    gc.fillStyle = tok("--grid-minor"); for (let k = 1; k < 10; k++) { gc.fillRect(k * S / 10 - 1, 0, 2, S); gc.fillRect(0, k * S / 10 - 1, S, 2); }
+    gc.fillStyle = tok("--grid-major"); gc.fillRect(0, 0, 4, S); gc.fillRect(0, 0, S, 4);
+    this.gridTex.needsUpdate = true;
+    const pc = this.padCanvas.getContext("2d"), P = 512; pc.clearRect(0, 0, P, P);
+    const ink = tok("--cue-ink");
+    pc.strokeStyle = ink; pc.globalAlpha = 0.55; pc.lineWidth = 10; pc.beginPath(); pc.arc(P / 2, P / 2, 150, 0, Math.PI * 2); pc.stroke();
+    pc.fillStyle = ink; pc.font = "bold 150px B612, sans-serif"; pc.textAlign = "center"; pc.textBaseline = "middle"; pc.fillText("H", P / 2, P / 2 + 6);
+    pc.beginPath(); pc.moveTo(P / 2, 18); pc.lineTo(P / 2 + 26, 78); pc.lineTo(P / 2 - 26, 78); pc.closePath(); pc.fill();
+    pc.font = "bold 44px B612, sans-serif"; pc.fillText("N", P / 2, 110); pc.globalAlpha = 1;
+    this.padTex.needsUpdate = true;
+    const trail = C("--trail"); this.trailMat.color = trail; this.trackMat.color = trail; this.curtMat.color = C("--curtain");
+    this.curMat.color = C("--cue-ink");
+    const tg = C("--target"); this.tgtMat.color = tg; this.stemMat.color = tg; this.ringMat.color = tg;
+    this.discMat.color = C("--cue-ink");
+  }
+  resize() {
+    const w = this.host.clientWidth, h = this.host.clientHeight; if (!w || !h) return;
+    this.renderer.setSize(w, h, false); this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
+  }
+  setMode(m) {
+    this.mode = m; this.snap = true; this.camera.up.set(0, 1, 0);
+    this.controls.enabled = m === "free";
+    if (m === "free") { this.controls.target.copy(this.heli.position); this.lastHeli.copy(this.heli.position); this.controls.update(); }
+  }
+  resetTrail() { this.trailN = 0; this.trailT = -Infinity; this.trailFlight = null; this.snap = true; }
+  _world(s, out) { return out.set(s.x, s.h, -s.y); }
+  _syncTrail(fl, T, cur) {
+    const STEP = 0.3;
+    if (fl !== this.trailFlight || T < this.trailT - 1e-6) { this.trailN = 0; this.trailT = -Infinity; this.trailFlight = fl; }
+    let next = this.trailN ? this.trailT + STEP : fl.col("t")[0];
+    const P = this.trailPos, K = this.trackPos, Cc = this.curtPos;
+    const put = (k, x, y, z) => { P[k * 3] = x; P[k * 3 + 1] = y; P[k * 3 + 2] = z; K[k * 3] = x; K[k * 3 + 1] = 1.0; K[k * 3 + 2] = z;
+      Cc[k * 6] = x; Cc[k * 6 + 1] = y; Cc[k * 6 + 2] = z; Cc[k * 6 + 3] = x; Cc[k * 6 + 4] = 1.0; Cc[k * 6 + 5] = z; };
+    let guard = 0;
+    while (next <= T - 1e-9 && this.trailN < this.MAX - 2 && guard++ < 50000) {
+      const s = fl.sample(next); if (s) { put(this.trailN, s.x, s.h, -s.y); this.trailN++; }
+      this.trailT = next; next += STEP;
+    }
+    put(this.trailN, cur.x, cur.y, cur.z);
+    const n = this.trailN + 1;
+    this.trailGeo.setDrawRange(0, n); this.trackGeo.setDrawRange(0, n); this.curtGeo.setDrawRange(0, Math.max(0, n - 1) * 6);
+    for (const g of [this.trailGeo, this.trackGeo, this.curtGeo]) g.attributes.position.needsUpdate = true;
+  }
+  _setLine(line, pts) { const a = line.geometry.attributes.position; pts.forEach((p, k) => a.setXYZ(k, p.x, p.y, p.z)); a.needsUpdate = true; line.geometry.setDrawRange(0, pts.length); }
+  update(fl, s, dt, dtCam = dt) {
+    if (!s) return;
+    const pos = this._world(s, this.tmp);
+    this.heli.position.copy(pos);
+    this.heli.rotation.set(THREE.MathUtils.degToRad(s.theta || 0), -THREE.MathUtils.degToRad(s.psi), -THREE.MathUtils.degToRad(s.phi || 0), "YXZ");
+    const spin = reduceMotion ? 0.25 : 1;
+    if (this.rotor) this.rotor.rotation.y += dt * Math.PI * 2 * 1.15 * spin * clamp((s.rpm || 324) / 324, 0, 1.3);
+    if (this.tail) this.tail.rotation.x += dt * Math.PI * 2 * 4.2 * spin;
+    this.shadow.position.set(pos.x, 0.7, pos.z);
+    this.shadow.material.opacity = 0.55 * clamp(1 - s.h / 2200, 0.2, 1); this.shadow.scale.setScalar(0.8 + s.h / 1800);
+    this._syncTrail(fl, s.t, pos);
+    // hedef heading çizgisi + dönüş yayı (heli irtifasında)
+    const psiR = THREE.MathUtils.degToRad(s.psi), tgtR = THREE.MathUtils.degToRad(s.psi_ref);
+    const dir = r => new THREE.Vector3(Math.sin(r), 0, -Math.cos(r));
+    this._setLine(this.tgtLine, [pos.clone(), pos.clone().addScaledVector(dir(tgtR), 320)]);
+    this._setLine(this.curLine, [pos.clone(), pos.clone().addScaledVector(dir(psiR), 150)]);
+    const dErr = s.psiRefU - s.psiU, showArc = Math.abs(dErr) > 1.0;
+    this.arc.visible = showArc;
+    if (showArc) { const pts = []; for (let k = 0; k <= 48; k++) { const a = THREE.MathUtils.degToRad(s.psiU + dErr * k / 48); pts.push(pos.clone().addScaledVector(dir(a), 120)); } this._setLine(this.arc, pts); }
+    // hedef irtifa halkası + dikey kesikli çizgi
+    const showAlt = fin(s.h_ref) && Math.abs(s.h_ref - s.h) > 3;
+    this.ring.visible = this.stem.visible = showAlt;
+    if (showAlt) { this.ring.position.set(pos.x, s.h_ref, pos.z); this._setLine(this.stem, [pos.clone(), new THREE.Vector3(pos.x, s.h_ref, pos.z)]); this.stem.computeLineDistances(); }
+    this.sun.target.position.copy(pos); this.sun.position.copy(pos).add(new THREE.Vector3(-450, 1000, 350));
+    this._camera(pos, s, dtCam);
+    this.sky.position.copy(this.camera.position);
+  }
+  _camera(pos, s, dt) {
+    const k = this.snap ? 1 : 1 - Math.exp(-dt * (reduceMotion ? 6 : 2.6));
+    this.camPsi = this.snap ? s.psi : this.camPsi + wrap180(s.psi - this.camPsi) * k;
+    const r = THREE.MathUtils.degToRad(this.camPsi), fwd = new THREE.Vector3(Math.sin(r), 0, -Math.cos(r)), right = new THREE.Vector3(Math.cos(r), 0, Math.sin(r));
+    const cam = this.camera, d = this.dist[this.mode];
+    if (this.mode === "free") {
+      const delta = this.tmp2.copy(pos).sub(this.lastHeli);
+      cam.position.add(delta); this.controls.target.add(delta); this.lastHeli.copy(pos);
+      if (this.snap) { this.controls.target.copy(pos); cam.position.copy(pos).addScaledVector(fwd, -170).add(new THREE.Vector3(0, 70, 0)); }
+      this.controls.update();
+    } else if (this.mode === "top") {
+      const want = new THREE.Vector3(pos.x, pos.y + d, pos.z + 0.01);
+      cam.position.lerp(want, this.snap ? 1 : Math.min(1, k * 1.6)); cam.up.set(0, 0, -1); cam.lookAt(pos);
+    } else {
+      const want = this.mode === "side" ? pos.clone().addScaledVector(right, d).add(new THREE.Vector3(0, d * 0.12, 0))
+                                        : pos.clone().addScaledVector(fwd, -d).add(new THREE.Vector3(0, d * 0.3 + 10, 0));
+      cam.position.lerp(want, this.snap ? 1 : Math.min(1, k * 1.6)); cam.up.set(0, 1, 0);
+      cam.lookAt(this.mode === "side" ? pos : pos.clone().addScaledVector(fwd, d * 0.22).add(new THREE.Vector3(0, 4, 0)));
+    }
+    if (cam.position.y < 8) cam.position.y = 8;
+    this.snap = false;
+  }
+  cameraYawDeg() {
+    if (this.mode === "top") return 0;
+    const d = new THREE.Vector3(); this.camera.getWorldDirection(d);
+    return Math.atan2(d.x, -d.z) * 180 / Math.PI;
+  }
+  render() { this.renderer.render(this.scene, this.camera); }
+}
+
+// =====================================================================
+// HUD
+// =====================================================================
+const hud = {
+  tape: $("#tapeCanvas"), hdg: $("#hdgBox"), spd: $("#hudSpd"), kt: $("#hudKt"), spdT: $("#hudSpdT"),
+  alt: $("#hudAlt"), vs: $("#hudVs"), altT: $("#hudAltT"), chip: $("#cmdChip"), chipK: $("#cmdChipK"), chipTxt: $("#cmdChipTxt"), compass: $("#compassSvg"),
+};
+function drawTape(hdg, tgt, showTgt, track) {
+  const cv = hud.tape, dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight;
+  if (!W || !H) return;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const span = W < 360 ? 60 : 80, ppd = W / span, cx = W / 2, base = H - 6;
+  g.strokeStyle = "rgba(242,246,248,.85)"; g.fillStyle = "rgba(242,246,248,.92)"; g.lineWidth = 1; g.font = "11px 'B612 Mono', monospace"; g.textAlign = "center";
+  const d0 = Math.ceil((hdg - span / 2) / 5) * 5;
+  for (let d = d0; d <= hdg + span / 2; d += 5) {
+    const x = cx + (d - hdg) * ppd, major = d % 10 === 0;
+    g.beginPath(); g.moveTo(x + .5, base); g.lineTo(x + .5, base - (major ? 11 : 6)); g.stroke();
+    if (d % 30 === 0) g.fillText(pad3(d), x, base - 15);
+  }
+  g.beginPath(); g.moveTo(cx, base - 22); g.lineTo(cx - 5, base - 30); g.lineTo(cx + 5, base - 30); g.closePath(); g.fill();
+  if (fin(track)) {                       // yer izi (track) — burun yönünden farkı yana kaymayı gösterir
+    const e = wrap180(track - hdg);
+    if (Math.abs(e) < span / 2 - 3) { const x = cx + e * ppd, y = base - 7; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - 4.5); g.lineTo(x + 4.5, y); g.lineTo(x, y + 4.5); g.lineTo(x - 4.5, y); g.closePath(); g.stroke(); g.lineWidth = 1; }
+    g.textAlign = "right"; g.font = "10px 'B612', sans-serif"; g.fillText(`İZ ${pad3(track)}°`, W - 6, 13); g.textAlign = "center";
+  }
+  if (showTgt) {
+    const e = wrap180(tgt - hdg), off = Math.abs(e) > span / 2 - 3, x = cx + clamp(e, -span / 2 + 3, span / 2 - 3) * ppd;
+    g.fillStyle = "#ff8ff0";
+    if (!off) { g.fillRect(x - 7, base - 4, 14, 4); g.fillRect(x - 7, base - 10, 4, 6); g.fillRect(x + 3, base - 10, 4, 6); }
+    else { const s = Math.sign(e); g.beginPath(); g.moveTo(x + s * 7, base - 5); g.lineTo(x - s * 3, base - 11); g.lineTo(x - s * 3, base + 1); g.closePath(); g.fill();
+      g.font = "10px 'B612 Mono', monospace"; g.fillText(pad3(tgt), x - s * 18, base - 2); }
+  }
+}
+function updateHud(s, fl, T) {
+  if (!s) return;
+  hud.hdg.textContent = pad3(s.psi) + "°";
+  const hasCmd = fl.commands.some(c => c.t <= T);
+  const track = s.u > 2 ? s.psi + Math.atan2(s.v, s.u) * 180 / Math.PI : NaN;
+  drawTape(s.psi, s.psi_ref, hasCmd || Math.abs(wrap180(s.psi_ref - s.psi)) > 0.5, track);
+  hud.spd.textContent = fmt(s.u, 1); hud.kt.textContent = `${fmt(s.u * 0.592484, 1)} kt · yanal ${sgn(s.v, 1)}`;
+  hud.alt.textContent = fmt(s.h, 0); hud.vs.textContent = (s.vs >= 0 ? "↑ " : "↓ ") + fmt(Math.abs(s.vs), 1) + " ft/s";
+  hud.spdT.textContent = Math.abs(s.e_u) > 0.3 ? "hedef " + fmt(s.u_ref, 1) : "";
+  hud.altT.textContent = Math.abs(s.e_h) > 1 ? "hedef " + fmt(s.h_ref, 0) : "";
+  hud.compass.style.transform = `rotate(${-app.scene.cameraYawDeg()}deg)`;
+}
+
+// =====================================================================
+// grafikler (uPlot)
+// =====================================================================
+const CHART_SPECS = [
+  { key: "hdg", title: "Heading", unit: "°", kind: "track", axis: "heading", minSpan: 12, incrs: [1, 2, 5, 10, 15, 30, 45, 90, 180], yfmt: v => pad3(v) + "°" },
+  { key: "spd", title: "Hız", unit: "u, ft/s", kind: "track", axis: "speed", minSpan: 4, yfmt: v => fmt(v, 0) },
+  { key: "alt", title: "İrtifa", unit: "AGL, ft", kind: "track", axis: "altitude", minSpan: 30, yfmt: v => fmt(v, 0) },
+  { key: "ctl", title: "Ajanın kumandası", unit: "trim'e eklenen, −1…+1", kind: "multi", cols: ["f0", "f1", "f2", "f3"],
+    names: ["Collective", "Boylamsal cyclic", "Yanal cyclic", "Pedal"], colors: ["--s1", "--s2", "--s3", "--s4"], range: [-1.05, 1.05], incrs: [0.25, 0.5, 1], yfmt: v => fmt(v, 1), nd: 2 },
+  { key: "att", title: "Yatış ve yunuslama", unit: "°", kind: "multi", cols: ["phi", "theta"], names: ["Roll (yatış)", "Pitch (yunuslama)"], colors: ["--s3", "--s2"], minSpan: 4, yfmt: v => fmt(v, 0), nd: 1 },
+  { key: "rew", title: "Ödül (reward)", unit: "adım başına, ölçekli", kind: "multi", cols: ["rew"], names: ["Ödül"], colors: ["--ink"], minSpan: 0.05, yfmt: v => fmt(v, 2), nd: 3 },
+];
+class Charts {
+  constructor(host) { this.host = host; this.items = []; this.hover = null; this.build(); }
+  build() {
+    this.items.forEach(it => it.u.destroy()); this.items = []; this.host.innerHTML = "";
+    const ink = tok("--ink"), muted = tok("--muted"), hair = tok("--hair"), line = tok("--line"), target = tok("--target"), wash = tok("--target-wash");
+    for (const sp of CHART_SPECS) {
+      const box = document.createElement("div"); box.className = "chart";
+      const head = document.createElement("header"); const h3 = document.createElement("h3"); h3.textContent = sp.title;
+      const sm = document.createElement("small"); sm.textContent = sp.unit; h3.append(sm); head.append(h3); box.append(head);
+      const leg = document.createElement("div"); leg.className = "legend"; box.append(leg);
+      const plot = document.createElement("div"); plot.className = "plot"; box.append(plot);
+      const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; box.append(tip);
+      this.host.append(box);
+      let series, bands = [], names, colors;
+      if (sp.kind === "track") {
+        names = ["Hedef (komut)", "Ölçülen"]; colors = [target, ink];
+        series = [{}, { label: "lo", stroke: "transparent", points: { show: false } }, { label: "hi", stroke: "transparent", points: { show: false } },
+          { label: names[0], stroke: target, width: 2, paths: uPlot.paths.stepped({ align: 1 }), points: { show: false } },
+          { label: names[1], stroke: ink, width: 2, points: { show: false } }];
+        bands = [{ series: [2, 1], fill: wash }];
+        const addLeg = (color, text, band) => { const s = document.createElement("span"); const i = document.createElement("i"); i.style.background = color; if (band) i.className = "band"; s.append(i, document.createTextNode(text)); leg.append(s); };
+        addLeg(ink, "Ölçülen"); addLeg(target, "Hedef (komut)"); addLeg(wash, `±${DEFAULT_LIMITS.tol[sp.axis]} ${sp.axis === "heading" ? "°" : AX[sp.axis].unit} tolerans`, true);
+      } else {
+        names = sp.names; colors = sp.colors.map(c => tok(c));
+        series = [{}, ...names.map((n, k) => ({ label: n, stroke: colors[k], width: 2, points: { show: false } }))];
+        if (names.length > 1) names.forEach((n, k) => { const s = document.createElement("span"); const i = document.createElement("i"); i.style.background = colors[k]; s.append(i, document.createTextNode(n)); leg.append(s); });
+      }
+      const axisFont = "11px " + getComputedStyle(document.body).fontFamily;
+      const opts = {
+        width: Math.max(200, plot.clientWidth), height: 172,
+        legend: { show: false },
+        cursor: { sync: { key: "flight" }, drag: { x: false, y: false, setScale: false }, points: { size: 7, fill: tok("--surface"), width: 2 } },
+        scales: { x: { time: false }, y: { range: sp.range ? () => sp.range : (u, lo, hi) => { if (!fin(lo) || !fin(hi)) return [0, 1]; const mid = (lo + hi) / 2, span = Math.max(hi - lo, sp.minSpan) * 1.08; return [mid - span / 2, mid + span / 2]; } } },
+        axes: [
+          { stroke: muted, font: axisFont, size: 26, gap: 3, grid: { stroke: hair, width: 1 }, ticks: { stroke: line, width: 1, size: 3 }, values: (u, v) => v.map(x => fmt(x, 0) + " s") },
+          { stroke: muted, font: axisFont, size: 50, gap: 4, grid: { stroke: hair, width: 1 }, ticks: { stroke: line, width: 1, size: 3 }, values: (u, v) => v.map(sp.yfmt), ...(sp.incrs ? { incrs: sp.incrs } : {}) },
+        ],
+        series, bands,
+        hooks: {
+          draw: [u => this._markers(u)],
+          setCursor: [u => this._tip(u, sp, tip, names, colors)],
+        },
+      };
+      const u = new uPlot(opts, [[], ...series.slice(1).map(() => [])], plot);
+      u.over.addEventListener("pointerenter", () => { this.hover = u; });
+      u.over.addEventListener("pointerleave", () => { if (this.hover === u) this.hover = null; tip.hidden = true; });
+      this.items.push({ sp, u, plot, tip });
+    }
+    if (!this.ro) { this.ro = new ResizeObserver(() => this.resize()); }
+    this.items.forEach(it => this.ro.observe(it.plot));
+    this.lastKey = "";
+  }
+  resize() { this.items.forEach(it => { const w = it.plot.clientWidth; if (w && Math.abs(w - it.u.width) > 1) it.u.setSize({ width: w, height: 172 }); }); }
+  _markers(u) {
+    const fl = app.flight; if (!fl) return;
+    const ctx = u.ctx, dpr = devicePixelRatio || 1, { left, top, width, height } = u.bbox, x0 = u.scales.x.min, x1 = u.scales.x.max;
+    ctx.save(); ctx.strokeStyle = tok("--line"); ctx.fillStyle = tok("--muted"); ctx.lineWidth = 1; ctx.font = `${10 * dpr}px ${getComputedStyle(document.body).fontFamily}`;
+    for (const c of fl.commands) {
+      if (!(c.t >= x0 && c.t <= x1)) continue;
+      const x = Math.round(u.valToPos(c.t, "x", true)) + 0.5;
+      ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, top + height); ctx.stroke();
+      ctx.fillText("K" + c.id, x + 3 * dpr, top + 10 * dpr);
+    }
+    ctx.restore();
+  }
+  _tip(u, sp, tip, names, colors) {
+    const i = u.cursor.idx;
+    if (this.hover !== u || i == null || u.cursor.left < 0) { tip.hidden = true; return; }
+    const t = u.data[0][i]; tip.replaceChildren();
+    const head = document.createElement("div"); head.className = "t"; head.textContent = `t = ${fmt(t, 2)} s`; tip.append(head);
+    const rows = sp.kind === "track" ? [[names[1], u.data[4][i], colors[1]], [names[0], u.data[3][i], colors[0]]] : names.map((n, k) => [n, u.data[k + 1][i], colors[k]]);
+    for (const [n, v, col] of rows) {
+      const r = document.createElement("div"); r.className = "r";
+      const key = document.createElement("i"); key.style.background = col;
+      const b = document.createElement("b"); b.textContent = sp.kind === "track" ? (sp.axis === "heading" ? pad3(v) + "°" : fmt(v, sp.axis === "altitude" ? 1 : 2)) : fmt(v, sp.nd ?? 2);
+      const s = document.createElement("span"); s.textContent = n; r.append(key, b, s); tip.append(r);
+    }
+    const bw = u.over.clientWidth, x = u.cursor.left, left = x + 150 > bw ? x - 150 : x + 14;
+    tip.style.left = (u.over.offsetLeft + left) + "px"; tip.style.top = (u.over.offsetTop + Math.max(0, u.cursor.top - 30)) + "px"; tip.hidden = false;
+  }
+  update(fl, T, win) {
+    if (!fl || !fl.n) return;
+    const key = `${fl.uid}:${fl.version}:${T.toFixed(2)}:${win}`; if (key === this.lastKey) return; this.lastKey = key;
+    const t = fl.col("t"), iEnd = upperBound(t, T + 1e-9) - 1; if (iEnd < 0) return;
+    const iStart = win > 0 ? lowerBound(t, T - win) : 0;
+    let step = Math.max(1, Math.floor((iEnd - iStart + 1) / 4000));
+    const idx = []; for (let i = iStart; i <= iEnd; i += step) idx.push(i); if (idx[idx.length - 1] !== iEnd) idx.push(iEnd);
+    const xs = idx.map(i => t[i]);
+    for (const it of this.items) {
+      const sp = it.sp; let data;
+      if (sp.kind === "track") {
+        const tol = (fl.limits || DEFAULT_LIMITS).tol[sp.axis];
+        let meas, tgt;
+        if (sp.axis === "heading") { meas = idx.map(i => fl.psiU[i]); tgt = idx.map(i => fl.tgtU[i]); }
+        else if (sp.axis === "speed") { const a = fl.col("u"), b = fl.col("u_ref"); meas = idx.map(i => a[i]); tgt = idx.map(i => b[i]); }
+        else { const a = fl.col("h"), b = fl.col("h_ref"); meas = idx.map(i => a[i]); tgt = idx.map(i => b[i]); }
+        data = [xs, tgt.map(v => v - tol), tgt.map(v => v + tol), tgt, meas];
+      } else data = [xs, ...sp.cols.map(c => { const a = fl.col(c); return idx.map(i => a[i]); })];
+      it.u.setData(data, true);
+      if (win > 0 && xs.length) it.u.setScale("x", { min: Math.max(xs[0], T - win), max: Math.max(T, xs[0] + 1) });
+    }
+  }
+}
+
+// =====================================================================
+// uygulama durumu
+// =====================================================================
+const app = {
+  mode: "replay", live: null, liveFlight: null, flight: null, flights: [], T: 0, latestT: 0, win: 180,
+  status: {}, playing: false, speed: 2, scene: null, charts: null, lastCards: 0, lastCharts: 0, lastTable: 0, connected: false,
+};
+
+function setMode(mode) {
+  app.mode = mode;
+  const live = mode === "live";
+  $("#replayBar").hidden = live;
+  $("#scaleSeg").hidden = !live; $("#pauseBtn").hidden = !live;
+  $("#toLiveBtn").hidden = live || !app.live;
+  $("#cmdForm").hidden = !live; $("#resetBox").hidden = !live;
+  const note = $("#replayNote"); note.hidden = live;
+  $("#cmdTitle").textContent = live ? "Komut ver" : "Kendi komutların için";
+  if (!live) {
+    note.replaceChildren();
+    if (app.live) note.append(el("div", null, "Bir kayıt oynatılıyor. Canlı uçuşa komut vermek için üstteki «Canlıya dön»."));
+    else {
+      const p1 = el("div", null, "Bu sayfa gerçek JSBSim + PPO uçuşlarının kaydını oynatıyor. Δheading / Δhız / Δirtifa girip ajanı canlı izlemek için repo kökünde:");
+      const c1 = el("div"); c1.append(el("code", null, "python command_viz.py"), document.createTextNode("  → http://127.0.0.1:8765"));
+      const c2 = el("div"); c2.append(document.createTextNode("Colab'da: "), el("code", null, "import command_viz; command_viz.colab()"));
+      note.append(p1, c1, c2, el("div", "muted", "Canlı sayfa bununla aynı; komut formu ve yeniden başlatma orada açık."));
+    }
+  }
+  setHint("cmdHint", "", "");
+  renderExports();
+  app.scene?.resetTrail();
+  app.charts && (app.charts.lastKey = "");
+}
+function setHint(id, text, cls) { const el = $("#" + id); el.textContent = text; el.className = "hint" + (cls ? " " + cls : ""); }
+
+function renderExports() {
+  const box = $("#exports"); box.replaceChildren();
+  const addLink = (href, text) => { const a = document.createElement("a"); a.href = href; a.textContent = text; a.setAttribute("download", ""); box.append(a); };
+  const addBtn = (text, fn) => { const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = text; b.addEventListener("click", fn); box.append(b); return b; };
+  if (app.mode === "live" && app.live?.kind === "http") { addLink("api/export.json", "JSON indir"); addLink("api/export.acmi", "ACMI indir (Tacview)"); }
+  if (app.mode === "live" && app.live?.kind === "colab") {
+    const b = addBtn("Uçuşu diske kaydet", async () => { b.disabled = true; try { const r = await app.live.save(); setHint("cmdHint", `Kaydedildi: ${r.json} ve ${r.acmi}`, "ok"); } catch (e) { setHint("cmdHint", "Kaydedilemedi: " + e.message, "err"); } b.disabled = false; });
+  }
+  const lab = document.createElement("label"); lab.className = "btn"; lab.textContent = "Kayıt aç (JSON)"; lab.tabIndex = 0;
+  const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".json,application/json"; inp.hidden = true;
+  inp.addEventListener("change", async () => { const f = inp.files?.[0]; if (!f) return; try { loadBundle(JSON.parse(await f.text()), f.name); } catch (e) { setHint("cmdHint", "Dosya okunamadı: " + e.message, "err"); } });
+  lab.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inp.click(); } });
+  lab.append(inp); box.append(lab);
+}
+
+// ---------------- kayıt modu ----------------
+function loadBundle(obj, name) {
+  const list = obj.flights ? obj.flights : [obj];
+  const flights = list.map((o, k) => { const f = Flight.fromExport(o); f.title ||= name ? `${name}${list.length > 1 ? " #" + (k + 1) : ""}` : `Uçuş ${k + 1}`; return f; });
+  if (!flights.length) return;
+  app.flights = flights;
+  const sel = $("#flightSel"); sel.replaceChildren(...flights.map((f, k) => { const o = document.createElement("option"); o.value = k; o.textContent = f.title; return o; }));
+  setMode("replay");
+  selectFlight(0, name ? 0 : null);
+}
+function selectFlight(k, startAt) {
+  const fl = app.flights[k]; if (!fl) return;
+  app.flight = fl; $("#flightSel").value = k;
+  $("#flightDesc").textContent = [fl.description, fl.meta?.model ? `model: ${fl.meta.model}` : "", fl.termination ? `bitiş: ${REASONS[fl.termination] || fl.termination}` : ""].filter(Boolean).join(" · ");
+  const sc = $("#scrub"); sc.max = fl.tEnd.toFixed(2);
+  const T0 = startAt ?? Math.min(fl.tEnd, fl.commands[2] ? fl.commands[2].t + 18 : fl.tEnd * 0.45);
+  app.T = T0; sc.value = T0;
+  const marks = $("#scrubMarks"); marks.replaceChildren(...fl.commands.map(c => { const s = document.createElement("span"); s.style.left = (100 * c.t / Math.max(1, fl.tEnd)) + "%"; s.textContent = "K" + c.id; return s; }));
+  app.scene?.resetTrail(); app.charts && (app.charts.lastKey = "");
+  updateSub();
+}
+
+// ---------------- canlı mod ----------------
+async function pollLoop() {
+  for (;;) {
+    try {
+      const fl = app.liveFlight;
+      const s = await app.live.state(fl?.serverId ?? null, fl && fl.serverId != null ? fl.n : 0);
+      applyState(s); app.connected = true;
+    } catch (e) { app.connected = false; }
+    renderStatus();
+    await sleep(app.live.pollMs);
+  }
+}
+function applyState(s) {
+  let fl = app.liveFlight;
+  if (!fl || fl.serverId !== s.flight || s.n0 !== fl.n) {
+    if (fl && fl.serverId === s.flight && s.n0 !== fl.n && s.n0 !== 0) return;       // sıra dışı parça: yok say
+    fl = new Flight(app.hello.cols, { meta: s.meta, limits: app.hello.limits, control_dt: app.hello.control_dt, serverId: s.flight });
+    app.liveFlight = fl; if (app.mode === "live") { app.flight = fl; app.T = 0; app.scene?.resetTrail(); }
+  }
+  if (s.rows?.length) fl.append(s.rows);
+  fl.commands = s.commands || []; fl.events = s.events || []; fl.meta = s.meta || fl.meta;
+  const endEv = fl.events.find(e => e.type === "end"); fl.termination = endEv ? endEv.reason : null;
+  app.status = s.status || {}; app.latestT = fl.tEnd;
+  if (app.mode === "live") updateSub();
+}
+function renderStatus() {
+  const chip = $("#modeChip"), st = app.status || {};
+  chip.classList.remove("live", "warn", "bad");
+  if (app.mode === "replay") { $("#modeTxt").textContent = "KAYIT"; $("#statusTxt").textContent = app.playing ? "oynatılıyor" : "durdu"; return; }
+  $("#modeTxt").textContent = "CANLI";
+  if (!app.connected) { chip.classList.add("bad"); $("#statusTxt").textContent = "bağlantı yok"; return; }
+  const map = { running: st.paused ? ["warn", "duraklatıldı"] : ["live", `uçuyor · ${fmt(st.time_scale, 0)}×`], resetting: ["warn", "başlatılıyor"], starting: ["warn", "hazırlanıyor"], done: ["bad", "uçuş bitti"], error: ["bad", "hata"] };
+  const [cls, txt] = map[st.state] || ["warn", st.state || "…"]; chip.classList.add(cls); $("#statusTxt").textContent = txt;
+  $("#pauseBtn").textContent = st.paused ? "Devam et" : "Duraklat";
+  document.querySelectorAll("#scaleSeg button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.scale === +st.time_scale)));
+}
+function updateSub() {
+  const fl = app.flight; const m = fl?.meta || {}; const st = m.start || {};
+  const parts = ["PPO ajanı", "JSBSim AH-1S"];
+  if (m.model) parts.push(`model ${m.model}`);
+  if (fin(st.alt)) parts.push(`başlangıç ${fmt(st.alt, 0)} ft · ${fmt(st.speed, 0)} ft/s`);
+  $("#sub").replaceChildren(document.createTextNode(parts.join(" · ")));
+}
+
+// ---------------- kartlar ----------------
+function activeIndex(fl, T) { let k = -1; for (let i = 0; i < fl.commands.length; i++) if (fl.commands[i].t <= T + 1e-9) k = i; return k; }
+function statusOf(fl, k, T) {
+  const w = windowOf(fl, k, T), c = w.c, m = commandMetrics(fl, c, w.tEnd, w.terminated), hold = (fl.limits || DEFAULT_LIMITS).hold_s;
+  let cls = "run", icon = "→", text = "Hedefe gidiyor";
+  if (!c.applied && app.mode === "live" && c.t > fl.tEnd - 1e-9) { icon = "…"; text = "Kuyrukta"; }
+  else if (w.terminated) { cls = "bad"; icon = "✗"; text = "Uçuş bitti"; }
+  else if (w.closed && c.verdict != null) { cls = c.verdict ? "good" : "bad"; icon = c.verdict ? "✓" : "✗"; text = c.verdict ? "Başarılı" : "Başarısız"; }
+  else if (m.coupling_exceeded) { cls = "serious"; icon = "⚠"; text = "Kuplaj sınırı aşıldı"; }
+  else if (m.streak_s >= hold - 1e-9) { cls = "good"; icon = "✓"; text = "10 s tolerans içinde"; }
+  else if (m.streak_s > 0) { icon = "◔"; text = `Tolerans içinde ${fmt(m.streak_s, 1)} / ${hold} s`; }
+  return { w, m, cls, icon, text };
+}
+function setPill(el, cls, icon, text) { el.className = "pill " + cls; el.replaceChildren(); const i = document.createElement("i"); i.textContent = icon; const s = document.createElement("span"); s.textContent = text; el.append(i, s); }
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function renderActive(fl, T) {
+  const body = $("#actBody"), pill = $("#actPill"), k = activeIndex(fl, T);
+  if (k < 0) {
+    setPill(pill, "run", "•", "Komut yok");
+    body.replaceChildren(el("div", "empty", app.mode === "live" ? "Henüz komut verilmedi. Helikopter başlangıç değerlerini tutuyor." : "Bu anda henüz komut yok."));
+    hud.chip.hidden = true; return;
+  }
+  const { w, m, cls, icon, text } = statusOf(fl, k, T), c = w.c, applied = c.applied || c.requested, L = fl.limits || DEFAULT_LIMITS;
+  setPill(pill, cls, icon, text);
+  const frag = document.createDocumentFragment();
+  const head = el("div", "act-head"); head.append(el("span", "what", `K${c.id} · ${cmdText(applied)}`), el("span", "when", `t = ${fmt(c.t, 1)} s · ${fmt(Math.max(0, T - c.t), 1)} s önce`));
+  frag.append(head);
+  if (c.applied && AXES.some(a => Math.abs((c.applied[a] || 0) - (c.requested?.[a] || 0)) > 1e-9)) frag.append(el("div", "hint warn", `İstenen ${cmdText(c.requested)} → güvenli aralık için ${cmdText(c.applied)} uygulandı.`));
+  for (const a of AXES) {
+    const x = m.axes[a]; if (!x) continue;
+    const row = el("div", "mrow"); const ax = el("div", "ax", AX[a].name);
+    if (x.commanded) {
+      ax.append(el("small", null, `hedef ${a === "heading" ? pad3((c.ref?.heading_wrapped ?? 0)) + "°" : fmt(c.ref?.[a], a === "altitude" ? 0 : 1) + " " + AX[a].unit}`));
+      const g = el("div", "mgrid");
+      const cell = (lab, val) => { const d = el("div"); d.append(el("span", null, lab), el("b", null, val)); g.append(d); };
+      cell("hata", sgn(x.now, AX[a].nd + 1)); cell("yükselme", fin(x.rise_s) ? fmt(x.rise_s, 1) + " s" : "—");
+      cell("aşma", fmt(x.overshoot_pct, 1) + " %"); cell("oturma", fin(x.settle_s) ? fmt(x.settle_s, 1) + " s" : "—");
+      row.append(ax, g);
+    } else {
+      ax.append(el("small", null, "kuplaj"));
+      const box = el("div"); const lim = x.limit ?? L.coupling?.[a];
+      const line = el("div", "coup"); line.append(el("span", null, `en büyük ${fmt(x.coupling, a === "altitude" ? 1 : 2)} ${AX[a].unit}`), el("span", "muted", `sınır ${fmt(lim, 0)} ${AX[a].unit}`));
+      const meter = el("div", "meter" + (x.exceeded ? " over" : "")); const fill = el("i"); fill.style.width = (100 * clamp(x.coupling / (lim || 1), 0, 1)) + "%"; meter.append(fill);
+      box.append(line, meter); row.append(ax, box);
+    }
+    frag.append(row);
+  }
+  const srow = el("div", "mrow"); const sax = el("div", "ax", "Tolerans"); sax.append(el("small", null, "tüm eksenler aynı anda"));
+  const sbox = el("div"); const sl = el("div", "coup"); sl.append(el("span", null, `${fmt(m.streak_s, 1)} s`), el("span", "muted", `gerekli ${L.hold_s} s`));
+  const sm = el("div", "meter" + (m.streak_s >= L.hold_s ? " done" : "")); const sf = el("i"); sf.style.width = (100 * clamp(m.streak_s / L.hold_s, 0, 1)) + "%"; sm.append(sf);
+  sbox.append(sl, sm); srow.append(sax, sbox); frag.append(srow);
+  const vtxt = w.closed && c.verdict != null ? `Env kararı: ${c.verdict ? "başarılı ✓" : "başarısız ✗"}` : (w.terminated ? "Env kararı: uçuş bitti ✗" : "Env kararı pencere kapanınca verilir (yeni komut ya da uçuş sonu).");
+  frag.append(el("div", "verdict", vtxt));
+  body.replaceChildren(frag);
+  hud.chip.hidden = false; hud.chipK.textContent = `K${c.id} · ${text}`; hud.chipTxt.textContent = cmdText(applied);
+}
+function renderLog(fl, T) {
+  const tb = $("#logBody"), k = activeIndex(fl, T);
+  $("#logCount").textContent = fl.commands.length ? `${Math.max(0, k + 1)} / ${fl.commands.length}` : "";
+  if (k < 0) { tb.replaceChildren(); const tr = el("tr"); const td = el("td", "empty", "—"); td.colSpan = 8; td.style.fontFamily = "var(--font-ui)"; tr.append(td); tb.append(tr); return; }
+  const rows = [];
+  for (let i = 0; i <= k; i++) {
+    const { w, m, cls, icon, text } = statusOf(fl, i, T), c = w.c, applied = c.applied || c.requested;
+    const cmdAx = AXES.filter(a => applied[a]); const mainAx = [...cmdAx].sort((a, b) => Math.abs(applied[b]) / DEFAULT_LIMITS.tol[b] - Math.abs(applied[a]) / DEFAULT_LIMITS.tol[a])[0];
+    const x = m.axes[mainAx] || {};
+    const coupl = AXES.filter(a => m.axes[a] && !m.axes[a].commanded).map(a => `${AX[a].sym} ${fmt(m.axes[a].coupling, a === "altitude" ? 0 : 1)}/${fmt(m.axes[a].limit, 0)}`).join(" · ") || "—";
+    const tr = el("tr", i === k ? "active" : null);
+    tr.append(el("td", null, "K" + c.id), el("td", null, fmt(c.t, 1)), el("td", "cmd", cmdText(applied)),
+      el("td", null, fin(x.settle_s) ? fmt(x.settle_s, 1) + " s" : "—"), el("td", null, fin(x.overshoot_pct) ? fmt(x.overshoot_pct, 1) + "%" : "—"),
+      el("td", null, AXES.filter(a => applied[a]).map(a => `${cmdAx.length > 1 ? AX[a].sym + " " : ""}${sgn(m.axes[a]?.final, AX[a].nd + 1)}`).join(" · ")), el("td", null, coupl),
+      el("td", cls === "good" ? "res-ok" : cls === "bad" ? "res-bad" : null, `${icon} ${w.closed || w.terminated ? text : (cls === "good" ? "tutuyor" : "sürüyor")}`));
+    rows.push(tr);
+  }
+  tb.replaceChildren(...rows.reverse());
+}
+function renderTable(fl, T) {
+  const head = $("#dtHead"), body = $("#dtBody");
+  const cols = [["t", "t (s)", 1], ["psi", "heading", 1], ["psi_ref", "hedef", 1], ["u", "hız", 2], ["u_ref", "hedef", 2], ["h", "irtifa", 1], ["h_ref", "hedef", 1],
+    ["phi", "roll", 1], ["theta", "pitch", 1], ["f0", "coll.", 2], ["f1", "boyl.", 2], ["f2", "yanal", 2], ["f3", "pedal", 2], ["rew", "ödül", 3]];
+  if (!head.childElementCount) { const tr = el("tr"); cols.forEach(([, n]) => tr.append(el("th", null, n))); head.append(tr); }
+  const t = fl.col("t"), iEnd = upperBound(t, T + 1e-9) - 1, rows = [];
+  for (let s = 0, tt = Math.floor(t[Math.max(0, iEnd)] || 0); s < 30 && tt >= 0; s++, tt -= 1) {
+    const i = upperBound(t, tt + 1e-9) - 1; if (i < 0) break;
+    const tr = el("tr"); cols.forEach(([c, , nd]) => tr.append(el("td", null, fmt(fl.col(c)[i], nd)))); rows.push(tr);
+  }
+  body.replaceChildren(...rows);
+}
+
+// =====================================================================
+// olaylar
+// =====================================================================
+function bindUi() {
+  document.querySelectorAll(".quick").forEach(q => q.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b || b.disabled) return; const inp = $("#" + q.dataset.for); inp.value = b.textContent.replace("−", "-"); inp.focus(); validate();
+  }));
+  ["inHdg", "inSpd", "inAlt"].forEach(id => $("#" + id).addEventListener("input", validate));
+  $("#clearBtn").addEventListener("click", () => { ["inHdg", "inSpd", "inAlt"].forEach(id => $("#" + id).value = ""); setHint("cmdHint", "", ""); });
+  $("#cmdForm").addEventListener("submit", async e => {
+    e.preventDefault(); if (app.mode !== "live") return;
+    const d = readCmd(); if (!d) return;
+    $("#sendBtn").disabled = true;
+    try {
+      const r = await app.live.command(d);
+      if (r.ok) { setHint("cmdHint", `Gönderildi: ${cmdText(d)}`, "ok"); ["inHdg", "inSpd", "inAlt"].forEach(id => $("#" + id).value = ""); }
+      else setHint("cmdHint", r.message || "Gönderilemedi.", "err");
+    } catch (err) { setHint("cmdHint", "Sunucuya ulaşılamadı: " + err.message, "err"); }
+    $("#sendBtn").disabled = false;
+  });
+  const doReset = async () => {
+    const hv = $("#rsHdg").value.trim();
+    const o = { alt: +$("#rsAlt").value, speed: +$("#rsSpd").value, heading: hv === "" ? "random" : +hv };
+    if (!fin(o.alt) || !fin(o.speed) || (hv !== "" && !fin(o.heading))) { setHint("resetHint", "Sayı gir.", "err"); return; }
+    try { const r = await app.live.reset(o); setHint("resetHint", r.ok ? "Başlatılıyor…" : (r.message || "olmadı"), r.ok ? "ok" : "err"); } catch (err) { setHint("resetHint", err.message, "err"); }
+  };
+  $("#resetBtn").addEventListener("click", doReset);
+  $("#bannerBtn").addEventListener("click", () => { $("#resetBox").open = true; doReset(); });
+  document.querySelectorAll("#scaleSeg button").forEach(b => b.addEventListener("click", () => app.live?.control({ time_scale: +b.dataset.scale })));
+  $("#pauseBtn").addEventListener("click", () => app.live?.control({ paused: !app.status.paused }));
+  $("#toLiveBtn").addEventListener("click", () => { app.flight = app.liveFlight; app.T = app.latestT; setMode("live"); updateSub(); });
+  document.querySelectorAll(".cam button").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(".cam button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); app.scene.setMode(b.dataset.cam);
+  }));
+  document.querySelectorAll("#winSeg button").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll("#winSeg button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); app.win = +b.dataset.win; app.charts.lastKey = "";
+  }));
+  $("#tableBtn").addEventListener("click", () => { const on = !$("#dataTable").classList.contains("on"); $("#dataTable").classList.toggle("on", on); $("#tableBtn").setAttribute("aria-pressed", String(on)); app.lastTable = 0; });
+  $("#flightSel").addEventListener("change", e => selectFlight(+e.target.value));
+  $("#playBtn").addEventListener("click", () => { app.playing = !app.playing; if (app.playing && app.T >= app.flight.tEnd - 0.05) { app.T = 0; app.scene.resetTrail(); } $("#playBtn").textContent = app.playing ? "Duraklat" : "Oynat"; });
+  $("#speedSel").addEventListener("change", e => { app.speed = +e.target.value; });
+  $("#scrub").addEventListener("input", e => { app.T = +e.target.value; app.charts.lastKey = ""; });
+  const mq = matchMedia("(prefers-color-scheme: dark)"); const retheme = () => { app.scene.setTheme(); app.charts.build(); };
+  mq.addEventListener?.("change", retheme);
+  new MutationObserver(retheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+}
+function readCmd() {
+  const v = id => { const s = $("#" + id).value.trim().replace(",", ".").replace("−", "-"); return s === "" ? 0 : Number(s); };
+  const d = { heading: v("inHdg"), speed: v("inSpd"), altitude: v("inAlt") };
+  if (!AXES.every(a => fin(d[a]))) { setHint("cmdHint", "Değerler sayı olmalı (ör. +45, -10).", "err"); return null; }
+  if (AXES.every(a => d[a] === 0)) { setHint("cmdHint", "En az bir eksende sıfırdan farklı Δ gir.", "err"); return null; }
+  return d;
+}
+function validate() {
+  if (app.mode !== "live") return;
+  const v = id => Number(($("#" + id).value || "0").replace(",", ".").replace("−", "-"));
+  const d = { heading: v("inHdg"), speed: v("inSpd"), altitude: v("inAlt") }, L = app.flight?.limits || DEFAULT_LIMITS, tr = L.trained || DEFAULT_LIMITS.trained;
+  const s = app.flight?.sample(app.T), msgs = [];
+  AXES.forEach(a => { if (fin(d[a]) && Math.abs(d[a]) > tr[a]) msgs.push(`${AX[a].d} eğitim aralığının (±${tr[a]}) dışında`); });
+  if (s && fin(d.speed) && d.speed) { const [lo, hi] = L.safety?.cmd_speed_range || [3, 60]; const tgt = s.u_ref + d.speed; if (tgt < lo || tgt > hi) msgs.push(`hedef hız ${fmt(tgt, 1)} ft/s güvenli aralık (${lo}–${hi}) dışında → env işareti çevirir`); }
+  if (s && fin(d.altitude) && d.altitude) { const lo = L.safety?.cmd_min_alt_ft ?? 150; if (s.h + d.altitude < lo) msgs.push(`hedef irtifa ${fmt(s.h + d.altitude, 0)} ft < ${lo} ft → env işareti çevirir`); }
+  setHint("cmdHint", msgs.join(" · "), msgs.length ? "warn" : "");
+}
+
+// =====================================================================
+// ana döngü
+// =====================================================================
+let lastFrame = performance.now();
+function frame(now) {
+  const dtRaw = Math.min(0.5, Math.max(0, (now - lastFrame) / 1000)), dt = Math.min(0.1, dtRaw); lastFrame = now;
+  const fl = app.flight;
+  if (fl && fl.n) {
+    if (app.mode === "live") {
+      const st = app.status || {}, running = st.state === "running" && !st.paused;
+      const lag = (app.live?.pollMs || 150) / 1000 * 1.6 * (st.time_scale || 1) + 0.1;
+      app.T += running ? dtRaw * (st.time_scale || 1) : 0;
+      const target = app.latestT - lag, gap = target - app.T;
+      if (gap > 3 * Math.max(1, st.time_scale || 1)) app.T = target; else app.T += gap * Math.min(1, dtRaw * 2.5);
+      if (app.T > app.latestT) app.T = app.latestT; if (app.T < 0) app.T = 0;
+      if (!running && app.latestT - app.T < 2) app.T = app.latestT;
+    } else if (app.playing) {
+      app.T = Math.min(fl.tEnd, app.T + dtRaw * app.speed);
+      if (app.T >= fl.tEnd) { app.playing = false; $("#playBtn").textContent = "Oynat"; }
+      $("#scrub").value = app.T;
+    }
+    const s = fl.sample(app.T);
+    app.scene.update(fl, s, dt, dtRaw);
+    updateHud(s, fl, app.T);
+    $("#clock").textContent = `t = ${fmt(app.T, 1)} s`;
+    if (app.mode === "replay") $("#scrubTxt").textContent = `${fmt(app.T, 1)} / ${fmt(fl.tEnd, 1)} s`;
+    if (now - app.lastCards > 180) { app.lastCards = now; renderActive(fl, app.T); renderLog(fl, app.T); renderBanner(fl); if (app.mode === "replay") renderStatus(); }
+    if (now - app.lastCharts > 170) { app.lastCharts = now; app.charts.update(fl, app.T, app.win); }
+    if ($("#dataTable").classList.contains("on") && now - app.lastTable > 500) { app.lastTable = now; renderTable(fl, app.T); }
+  }
+  app.scene.render();
+  requestAnimationFrame(frame);
+}
+function renderBanner(fl) {
+  const b = $("#banner");
+  if (app.mode !== "live") { b.hidden = true; return; }
+  const st = app.status || {};
+  if (st.state === "done" || st.state === "error") {
+    const endEv = fl.events.find(e => e.type === "end");
+    const why = st.termination ? (REASONS[st.termination] || st.termination) : (st.message || "");
+    $("#bannerTxt").replaceChildren(el("b", null, "Uçuş bitti"), document.createElement("br"), document.createTextNode(`${why}${endEv ? ` (t = ${fmt(endEv.t, 1)} s)` : ""}. Başlangıç değerlerini aşağıdan değiştirebilirsin.`));
+    b.hidden = false;
+  } else b.hidden = true;
+}
+
+// =====================================================================
+// başlat
+// =====================================================================
+async function boot() {
+  window.__ah1sViz = app;                       // hata ayıklama için (konsoldan erişim)
+  app.scene = new FlightScene($("#view"));
+  app.scene.setTheme();
+  app.charts = new Charts($("#charts"));
+  bindUi(); renderExports();
+  requestAnimationFrame(frame);
+  // taşıyıcı: Colab → yerel sunucu → kayıt
+  // command_viz.py sayfayı sunarken AH1S_VIZ_BOOT'u yazar; yoksa (ör. yayımlanmış sayfa) kayıt modu
+  const bootCfg = window.AH1S_VIZ_BOOT || {};
+  if (bootCfg.transport === "colab" && window.google?.colab?.kernel) app.live = new ColabTransport();
+  else if (bootCfg.transport === "http") {
+    try { const t = new HttpTransport(); const h = await t.hello(); if (h && h.mode === "live") { app.live = t; app.hello = h; } }
+    catch (e) { setHint("cmdHint", "Canlı sunucuya ulaşılamadı; kayıt modunda açıldı.", "err"); }
+  }
+  // model
+  const modelBuf = app.live ? app.live.model() : staticModel();
+  modelBuf.then(buf => new GLTFLoader().parseAsync(buf, "")).then(g => { app.scene.setModel(g.scene); $("#loading").hidden = true; })
+    .catch(e => { $("#loading").textContent = "Model yüklenemedi; basit gövde gösteriliyor."; setTimeout(() => $("#loading").hidden = true, 4000); });
+  if (app.live) {
+    if (!app.hello) app.hello = await app.live.hello();
+    if (app.hello.limits) $("#limitsTxt").textContent = `Eğitim aralığı: Δψ ±${app.hello.limits.trained.heading}°, Δv ±${app.hello.limits.trained.speed} ft/s, Δh ±${app.hello.limits.trained.altitude} ft · başlangıç ${app.hello.limits.trained.start_alt_ft.join("–")} ft, ${app.hello.limits.trained.start_speed_fps.join("–")} ft/s.`;
+    const st = app.hello.start || {}; $("#rsAlt").value = st.alt ?? 300; $("#rsSpd").value = st.speed ?? 15; $("#rsHdg").value = st.heading ?? "";
+    setMode("live"); pollLoop();
+  } else {
+    setMode("replay");
+    try { const r = await fetch("demo_flights.json"); if (!r.ok) throw new Error(r.status); loadBundle(await r.json()); app.playing = !reduceMotion; $("#playBtn").textContent = app.playing ? "Duraklat" : "Oynat"; }
+    catch (e) { $("#flightDesc").textContent = "Kayıtlı uçuş bulunamadı. «Kayıt aç (JSON)» ile bir uçuş dosyası seç."; }
+  }
+  renderStatus();
+}
+boot();
+</script>

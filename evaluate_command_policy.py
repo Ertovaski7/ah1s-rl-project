@@ -13,7 +13,8 @@ Metrikler (komut verilen eksen için)
   final   : son 10 s ortalama hata          overshoot: hedefi aşma, |Δ|'nın %'si
   settle  : banda (±tol) girip bir daha çıkmadığı an (komuttan itibaren, s)
   rise    : %10 → %90 süresi (s)
-  kuplaj  : diğer eksenlerde en büyük sapma (heading komutunda irtifa / hız)
+  kuplaj  : diğer eksenlerde en büyük sapma (heading komutunda irtifa / hız);
+            birleşik komutta, komut verilen diğer eksen için son 10 s hatası (ör. hea→+0.2)
   max|roll|, max|r| (yaw rate)
 
 Başarı kriteri eğitimdekiyle aynı (v2: son 10 s tolerans + komut verilmeyen eksende
@@ -104,7 +105,10 @@ def metrics(rows, cmd, info):
     d = cmd[axis]
     e = a[key[axis]]
     y = d - e                                   # kat edilen yol (hedef = d)
-    m = dict(axis=axis, delta=d, success=bool(info.get("episode_success", False)),
+    active = [k for k in AXES if abs(cmd[k]) > 1e-9]
+    label = (" ".join(f"{k[:3]}{cmd[k]:+g}" for k in active) if len(active) > 1
+             else f"{axis[:3]} {d:+g}{UNIT[axis]}")
+    m = dict(axis=axis, delta=d, cmd_label=label, success=bool(info.get("episode_success", False)),
              termination=info.get("termination", "?"), t_issue=t_issue)
     m["final"] = float(np.mean(e[last]))
     frac = y[after] / d if abs(d) > 1e-9 else np.zeros(after.sum())
@@ -119,6 +123,8 @@ def metrics(rows, cmd, info):
     for other in AXES:
         if other != axis:
             m[f"max_{other}_err"] = float(np.max(np.abs(a[key[other]][after])))
+            if other in active:                   # birleşik komut: bu eksen de komutlu, kuplaj değil
+                m[f"final_{other}"] = float(np.mean(a[key[other]][last]))
     m["max_roll"] = float(np.max(np.abs(a["roll"])))
     m["max_yaw_rate"] = float(np.max(np.abs(a["r"])))
     return m
@@ -137,7 +143,7 @@ def make_figures(cases, out: Path, title: str, show: bool):
         c = pal[i % len(pal)]
         axis, d = m["axis"], m["delta"]
         e = a[{"heading": "eh", "speed": "ev", "altitude": "ea"}[axis]]
-        lab = f"{tag}Δ{axis[:3]} {d:+g} (s{seed}) {'✓' if m['success'] else '✗'}"
+        lab = f"{tag}Δ{m['cmd_label']} (s{seed}) {'✓' if m['success'] else '✗'}"
         ls = "--" if tag else "-"
         resp = (d - e) / d if d else 0 * e
         resp = np.where(a["t"] >= m["t_issue"] + CONTROL_DT - 1e-9, resp, 0.0)   # komuttan önce 0
@@ -155,7 +161,7 @@ def make_figures(cases, out: Path, title: str, show: bool):
         x.grid(alpha=0.25)
         x.set_xlabel("komuttan sonra t [s]")
     ax[0].axhline(1.0, color="#52514e", lw=1, ls="--")
-    ax[0].legend(fontsize=7, loc="lower right")
+    ax[0].legend(fontsize=7, loc="lower right", ncol=2 if len(cases) > 12 else 1)
     for k, tol in ((1, TOL["heading"]), (2, TOL["altitude"]), (3, TOL["speed"])):
         ax[k].axhspan(-tol, tol, color="#9a9994", alpha=0.15, lw=0)
     fig.suptitle(title, fontsize=11)
@@ -290,7 +296,7 @@ def main(argv=None):
           f"episode {args.episode_s:.0f}s | tolerans ψ±{TOL['heading']}° v±{TOL['speed']} h±{TOL['altitude']}"
           f"{' | başlangıç ' + str(start) if start else ''}")
     print("=" * 118)
-    print(f"{'politika':8s} {'komut':>16s} {'seed':>4s} {'ok':>3s} {'final':>7s} {'OS%':>6s} {'rise':>6s} "
+    print(f"{'politika':8s} {'komut':>21s} {'seed':>4s} {'ok':>3s} {'final':>7s} {'OS%':>6s} {'rise':>6s} "
           f"{'settle':>7s} {'kuplaj':>22s} {'max|roll|':>9s} {'bitiş':>18s}")
     for tag, pol in policies:
         for cmd in cmds:
@@ -299,20 +305,24 @@ def main(argv=None):
                 m = metrics(rows, cmd, info)
                 cases.append((cmd, seed, rows, info, m, tag))
                 others = [k for k in AXES if k != m["axis"]]
-                coup = " ".join(f"{o[:3]}={m[f'max_{o}_err']:.1f}" for o in others)
+                coup = " ".join(f"{o[:3]}→{m[f'final_{o}']:+.1f}" if f"final_{o}" in m
+                                else f"{o[:3]}={m[f'max_{o}_err']:.1f}" for o in others)
                 fmt = lambda x, nd=1: "—" if not np.isfinite(x) else f"{x:.{nd}f}"
-                print(f"{tag or 'PPO':8s} {m['axis'][:3] + ' ' + format(m['delta'], '+g') + UNIT[m['axis']]:>16s} "
+                print(f"{tag or 'PPO':8s} {m['cmd_label']:>21s} "
                       f"{seed:4d} {'✓' if m['success'] else '✗':>3s} {m['final']:+7.2f} {fmt(m['overshoot_pct']):>6s} "
                       f"{fmt(m['rise_s']):>6s} {fmt(m['settle_s']):>7s} {coup:>22s} {m['max_roll']:9.1f} "
                       f"{m['termination']:>18s}")
                 rows_out.append(dict(policy=tag.strip() or "PPO", seed=seed, **{f"cmd_{k}": v for k, v in cmd.items()},
                                      **m))
+    if any(k.startswith("final_") for r in rows_out for k in r):
+        print("\n(birleşik komut satırı: 'hea→+0.2' = komut verilen diğer eksenin son 10 s ortalama hatası; "
+              "'alt=1.2' = komut verilmeyen eksende en büyük sapma, yani kuplaj)")
     for tag, _ in policies:
         sub = [r for r in rows_out if r["policy"] == (tag.strip() or "PPO")]
         st = [r["settle_s"] for r in sub if np.isfinite(r["settle_s"])]
         print(f"\n{tag.strip() or 'PPO'}: başarı {sum(r['success'] for r in sub)}/{len(sub)} | "
               f"ort. |final| {np.mean([abs(r['final']) for r in sub]):.2f} | "
-              f"ort. settle {np.mean(st) if st else float('nan'):.1f}s ({len(st)}/{len(sub)} oturdu)")
+              f"ort. settle {f'{np.mean(st):.1f}s' if st else '—'} ({len(st)}/{len(sub)} oturdu)")
     keys = sorted({k for r in rows_out for k in r})
     with open(out / "summary.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=keys)

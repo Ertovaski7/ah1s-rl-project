@@ -34,6 +34,10 @@ Kullanım (Colab, repo kökünde)
   %run train_command_curriculum.py --out runs/h1_only --level H1 --no-promote --total-steps 500000
   # hızlı duman testi (~1 dk):
   %run train_command_curriculum.py --out runs/smoke --smoke
+
+Manevra curriculum'u (Δ komut + süre hedefi, 0–100 kt; helicopter_env_maneuver.py,
+maneuver_curriculum.py — seviyeler M1…M5):
+  %run train_command_curriculum.py --task maneuver --out runs/man --total-steps 8000000
 """
 
 import argparse
@@ -56,24 +60,37 @@ from command_curriculum import DEFAULT_LEVELS, command_axis, find_level  # noqa:
 INFO_KEYS = ("episode_success", "level_index", "commands_ok", "commands_total")
 
 
-def make_config(name: str):
+def make_config(name: str, task: str = "command"):
+    if task == "maneuver":
+        from helicopter_env_maneuver import ManeuverEnvConfig
+        return ManeuverEnvConfig()
     from helicopter_env_command import CommandEnvConfig
     return CommandEnvConfig.v1() if name == "v1" else CommandEnvConfig()
 
 
-def make_env_fn(rank: int, level_index: int, config_name: str):
+def task_levels(task: str):
+    if task == "maneuver":
+        from maneuver_curriculum import DEFAULT_MANEUVER_LEVELS
+        return DEFAULT_MANEUVER_LEVELS
+    return DEFAULT_LEVELS
+
+
+def make_env_fn(rank: int, level_index: int, config_name: str, task: str = "command"):
     def _init():
         # SubprocVecEnv işçisinde de repo kökü import yolunda olsun
         if str(REPO_ROOT) not in sys.path:
             sys.path.insert(0, str(REPO_ROOT))
+        if task == "maneuver":
+            from helicopter_env_maneuver import HelicopterEnvManeuver
+            return HelicopterEnvManeuver(level=level_index, config=make_config(config_name, task))
         from helicopter_env_command import HelicopterEnvCommand
         return HelicopterEnvCommand(level=level_index, config=make_config(config_name))
     return _init
 
 
-def build_vec_env(n_envs: int, level_index: int, vec: str, config_name: str = "v2"):
+def build_vec_env(n_envs: int, level_index: int, vec: str, config_name: str = "v2", task: str = "command"):
     from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
-    fns = [make_env_fn(i, level_index, config_name) for i in range(n_envs)]
+    fns = [make_env_fn(i, level_index, config_name, task) for i in range(n_envs)]
     if vec == "subproc" and n_envs > 1:
         method = "fork" if sys.platform.startswith("linux") else None
         venv = SubprocVecEnv(fns, start_method=method)
@@ -241,10 +258,12 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--task", choices=["command", "maneuver"], default="command",
+                   help="command: Δ komut curriculum'u (H1…R1); maneuver: süre hedefli manevralar (M1…M5)")
     p.add_argument("--out", default="runs/command_curriculum", help="çıktı klasörü (Colab'da Drive önerilir)")
     p.add_argument("--total-steps", type=int, default=6_000_000,
                    help="üst sınır; son seviye geçilince eğitim kendiliğinden biter")
-    p.add_argument("--level", default="H1", help="başlangıç seviyesi (ad ya da indeks)")
+    p.add_argument("--level", default=None, help="başlangıç seviyesi (ad ya da indeks; varsayılan H1 / M1)")
     p.add_argument("--stop-after", default=None, help="bu seviye geçilince dur (ör. H2)")
     p.add_argument("--no-promote", dest="promote", action="store_false", help="seviye atlama kapalı")
     p.add_argument("--window", type=int, default=100, help="başarı oranı penceresi (episode)")
@@ -266,14 +285,15 @@ def parse_args(argv=None):
     p.add_argument("--n-steps", type=int, default=2048, help="env başına rollout uzunluğu")
     p.add_argument("--batch-size", type=int, default=256)
     p.add_argument("--n-epochs", type=int, default=10)
-    p.add_argument("--gamma", type=float, default=0.99)
+    p.add_argument("--gamma", type=float, default=None,
+                   help="indirim çarpanı (varsayılan: komut 0.99, manevra 0.995 — manevra episode'ları daha uzun)")
     p.add_argument("--gae-lambda", type=float, default=0.95)
     p.add_argument("--clip-range", type=float, default=0.2)
     p.add_argument("--ent-coef", type=float, default=0.0)
     p.add_argument("--target-kl", type=float, default=None)
     p.add_argument("--log-std-init", type=float, default=-1.0, help="başlangıç keşif gürültüsü: σ = e^x (−1 → 0.37)")
-    p.add_argument("--fine-from", default="V1",
-                   help="bu seviyeden itibaren ince ayar (küçük lr + KL sınırı); 'none' → kapalı")
+    p.add_argument("--fine-from", default=None,
+                   help="bu seviyeden itibaren ince ayar (küçük lr + KL sınırı; varsayılan V1 / M3); 'none' → kapalı")
     p.add_argument("--fine-lr", type=float, default=1e-4)
     p.add_argument("--fine-kl", type=float, default=0.02)
     p.add_argument("--net", default="128,128", help="gizli katmanlar (pi ve vf için ayrı ağ)")
@@ -284,6 +304,12 @@ def parse_args(argv=None):
 
 def main(argv=None):
     args = parse_args(argv)
+    if args.level is None:
+        args.level = "M1" if args.task == "maneuver" else "H1"
+    if args.fine_from is None:
+        args.fine_from = "M3" if args.task == "maneuver" else "V1"
+    if args.gamma is None:
+        args.gamma = 0.995 if args.task == "maneuver" else 0.99
     if str(args.fine_from).lower() == "none":
         args.fine_from = None
     if args.smoke:
@@ -296,7 +322,7 @@ def main(argv=None):
     torch.set_num_threads(1)          # işçi süreçleriyle çekirdek kavgası olmasın
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    levels = DEFAULT_LEVELS
+    levels = task_levels(args.task)
 
     level_index = find_level(args.level, levels)
     history, model_path, state = [], None, {}
@@ -306,6 +332,9 @@ def main(argv=None):
         if not (state_file.exists() and latest.exists()):
             raise FileNotFoundError(f"--resume için {state_file} ve {latest} gerekli")
         state = json.loads(state_file.read_text())
+        saved_task = state.get("args", {}).get("task", "command")
+        if saved_task != args.task:
+            raise SystemExit(f"[resume] bu koşu --task {saved_task} ile başlamıştı; devam etmek için aynı --task'ı ver.")
         level_index, history = int(state["level_index"]), state.get("history", [])
         # Adım sayacı modelin içinde saklı (num_timesteps); reset_num_timesteps=False ile devam eder.
         model_path = latest
@@ -315,9 +344,9 @@ def main(argv=None):
 
     if args.resume and state.get("args", {}).get("env_config") and state["args"]["env_config"] != args.env_config:
         print(f"[uyarı] bu koşu env_config={state['args']['env_config']} ile başlamıştı; şimdi {args.env_config}")
-    venv = build_vec_env(args.n_envs, level_index, args.vec, args.env_config)
+    venv = build_vec_env(args.n_envs, level_index, args.vec, args.env_config, args.task)
     from dataclasses import asdict
-    env_config = asdict(make_config(args.env_config))
+    env_config = asdict(make_config(args.env_config, args.task))
     tb = None
     try:
         import tensorboard  # noqa: F401
@@ -350,7 +379,7 @@ def main(argv=None):
     t0 = time.time()
     try:
         model.learn(total_timesteps=args.total_steps, callback=cb, reset_num_timesteps=not args.resume,
-                    tb_log_name="ppo_cmd", progress_bar=False)
+                    tb_log_name="ppo_man" if args.task == "maneuver" else "ppo_cmd", progress_bar=False)
     except KeyboardInterrupt:
         print("\n[train] durduruldu (Ctrl+C / Colab stop) — kaydediliyor...")
         cb._save("latest")

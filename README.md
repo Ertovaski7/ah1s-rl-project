@@ -71,6 +71,18 @@ python command_viz.py                                                        # �
 
 Colab'da canlı görselleştirme: `import command_viz; command_viz.colab()` (defterin 8. bölümü).
 
+## 1.5. Yeni: Manevra curriculum'u (süre hedefli Δ komutları, 0–100 kt)
+
+Aynı Δheading / Δhız / Δirtifa arayüzü, ama her komutun bir **süre hedefi** var ve ajan **attitude komutu** veriyor
+(yatış ±60°, yunuslama ±30°): 90° dönüş 60 kt'ta ~48° yatışla ~6 s, hover'da ~30°/s pedal dönüşüyle ~4 s; +100 ft
+~28 ft/s tırmanışla ~5 s. Eski komut ajanı aynı komutları 2–3° yatışla 11–23 s'de yapıyordu. Ayrıntılar: **bölüm 28**.
+
+```bash
+python train_command_curriculum.py --task maneuver --out runs/man --total-steps 8000000     # M1 → M5, PPO sıfırdan (~35 dk, 2 çekirdek)
+python evaluate_maneuver_policy.py --model models_maneuver/maneuver_M5_final.zip --compare-old
+python command_viz.py                    # canlı 3D: varsayılan artık manevra modeli (800 ft, 60 kt başlangıç)
+```
+
 ---
 
 # 2. Repo yapısı
@@ -86,10 +98,17 @@ ah1s-rl-project/
 ├── train_command_curriculum.py              PPO eğitimi + otomatik seviye atlama (başarı ≥ %80)
 ├── evaluate_command_policy.py               Step response değerlendirmesi (+ a=0 karşılaştırması)
 ├── diagnose_command_env.py                  Eğitimsiz sağlık kontrolü (başlatma, açık-döngü tepkiler, hız)
-├── command_viz.py                           Canlı 3D görselleştirme: sunucu + Colab + kayıt (bölüm 27)
+├── command_viz.py                           Canlı 3D görselleştirme: sunucu + Colab + kayıt (bölüm 27; komut ve manevra)
 ├── viz/                                     Sayfa (command_viz.html), helikopter modeli (heli_bell.glb), demo uçuşları
 ├── models_command_curriculum/               Bu curriculum'un ilk koşularından modeller (v2_R1_final önerilen)
 ├── docs/command_curriculum/                 İlk koşuların kanıtları (ilerleme CSV, doğrulama, grafikler)
+│
+│   Manevra curriculum'u — süre hedefli Δ komutları, 0–100 kt (bölüm 28)
+├── helicopter_env_maneuver.py               Komut env'inin alt sınıfı: attitude komutu (ACAH), hıza göre trim, süre hedefi
+├── maneuver_curriculum.py                   Seviyeler M1 … M5 (çeviklik parametreleri → süre hedefi T)
+├── evaluate_maneuver_policy.py              Tek komut testleri (0–90 kt) + eski komut modeliyle karşılaştırma
+├── models_maneuver/                         maneuver_M5_final.zip (M1 → M5 geçen model)
+├── docs/maneuver_curriculum/                Koşunun kanıtları (ilerleme CSV, curriculum_state, doğrulama, grafik)
 │
 ├── run_colab_live_heading_dashboard.py      Canlı target-heading dashboard (Colab içinde)
 ├── validate_final_continuous_mission_v1.py  Heading görevi: Stage1 → Stage2 → komutlar → recovery (headless)
@@ -169,6 +188,8 @@ Repository’deki `vN` numaraları çoğunlukla **repair / training / validator 
 | `models_turn_hybrid/AH1S_TURN_FULL_ENTRY_V21_STRONG_TERMINAL_50_PATCH.pt` | V21 — +50° terminal düzeltme | runtime |
 | `models_turn_hybrid/AH1S_TURN_FULL_ENTRY_V13_GATED_50_PATCH.pt` | V13 — V17 eğitiminin başlangıç noktası | training |
 | `models_turn_hybrid/AH1S_TURN_BC_WARMSTART.zip`, `..._V2_LAST.zip`, `..._V3_REPAIRED.zip` | Turn eğitim zincirinin ara adımları | training |
+| `models_command_curriculum/v2_R1_final.zip` (+ ara seviyeler, v1) | Komut ajanı: Δheading / Δhız / Δirtifa, ~15 ft/s (bölüm 26) | `evaluate_command_policy.py`, `command_viz.py --model …` |
+| `models_maneuver/maneuver_M5_final.zip` | Manevra ajanı: süre hedefli Δ komutları, 0–100 kt, attitude komutu (bölüm 28) | `evaluate_maneuver_policy.py`, `command_viz.py` (varsayılan) |
 
 Runtime turn modelleri, orijinal "V22 20/20" doğrulamasında kullanılan dosyalarla; Stage 3 modeli de önceki geliştiricinin kilitlediği SHA-256 değeriyle byte-byte aynıdır. Kontrol için: `sha256sum -c models_sha256.txt`.
 
@@ -983,12 +1004,14 @@ Tek uçuşta 6 ardışık komut (+90°, +8 ft/s, +100 ft, −45° & −60 ft, �
 
 # 27. Canlı 3D görselleştirme — `command_viz.py` (2026-09-23)
 
-Komut ajanını tarayıcıda izlemek için: istediğin an **Δheading / Δhız / Δirtifa** ver, helikopterin (low-poly Bell modeli)
+Ajanı tarayıcıda izlemek için: istediğin an **Δheading / Δhız / Δirtifa** ver, helikopterin (low-poly Bell modeli)
 3D hareketini, ajanın kumandalarını ve komutun metriklerini gör. Uçuş gerçek JSBSim + PPO; sayfa yalnızca gösterir.
+Görev modelden anlaşılır (observation boyutu): **manevra** modeli (varsayılan, bölüm 28) ya da eski **komut** modeli (bölüm 26).
 
 ```bash
-python command_viz.py                                           # → http://127.0.0.1:8765 (son model v2_R1_final)
-python command_viz.py --model runs/cmd/models/level_00_H1.zip   # başka bir model (ör. yalnızca ±5° eğitilmiş)
+python command_viz.py                                           # → http://127.0.0.1:8765 (manevra modeli, 800 ft / 60 kt)
+python command_viz.py --model models_command_curriculum/v2_R1_final.zip   # eski komut modeli (300 ft / 15 ft/s)
+python command_viz.py --model runs/man/models/level_01_M2.zip   # kendi koşundan bir seviye
 python command_viz.py --start-alt 600 --start-speed 20 --start-heading 90 --port 8766
 python command_viz.py record --out viz/demo_flights.json        # sayfanın kayıt modu için demo uçuşları üret
 ```
@@ -1000,16 +1023,16 @@ Colab (localhost / paylaşım linki yok; eski dashboard gibi kernel callback'ler
 | Bölüm | İçerik |
 |---|---|
 | 3D görünüm | Helikopter (ana ve kuyruk rotoru döner), iz + yere inen yarı saydam perde (irtifa algısı), magenta hedef heading çizgisi ve dönüş yayı, hedef irtifa halkası, gölge, 100 ft ızgara, başlangıç pisti (H, kuzey oku). Kamera: Takip / Serbest (fare ile döndür) / Üstten (kuzey yukarı) / Yandan; tekerlek = yakınlaştır. |
-| HUD | Heading bandı (magenta hedef imi, ◇ yer izi = gerçek gidiş yönü), hız (ft/s, kt, yanal hız), irtifa AGL ve dikey hız, aktif komut. |
-| Komut ver | Üç Δ alanı + hızlı seçim düğmeleri; eğitim aralığı / güvenli aralık uyarısı; hız çarpanı 1–10×, duraklat, yeniden başlat (irtifa, hız, heading ya da rastgele). |
-| Aktif komut | Komut verilen eksen: anlık hata, yükselme (%10→%90), aşma %, oturma; verilmeyen eksen: en büyük sapma / kuplaj sınırı; "tüm eksenler tolerans içinde" süresi (10 s gerekli); pencere kapanınca env'in başarı kararı. |
+| HUD | Heading bandı (magenta hedef imi, ◇ yer izi = gerçek gidiş yönü), hız (ft/s, kt, yanal hız), irtifa AGL ve dikey hız, aktif komut. Manevra modelinde attitude göstergesi (yatış / yunuslama; magenta = ajanın attitude komutu). |
+| Komut ver | Üç Δ alanı + hızlı seçim düğmeleri; eğitim aralığı / güvenli aralık uyarısı; hız çarpanı 1–10×, duraklat, yeniden başlat (irtifa, hız, heading ya da rastgele). Manevra modelinde **süre hedefi** alanı: boş bırakılırsa seçili çeviklikten (Rahat M3 / Hızlı M4 / Agresif M5) hesaplanır, elle de girilebilir. |
+| Aktif komut | Komut verilen eksen: anlık hata, yükselme (%10→%90), aşma %, oturma; verilmeyen eksen: en büyük sapma / kuplaj sınırı; "tüm eksenler tolerans içinde" süresi (komut: 10 s, manevra: 5 s); manevrada T / son sınır çubuğu ve geri sayım; pencere kapanınca env'in başarı kararı. |
 | Komut kaydı | Her komut: zaman, uygulanan Δ (env işaret çevirdiyse görünür), oturma, aşma, son hata, kuplaj, sonuç. |
-| Zaman serileri | Heading, hız, irtifa (hedef + tolerans bandı), ajanın 4 kumandası (trim'e eklenen, −1…+1), yatış / yunuslama, ödül; imleç tüm grafiklerde senkron; komut anları dikey çizgi; pencere 60 s / 3 dk / tümü; tablo görünümü. |
+| Zaman serileri | Heading, hız, irtifa (hedef + tolerans bandı; manevrada süre hedefi takvimi ve son sınır ▼), ajanın 4 kumandası (trim'e eklenen, −1…+1), yatış / yunuslama (manevrada ajanın komutu ince çizgi), ödül; imleç tüm grafiklerde senkron; komut anları dikey çizgi; pencere 60 s / 3 dk / tümü; tablo görünümü. |
 | Dışa aktarma | JSON (sayfada «Kayıt aç» ile oynatılır) ve ACMI (Tacview). Colab'da «Uçuşu diske kaydet» → `/content/ah1s_flights/`. |
 
 **Nasıl çalışıyor**
 
-- `LiveFlight` tek bir `HelicopterEnvCommand` + PPO'yu arka plan iş parçacığında gerçek zamanlı (× hız çarpanı) yürütür.
+- `LiveFlight` tek bir env (`HelicopterEnvManeuver` ya da `HelicopterEnvCommand`) + PPO'yu arka plan iş parçacığında gerçek zamanlı (× hız çarpanı) yürütür.
   Komutlar `env.queue_command()` ile bir sonraki adıma girer: eğitim ve `evaluate_command_policy.py` ile **aynı yol**
   (güvenli aralık dışına taşan Δ'nın işareti çevrilir, önceki pencere env kuralıyla kapanır). Güvenlik ihlalinde uçuş
   biter, sayfa sebebi gösterir. Canlı uçuşta zaman sınırı 4 saat.
@@ -1021,9 +1044,155 @@ Colab (localhost / paylaşım linki yok; eski dashboard gibi kernel callback'ler
 - `viz/heli_bell.glb`: `viz/tools/obj_to_glb.py` ile Heli_bell.obj'den üretildi (zemin düzlemi atıldı; gövde, ana ve
   kuyruk rotoru ayrı node, rotor pivotları göbekte; orijin ≈ ağırlık merkezi; boy 13.6 m = AH-1S). Görsel amaçlı: uçuş
   dinamiği JSBSim AH-1S modelinden.
-- Kayıt modu: sayfa `command_viz.py` olmadan açılırsa (ör. yayımlanmış sayfa) `viz/demo_flights.json`'daki uçuşları oynatır:
-  6 ardışık komut, büyük dönüşler, 800 ft / 22 ft/s başlangıç ve karşılaştırma için v1 modeli (v2 kriteriyle 3/6 —
-  dönüşlerde hız kuplajı 5.8–7.2 ft/s > 4).
+- Kayıt modu: sayfa `command_viz.py` olmadan açılırsa (ör. yayımlanmış sayfa) `viz/demo_flights.json`'daki uçuşları oynatır.
+  Manevra modeli: 60 kt'ta yatışlı dönüşler, slalom, düşük hızda çeviklik (pedal dönüşü, bob-up / bob-down, ani duruş),
+  hızlanma / yavaşlama / irtifa, tırmanarak dönüş (80 kt) ve eski modelin 6 komutluk görevi. Karşılaştırma için eski komut
+  modeli: aynı 6 komutluk görev, büyük dönüşler, 800 ft / 22 ft/s başlangıç ve v1 modeli (v2 kriteriyle 3/6 — dönüşlerde
+  hız kuplajı 5.8–7.2 ft/s > 4).
 
 **Görselleştirmenin ortaya çıkardığı:** helikopter burnunu komut edilen heading'e tutuyor ama yana kayarak uçuyor
 (bkz. 26.6 "Yana kayma"). HUD'daki ◇ İZ ile heading arasındaki fark ve 3D'de izin burna göre açısı bunu doğrudan gösterir.
+
+---
+
+# 28. Manevra curriculum'u — süre hedefli Δ komutları, 0–100 kt (2026-09-23)
+
+**Geri bildirim:** komut ajanı (bölüm 26) dönüş ve irtifa komutlarını yaw / pitch / roll açılarını neredeyse değiştirmeden
+yapıyordu: 90° dönüşte en fazla ~3° yatış ve 8.6°/s yaw hızı, 180° dönüş ~23 s, +100 ft ~12 s. Sıradaki adım helikopterin
+asıl avantajı olan **manevralar**. Seçilen tasarım: **aynı Δ arayüzü + her komuta bir süre hedefi (T)**; isimli manevralar
+(slalom, tırmanarak dönüş, bob-up / bob-down, ani duruş…) bu komutların dizisi olarak kurulur. Hız zarfı **0–100 kt**.
+
+![Aynı komut: eski komut modeli ve manevra modeli](docs/maneuver_curriculum/fig_old_vs_maneuver.png)
+
+## 28.1. Eski ajan açıları neden değiştirmiyordu?
+
+| Sebep | Ayrıntı (ölçüm) |
+|---|---|
+| Kumanda yetkisi dar | pedal ±0.20 → en fazla ~8°/s dönüş; elevator ±0.05 → ~2° yunuslama; collective ±0.06 → ~8 ft/s. Ajan dönüşlerde bu sınırlarda doyuyordu. |
+| AFCS attitude hold açık | JSBSim AFCS yatış / yunuslamayı trim açısına geri çekiyordu (ajan AFCS'ye karşı uğraşıyordu). |
+| Reward ve başarı | açı / açısal hız cezaları vardı, süre baskısı yoktu (komut penceresinin son 10 s'si yeterliydi). |
+| Rejim | 15 ft/s (≈ 9 kt): hover'a yakın; dönüş pedalla yapılır, yatış gerekmez. |
+
+## 28.2. Env: `helicopter_env_maneuver.py` (komut env'inin alt sınıfı)
+
+- **Attitude komutu (ACAH — attitude command / attitude hold, ADS-33'teki cevap tipi):** action[2] → yatış komutu
+  (trim ± 60°), action[1] → yunuslama komutu (trim ∓ 30°; + = burun aşağı, eski elevator işaretiyle aynı). Komutu her
+  JSBSim adımında (133 Hz) çalışan PI-D iç döngü cyclic'e çevirir. Bu, uçuş kontrol sisteminin parçasıdır; action önermez,
+  teacher değildir. Ölçülen: 45° yatışa ~2.4 s, 20° yunuslamaya ~2.5 s. action[0] collective (trim ± 0.25, ~±30 ft/s),
+  action[3] pedal (trim ± 0.7; hover'da ~25–30°/s). JSBSim AFCS yalnızca sönümleme (SAS) yapar.
+- **Trim hıza göre çizelgelenir:** AH-1S `steady_flight_data.xml` tabloları (−40…140 kt) + reset'te ölçülen sabit düzeltme;
+  0–100 kt'ın her hızında a = 0 ≈ düz uçuş.
+- **Reset:** IC ile istenen hız / irtifa / heading'e teleport, ardından reset'e özel kademeli oto-pilot (hız → pitch, yanal
+  hız → roll, irtifa → collective, heading → pedal; SFD ileri beslemeli). Yanal hızı da sıfırlar. 0–100 kt'ta 16–70 s
+  sim'de oturur. Yalnızca başlangıç koşulunu kurar (komut env'indeki PI gibi).
+- **Süre hedefi:** `T = tepki + max(|Δψ| / dönüş hızı, |Δv| / ivme, |Δh| / tırmanış)`, `dönüş hızı = min(pedal hızı,
+  g·tan(yatış) / V)`; **son sınır** = max(1.25·T, T + 1 s). Çeviklik parametreleri seviyeden gelir (28.3). Canlı sayfada
+  T elle de girilebilir.
+- **Başarı:** üç eksen birlikte tolerans bandına (|eψ| ≤ 2°, |ev| ≤ 2 ft/s, |eh| ≤ 10 ft) **son sınırdan önce** girip
+  5 s kalmalı; komut verilmeyen eksen kuplaj sınırında (8°, 8 ft/s, 40 ft); güvenlik ihlali yok. T "en geç" anlamındadır:
+  ajan daha erken oturabilir.
+- **Observation (24):** komut env'inin 6 hatası + takvim gecikmesi (3; hata, T'de sıfıra inen doğrusal takvimin ne kadar
+  gerisinde) + τ = geçen / T ve T + uçuş durumu (ḣ, u, v, φ, θ, p, q, r, rpm) + filtrelenmiş 4 action. Mutlak irtifa /
+  heading yok.
+- **Reward:** takip çekirdekleri + ilerleme (komut env'i gibi) − takvim gecikmesi − süre aşımı − kuplaj − yana kayma
+  (0.3·(v / 10 ft/s)²) − aşırı açı (60° yatış / 35° yunuslama üstü) − kumanda hızı − doygunluk.
+- **Güvenlik (episode'u bitirir):** |φ| > 75°, |θ| > 45°, |r| > 90°/s, |p| > 150°/s, irtifa < 80 ft, rotor 280–380 rpm
+  dışı, komut bandından 150 ft / 30 ft/s sapma, heading'in 45°'den fazla ters yöne gitmesi.
+
+## 28.3. Seviyeler: `maneuver_curriculum.py`
+
+| Seviye | Başlangıç | Komutlar | Çeviklik → T: pedal / yatış / ivme / tırmanış / tepki |
+|---|---|---|---|
+| M1 | 0–30 kt, 500–900 ft | ψ ±60°, v ±15 ft/s, h ±60 ft | 10°/s / 15° / 2 ft/s² / 6 ft/s / 3 s |
+| M2 | 0–30 kt, 500–1000 ft | ψ ±180°, v ±30, h ±100 | 18 / 25 / 4 / 12 / 2.5 |
+| M3 | 40–80 kt, 600–1200 ft | ψ ±120°, v ±30, h ±120 (%50 tek eksen, tüm aralıklar) | 18 / 30 / 4 / 12 / 2.5 |
+| M4 | 0–100 kt, 600–1500 ft | ψ ±180°, v ±50, h ±150 | 22 / 45 / 5 / 16 / 2.2 |
+| M5 | 0–100 kt, 600–1500 ft | birleşik (üç eksen aynı anda) + %50 tek eksen | 25 / 55 / 6 / 20 / 2.0 |
+
+Eksen olasılıkları heading 0.45, hız 0.30, irtifa 0.25; episode başına 3 komut, bir sonraki komut öncekinin son sınırı
++ 5 s tutma + 3 s pay sonra gelir. Seviye atlama komut curriculum'uyla aynı (%80 + eksen başına %80); M3'ten itibaren ince
+ayar (lr 1e-4, KL 0.02); γ = 0.995 (manevra episode'ları daha uzun). M3–M5'in yunuslama / yaw çevikliği ADS-33 tabanlı
+çalışmalardaki "orta" ve "agresif" seviyelerin mertebesinde seçildi (yunuslama ±13 / ±30 °/s, yaw ±22 / ±50 °/s; kaynak
+aşağıda).
+
+## 28.4. Çalıştırma
+
+```bash
+python helicopter_env_maneuver.py                                                        # env self-test (reset 0–100 kt, ACAH)
+python train_command_curriculum.py --task maneuver --out runs/man --total-steps 8000000    # M1 → M5, PPO sıfırdan
+python train_command_curriculum.py --task maneuver --out runs/man --total-steps 8000000 --resume
+python evaluate_maneuver_policy.py --model models_maneuver/maneuver_M5_final.zip --level M5 --compare-old
+python command_viz.py                                                                     # canlı: manevra modeli (bölüm 27)
+```
+
+## 28.5. Sonuçlar (Claude'un cloud ortamı, 2 çekirdek CPU, tek seed)
+
+Koşu `man_v1`, PPO sıfırdan: **M1 → M5, 1.68 milyon adım, 33 dk**. Kanıt: `docs/maneuver_curriculum/`. Model:
+`models_maneuver/maneuver_M5_final.zip` (SHA-256 `models_sha256.txt`'de).
+
+| Seviye | Seviyede adım | Süre | Başarı (son 100 episode) |
+|---|---|---|---|
+| M1 | 151 bin | 2.8 dk | %89 |
+| M2 | 100 bin | 1.8 dk | %80 |
+| M3 | 78 bin | 1.4 dk | %91 |
+| M4 | 114 bin | 2.0 dk | %80 |
+| M5 | 1.23 milyon | 25.2 dk | %80 (heading %93, birleşik %88, hız ve irtifa %100) |
+
+**Tek komut, M5 süre hedefleri** (`evaluate_maneuver_policy.py`, 900 ft, deterministik): **14/16 zamanında**. Açılar
+komut öncesine göre en büyük değerlerdir.
+
+| Rejim | Komut | T / son sınır (s) | Oturma (s) | | max φ | max θ | max r (°/s) | max ḣ (ft/s) |
+|---|---|---|---|---|---|---|---|---|
+| 5 kt | Δψ +90° | 5.6 / 7.0 | 4.0 | ✓ | 20° | 10° | 29 | 3 |
+| 5 kt | Δψ +180° | 9.2 / 11.5 | 7.0 | ✓ | 21° | 9° | 30 | 3 |
+| 5 kt | Δh +100 ft (bob-up) | 7.0 / 8.8 | 5.3 | ✓ | 8° | 5° | 3 | 28 |
+| 5 kt | Δh −100 ft (bob-down) | 7.0 / 8.8 | 4.6 | ✓ | 4° | 4° | 3 | 30 |
+| 5 kt | Δv +40 ft/s | 8.7 / 10.8 | 5.8 | ✓ | 5° | 15° | 3 | 7 |
+| 30 kt | Δψ +90° | 5.6 / 7.0 | 4.9 | ✓ | 36° | 3° | 21 | 4 |
+| 30 kt | Δv −40 ft/s | 8.7 / 10.8 | 5.7 | ✓ | 5° | 16° | 2 | 6 |
+| 30 kt | Δv +40 ft/s | 8.7 / 10.8 | 6.2 | ✓ | 5° | 14° | 2 | 4 |
+| 60 kt | Δψ +90° | 5.6 / 7.0 | 6.2 | ✓ | 48° | 3° | 15 | 6 |
+| 60 kt | Δψ −180° | 9.2 / 11.5 | 11.7 | ✗ (0.2 s geç) | 46° | 4° | 13 | 3 |
+| 60 kt | Δh +150 ft | 9.5 / 11.9 | 8.0 | ✓ | 7° | 4° | 4 | 23 |
+| 60 kt | Δv −50 ft/s | 10.3 / 12.9 | 7.3 | ✓ | 4° | 14° | 1 | 2 |
+| 60 kt | Δψ +60°, Δv +15, Δh +80 | 6.0 / 7.5 | 7.8 | ✗ (0.3 s geç) | 44° | 9° | 13 | 21 |
+| 90 kt | Δψ +90° | 7.2 / 9.0 | 8.1 | ✓ | 53° | 2° | 11 | 4 |
+| 90 kt | Δv −50 ft/s | 10.3 / 12.9 | 9.7 | ✓ | 4° | 12° | 2 | 7 |
+| 90 kt | Δh −120 ft | 8.0 / 10.0 | 7.3 | ✓ | 3° | 4° | 5 | 19 |
+
+**Eski komut modeliyle karşılaştırma** (aynı komut, 900 ft, 15 ft/s; eski model kendi env'inde, oturma = üç eksenin
+birlikte kendi tolerans bandına son girişi):
+
+| Komut | Model | Oturma | max φ | max θ | max r | max ḣ |
+|---|---|---|---|---|---|---|
+| Δψ +90° | eski | 11.5 s | 2.8° | 1.5° | 8.6°/s | 0.2 ft/s |
+| | **manevra** | **4.0 s** | **21.9°** | 7.0° | **27.5°/s** | 2.4 ft/s |
+| Δψ +180° | eski | 23.1 s | 3.0° | 1.6° | 8.6°/s | 0.3 ft/s |
+| | **manevra** | **7.2 s** | **23.1°** | 6.7° | **28.4°/s** | 2.6 ft/s |
+| Δh +100 ft | eski | 11.5 s | 2.0° | 0.5° | 1.0°/s | 10.3 ft/s |
+| | **manevra** | **5.3 s** | 7.8° | 5.1° | 2.9°/s | **27.9 ft/s** |
+| Δv +10 ft/s | eski | 8.5 s | 2.5° | 2.3° | 2.6°/s | 0.7 ft/s |
+| | **manevra** | **2.0 s** | 3.7° | **11.2°** | 2.5°/s | 4.0 ft/s |
+
+**Yana kayma:** manevra modelinde kararlı uçuşta yanal hız < 1 ft/s (demo uçuşlarında komutlar arası son 3 s;
+eski v2 komut modelinde ~8 ft/s, bkz. 26.6). Manevra sırasında geçici olarak 6–16 ft/s'ye çıkıyor.
+
+**Görev demoları** (`python command_viz.py record`, kayıtlar `viz/demo_flights.json`, sayfanın kayıt modunda):
+60 kt'ta yatışlı dönüşler (+90°, −180°, +90°, −45°) 3/4 (−180° 0.3 s geç), slalom (±45–90°, 13 s arayla) 5/5,
+düşük hızda çeviklik (180° pedal dönüşü, bob-up / bob-down, ±40 ft/s) 6/6, hızlanma / yavaşlama / irtifa 5/5,
+tırmanarak dönüş (80 kt, +180° & +150 ft; −90° & −40 ft/s & −100 ft; +45° & +30 ft/s) 3/3 ve eski modelin 6 komutluk
+görevi (300 ft, 15 ft/s) 6/6.
+
+## 28.6. Bilinen sınırlar / açık sorular
+
+- **M5 süre hedefleri sınırda.** 60 kt'ta büyük dönüşler ve birleşik komutlar son sınırı 0.2–0.3 s kaçırabiliyor. T
+  eksen sürelerinin en büyüğü; birleşik komutta eksenler aynı gücü paylaştığı için gerçek pay daha küçük.
+- **Yatış ~45–53°'de kalıyor.** 60 kt'ta 55° yatış çevikliği ~25°/s dönüş hızı ister; ajan ~15°/s'ye çıkıyor (aşırı açı
+  cezası 60°'de başlıyor, güç sınırı). Daha agresif dönüş istenirse ceza eşiği ve T formülündeki yatış birlikte ele alınmalı.
+- **T "en geç" demek:** ajan takvimden öne geçebilir (ör. T = 14 s verilen Δv −40 / Δh +100'ü 6.8 s'de yaptı).
+  "Tam T'de" (ör. yumuşak, yolcu konforu) isteniyorsa takvimin önüne geçmek de cezalandırılmalı.
+- ACAH iç döngüsü ve reset oto-pilotu probe'larla elle ayarlandı; gerçek AH-1S uçuş kontrol sistemi değildir.
+- Başlangıç teleport + reset oto-pilotu; Stage 2 → manevra ajanı geçişi yapılmadı. Rüzgâr yok; tek seed.
+
+Kaynaklar: [DTIC AD1064895 (ADS-33 tabanlı çeviklik seviyeleri)](https://apps.dtic.mil/sti/pdfs/AD1064895.pdf),
+[ADS-33E-PRF](https://www.avmc.army.mil/Portals/51/Documents/TechData%20PDF/ads33.pdf).

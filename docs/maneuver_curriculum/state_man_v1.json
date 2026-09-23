@@ -1,0 +1,260 @@
+{
+  "level_index": 4,
+  "level": "M5",
+  "timesteps": 1675042,
+  "history": [
+    {
+      "level": "M1",
+      "level_index": 0,
+      "success_rate": 0.89,
+      "episodes": 206,
+      "axis_success": {
+        "altitude": 0.8,
+        "speed": 0.85,
+        "heading": 1.0
+      },
+      "steps_at_level": 151348,
+      "total_steps": 151348,
+      "wall_min_at_level": 2.8183312018712363
+    },
+    {
+      "level": "M2",
+      "level_index": 1,
+      "success_rate": 0.8,
+      "episodes": 129,
+      "axis_success": {
+        "speed": 1.0,
+        "heading": 0.88,
+        "altitude": 0.99
+      },
+      "steps_at_level": 100306,
+      "total_steps": 251654,
+      "wall_min_at_level": 1.828222640355428
+    },
+    {
+      "level": "M3",
+      "level_index": 2,
+      "success_rate": 0.91,
+      "episodes": 100,
+      "axis_success": {
+        "speed": 0.9247311827956989,
+        "heading": 0.99,
+        "altitude": 1.0
+      },
+      "steps_at_level": 78442,
+      "total_steps": 330096,
+      "wall_min_at_level": 1.37020454009374
+    },
+    {
+      "level": "M4",
+      "level_index": 3,
+      "success_rate": 0.8,
+      "episodes": 146,
+      "axis_success": {
+        "heading": 0.92,
+        "speed": 0.89,
+        "altitude": 1.0
+      },
+      "steps_at_level": 114426,
+      "total_steps": 444522,
+      "wall_min_at_level": 2.0404630462328592
+    },
+    {
+      "level": "M5",
+      "level_index": 4,
+      "success_rate": 0.8,
+      "episodes": 1699,
+      "axis_success": {
+        "heading": 0.93,
+        "altitude": 1.0,
+        "speed": 1.0,
+        "combined": 0.88
+      },
+      "steps_at_level": 1230520,
+      "total_steps": 1675042,
+      "wall_min_at_level": 25.189234856764475
+    }
+  ],
+  "args": {
+    "task": "maneuver",
+    "out": "/home/claude/runs/man_v1",
+    "total_steps": 8000000,
+    "level": "M1",
+    "stop_after": null,
+    "promote": true,
+    "window": 100,
+    "min_episodes": 100,
+    "threshold": 0.8,
+    "axis_gate": true,
+    "axis_min_commands": 30,
+    "resume": false,
+    "init_model": null,
+    "n_envs": 2,
+    "vec": "subproc",
+    "env_config": "v2",
+    "seed": 42,
+    "lr": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 256,
+    "n_epochs": 10,
+    "gamma": 0.995,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.0,
+    "target_kl": null,
+    "log_std_init": -1.0,
+    "fine_from": "M3",
+    "fine_lr": 0.0001,
+    "fine_kl": 0.02,
+    "net": "128,128",
+    "save_freq": 100000,
+    "smoke": false
+  },
+  "env_config": {
+    "start_mode": "teleport",
+    "reuse_fdm": true,
+    "fdm_refresh_episodes": 25,
+    "random_start_heading": true,
+    "start_heading_deg": 180.0,
+    "settle_max_s": 110.0,
+    "settle_min_s": 12.0,
+    "settle_hold_s": 4.0,
+    "trim_avg_s": 3.0,
+    "climb_max_s": 180.0,
+    "afcs_setup": {
+      "pitch": 0.5,
+      "roll": 1.0,
+      "yaw": 1.0,
+      "heading_hold": true,
+      "yaw_rate_gain": 0.2
+    },
+    "afcs_train": {
+      "pitch": 0.5,
+      "roll": 1.0,
+      "yaw": 0.99,
+      "heading_hold": false,
+      "yaw_rate_gain": 0.2
+    },
+    "action_scale": [
+      0.06,
+      0.05,
+      0.3,
+      0.2
+    ],
+    "action_filter_alpha": 0.5,
+    "control_limits": [
+      [
+        0.4,
+        0.8
+      ],
+      [
+        -0.35,
+        0.1
+      ],
+      [
+        -1.0,
+        1.0
+      ],
+      [
+        -1.0,
+        1.0
+      ]
+    ],
+    "cmd_speed_range": [
+      3.0,
+      60.0
+    ],
+    "cmd_min_alt_ft": 250.0,
+    "w_heading": 1.0,
+    "w_speed": 0.7,
+    "w_alt": 0.7,
+    "kernel_heading": [
+      2.0,
+      15.0
+    ],
+    "kernel_speed": [
+      1.5,
+      8.0
+    ],
+    "kernel_alt": [
+      6.0,
+      40.0
+    ],
+    "fine_kernel": "gauss",
+    "progress_weight": 10.0,
+    "progress_min_scale": [
+      5.0,
+      2.0,
+      10.0
+    ],
+    "pen_roll": 0.0,
+    "pen_rate": 0.0,
+    "pen_side": 0.3,
+    "pen_jerk": 0.0,
+    "pen_ctrl": 0.0,
+    "pen_dctrl": 1.0,
+    "pen_sat": 0.5,
+    "sat_threshold": 0.9,
+    "pen_couple": 2.0,
+    "couple_soft_frac": 0.5,
+    "fail_penalty": 50.0,
+    "reward_scale": 0.1,
+    "tol_heading_deg": 2.0,
+    "tol_speed_fps": 2.0,
+    "tol_alt_ft": 10.0,
+    "success_hold_s": 5.0,
+    "coupling_limits": [
+      8.0,
+      8.0,
+      40.0
+    ],
+    "max_roll_deg": 75.0,
+    "max_pitch_deg": 45.0,
+    "max_yaw_rate_dps": 90.0,
+    "max_roll_rate_dps": 150.0,
+    "min_agl_ft": 80.0,
+    "alt_margin_ft": 150.0,
+    "speed_margin_fps": 30.0,
+    "heading_margin_deg": 45.0,
+    "speed_limits_fps": [
+      -40.0,
+      210.0
+    ],
+    "rpm_limits": [
+      280.0,
+      380.0
+    ],
+    "roll_cmd_deg": 60.0,
+    "pitch_cmd_deg": 30.0,
+    "kphi": 4.0,
+    "kp": 0.9,
+    "kiphi": 2.0,
+    "kth": 3.0,
+    "kq": 1.6,
+    "kith": 1.5,
+    "i_lim": 0.3,
+    "coll_scale": 0.25,
+    "pedal_scale": 0.7,
+    "coll_limits": [
+      0.2,
+      1.0
+    ],
+    "deadline_grace_frac": 0.25,
+    "deadline_grace_min_s": 1.0,
+    "window_margin_s": 3.0,
+    "first_command_s": [
+      2.0,
+      4.0
+    ],
+    "max_episode_s": 240.0,
+    "pen_sched": 1.0,
+    "sched_scale": [
+      20.0,
+      10.0,
+      30.0
+    ],
+    "pen_late": 0.5,
+    "pen_att": 1.0
+  },
+  "saved_at": "2026-09-23 14:32:46"
+}

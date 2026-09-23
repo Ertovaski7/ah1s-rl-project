@@ -60,10 +60,10 @@ from command_curriculum import DEFAULT_LEVELS, command_axis, find_level  # noqa:
 INFO_KEYS = ("episode_success", "level_index", "commands_ok", "commands_total")
 
 
-def make_config(name: str, task: str = "command"):
+def make_config(name: str, task: str = "command", overrides: dict | None = None):
     if task == "maneuver":
         from helicopter_env_maneuver import ManeuverEnvConfig
-        return ManeuverEnvConfig()
+        return ManeuverEnvConfig(**(overrides or {}))
     from helicopter_env_command import CommandEnvConfig
     return CommandEnvConfig.v1() if name == "v1" else CommandEnvConfig()
 
@@ -75,22 +75,23 @@ def task_levels(task: str):
     return DEFAULT_LEVELS
 
 
-def make_env_fn(rank: int, level_index: int, config_name: str, task: str = "command"):
+def make_env_fn(rank: int, level_index: int, config_name: str, task: str = "command", overrides: dict | None = None):
     def _init():
         # SubprocVecEnv işçisinde de repo kökü import yolunda olsun
         if str(REPO_ROOT) not in sys.path:
             sys.path.insert(0, str(REPO_ROOT))
         if task == "maneuver":
             from helicopter_env_maneuver import HelicopterEnvManeuver
-            return HelicopterEnvManeuver(level=level_index, config=make_config(config_name, task))
+            return HelicopterEnvManeuver(level=level_index, config=make_config(config_name, task, overrides))
         from helicopter_env_command import HelicopterEnvCommand
         return HelicopterEnvCommand(level=level_index, config=make_config(config_name))
     return _init
 
 
-def build_vec_env(n_envs: int, level_index: int, vec: str, config_name: str = "v2", task: str = "command"):
+def build_vec_env(n_envs: int, level_index: int, vec: str, config_name: str = "v2", task: str = "command",
+                  overrides: dict | None = None):
     from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
-    fns = [make_env_fn(i, level_index, config_name, task) for i in range(n_envs)]
+    fns = [make_env_fn(i, level_index, config_name, task, overrides) for i in range(n_envs)]
     if vec == "subproc" and n_envs > 1:
         method = "fork" if sys.platform.startswith("linux") else None
         venv = SubprocVecEnv(fns, start_method=method)
@@ -120,6 +121,10 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
             self.axis_ok = {}
             self.history = list(history)
             self.last_save = 0
+            self.last_snap = 0
+            self.last_eval = 0
+            self.best_eval = -1.0
+            self.eval_env = None
             self.t0 = time.time()
             self.csv_path = out / "progress.csv"
             self.state_path = out / "curriculum_state.json"
@@ -140,6 +145,9 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
             self.training_env.env_method("set_level", self.level)
             self.level_start_steps = self.num_timesteps
             self.last_save = self.num_timesteps
+            self.last_snap = self.num_timesteps
+            if args.eval_freq:
+                self._evaluate()                        # başlangıç (ince ayar öncesi) değeri
             self._apply_fine_tuning()
             print(f"[curriculum] başlangıç seviyesi: {levels[self.level].name} — {levels[self.level].description}")
 
@@ -152,15 +160,26 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
                 self.term[info.get("termination", "?")] += 1
                 for res in info.get("command_results") or []:
                     self.cmd_err.append(abs(float(res["final_err"]["heading"])))
-                    ax = command_axis(res["cmd"])
+                    ax = res.get("category") or command_axis(res["cmd"])      # dayanıklılık: interrupt / interrupted
                     self.axis_ok.setdefault(ax, deque(maxlen=args.window)).append(bool(res["success"]))
             if self.num_timesteps - self.last_save >= args.save_freq:
                 self._save("latest")
                 self.last_save = self.num_timesteps
+            if args.snapshot_freq and self.num_timesteps - self.last_snap >= args.snapshot_freq:
+                (out / "models").mkdir(parents=True, exist_ok=True)
+                self.model.save(out / "models" / f"snap_{self.num_timesteps // 1000:05d}k.zip")
+                self.last_snap = self.num_timesteps
+            if args.eval_freq and self.num_timesteps - self.last_eval >= args.eval_freq:
+                self._evaluate()
             if (args.promote and len(self.recent) >= args.window and self.n_eps >= args.min_episodes
-                    and float(np.mean(self.recent)) >= args.threshold and self._axes_ok()):
+                    and float(np.mean(self.recent)) >= self._threshold() and self._axes_ok()):
                 return self._promote()
             return True
+
+        def _threshold(self) -> float:
+            """Episode başarısı eşiği: seviye kendi eşiğini taşıyabilir (promote_threshold; ör. çok komutlu
+            dayanıklılık episode'ları), yoksa --threshold. Komut türü kapıları her zaman --threshold."""
+            return float(getattr(levels[self.level], "promote_threshold", None) or args.threshold)
 
         def _axes_ok(self) -> bool:
             """--axis-gate: seviyedeki HER komut türü (tekrar edilenler dahil) ayrı ayrı eşiği geçmeli."""
@@ -174,7 +193,8 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
             return True
 
         def _axis_summary(self) -> str:
-            return " ".join(f"{ax[:3]}={np.mean(dq):.0%}({len(dq)})" for ax, dq in sorted(self.axis_ok.items())
+            short = {"interrupt": "kesen", "interrupted": "kesilen"}
+            return " ".join(f"{short.get(ax, ax[:3])}={np.mean(dq):.0%}({len(dq)})" for ax, dq in sorted(self.axis_ok.items())
                             if ax != "none")
 
         def _on_rollout_end(self):
@@ -205,6 +225,42 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
                   f"eksen: {self._axis_summary()}", flush=True)
 
         # -------------------------------------------------------------
+        def _evaluate(self):
+            """Deterministik değerlendirme: --eval-levels'ın her birinden --eval-episodes episode (sabit seed'ler,
+            her seferinde aynı). Ortalama episode başarısı en iyiyse models/best.zip. (Eğitimdeki başarı oranı
+            stokastik policy'nindir; ince ayarda deterministik performans ondan farklı gidebilir.)"""
+            self.last_eval = self.num_timesteps
+            if self.eval_env is None:
+                self.eval_env = make_env_fn(0, 0, args.env_config, args.task, args.env_overrides)()
+            t0, rates = time.time(), {}
+            for lv in [x.strip() for x in args.eval_levels.split(",") if x.strip()]:
+                ok = 0
+                for k in range(args.eval_episodes):
+                    obs, _ = self.eval_env.reset(seed=90_000 + k, options=dict(level=lv))
+                    done, info = False, {}
+                    while not done:
+                        obs, _, term, trunc, info = self.eval_env.step(self.model.predict(obs, deterministic=True)[0])
+                        done = term or trunc
+                    ok += bool(info.get("episode_success", False))
+                rates[lv] = ok / max(1, args.eval_episodes)
+            score = float(np.mean(list(rates.values()))) if rates else 0.0
+            best = score > self.best_eval
+            if best:
+                self.best_eval = score
+                (out / "models").mkdir(parents=True, exist_ok=True)
+                self.model.save(out / "models" / "best.zip")
+            row = dict(timesteps=self.num_timesteps, score=score, **{f"success_{k}": v for k, v in rates.items()})
+            path = out / "eval.csv"
+            new = not path.exists()
+            with open(path, "a", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=list(row))
+                if new:
+                    w.writeheader()
+                w.writerow(row)
+            print(f"[eval] {self.num_timesteps:>9d} adım | deterministik başarı " +
+                  " ".join(f"{k}={v:.0%}" for k, v in rates.items()) +
+                  f" | ortalama {score:.1%}{'  ← en iyi, best.zip' if best else ''} ({time.time() - t0:.0f} s)", flush=True)
+
         def _save(self, tag: str):
             (out / "models").mkdir(parents=True, exist_ok=True)
             self.model.save(out / "models" / f"{tag}.zip")
@@ -279,6 +335,9 @@ def parse_args(argv=None):
     p.add_argument("--vec", choices=["subproc", "dummy"], default="subproc")
     p.add_argument("--env-config", choices=["v2", "v1"], default="v2",
                    help="reward/başarı ayarı: v2 (varsayılan, yumuşak kumanda + kuplaj sınırı) ya da v1 (ilk koşu)")
+    p.add_argument("--coll-scale", type=float, default=None,
+                   help="manevra: collective yetkisi trim ± bu (varsayılan: başlangıç modelininki, yoksa 0.25). "
+                        "Model bu ayarı zip'inde taşır; mevcut bir modelin yetkisini genişletmek için widen_collective.py")
     p.add_argument("--seed", type=int, default=42)
     # PPO
     p.add_argument("--lr", type=float, default=3e-4)
@@ -298,6 +357,12 @@ def parse_args(argv=None):
     p.add_argument("--fine-kl", type=float, default=0.02)
     p.add_argument("--net", default="128,128", help="gizli katmanlar (pi ve vf için ayrı ağ)")
     p.add_argument("--save-freq", type=int, default=100_000, help="latest.zip kayıt aralığı (adım)")
+    p.add_argument("--snapshot-freq", type=int, default=0,
+                   help="bu kadar adımda bir models/snap_<adım>k.zip (0 = kapalı; en iyi ara modeli seçmek için)")
+    p.add_argument("--eval-freq", type=int, default=0,
+                   help="bu kadar adımda bir deterministik değerlendirme (sabit seed'ler); en iyisi models/best.zip")
+    p.add_argument("--eval-levels", default="M5,S2,S3", help="değerlendirme seviyeleri (virgülle)")
+    p.add_argument("--eval-episodes", type=int, default=30, help="seviye başına değerlendirme episode'u")
     p.add_argument("--smoke", action="store_true", help="çok kısa deneme koşusu")
     return p.parse_args(argv)
 
@@ -344,9 +409,25 @@ def main(argv=None):
 
     if args.resume and state.get("args", {}).get("env_config") and state["args"]["env_config"] != args.env_config:
         print(f"[uyarı] bu koşu env_config={state['args']['env_config']} ile başlamıştı; şimdi {args.env_config}")
-    venv = build_vec_env(args.n_envs, level_index, args.vec, args.env_config, args.task)
+    # manevra env ayarları: modelin taşıdığı (ah1s_env_overrides) + komut satırı. Model bu ayarlarla kaydedilir.
+    args.env_overrides = {}
+    if args.task == "maneuver":
+        from helicopter_env_maneuver import read_env_overrides
+        inherited = read_env_overrides(model_path) if model_path is not None else {}
+        args.env_overrides = dict(inherited)
+        if args.coll_scale is not None:
+            old = inherited.get("coll_scale", 0.25)
+            if model_path is not None and abs(old - args.coll_scale) > 1e-9:
+                print(f"[uyarı] model collective yetkisi ±{old:g} ile eğitilmiş; şimdi ±{args.coll_scale:g} → action ölçeği "
+                      f"değişir. Davranışı koruyarak genişletmek için: python widen_collective.py ...")
+            args.env_overrides["coll_scale"] = float(args.coll_scale)
+        if args.env_overrides:
+            print(f"[env] ayarlar: {args.env_overrides} (modelle birlikte kaydedilir)")
+    elif args.coll_scale is not None:
+        raise SystemExit("--coll-scale yalnızca --task maneuver için")
+    venv = build_vec_env(args.n_envs, level_index, args.vec, args.env_config, args.task, args.env_overrides)
     from dataclasses import asdict
-    env_config = asdict(make_config(args.env_config, args.task))
+    env_config = asdict(make_config(args.env_config, args.task, args.env_overrides))
     tb = None
     try:
         import tensorboard  # noqa: F401
@@ -362,7 +443,16 @@ def main(argv=None):
         model.lr_schedule = lambda _: args.lr
         model.ent_coef = args.ent_coef
         model.target_kl = args.target_kl
-        print(f"[model] yüklendi: {model_path}")
+        # rollout / minibatch ayarları da komut satırından (ince ayarda daha büyük, daha sakin güncellemeler için)
+        if model.n_steps != args.n_steps:
+            from stable_baselines3.common.buffers import RolloutBuffer
+            model.n_steps = args.n_steps
+            model.rollout_buffer = RolloutBuffer(args.n_steps, model.observation_space, model.action_space,
+                                                 device=model.device, gamma=model.gamma, gae_lambda=model.gae_lambda,
+                                                 n_envs=model.n_envs)
+        model.batch_size = args.batch_size
+        model.n_epochs = args.n_epochs
+        print(f"[model] yüklendi: {model_path}  (n_steps {model.n_steps}, batch {model.batch_size}, epoch {model.n_epochs})")
     else:
         model = PPO(
             "MlpPolicy", venv, learning_rate=args.lr, n_steps=args.n_steps, batch_size=args.batch_size,
@@ -372,6 +462,9 @@ def main(argv=None):
                                log_std_init=args.log_std_init),
             tensorboard_log=tb, seed=args.seed, verbose=0, device="cpu")
         print(f"[model] yeni PPO (rastgele ağırlıklar) — ağ {net}, σ0={np.exp(args.log_std_init):.2f}")
+    if args.task == "maneuver":
+        from helicopter_env_maneuver import ENV_OVERRIDES_ATTR
+        setattr(model, ENV_OVERRIDES_ATTR, dict(args.env_overrides))      # her kayıtta zip'e girer
 
     print(f"[train] out={out}  n_envs={args.n_envs} ({args.vec})  toplam {args.total_steps} adım  "
           f"seviye atlama={'açık' if args.promote else 'KAPALI'} (eşik {args.threshold:.0%}, pencere {args.window})")

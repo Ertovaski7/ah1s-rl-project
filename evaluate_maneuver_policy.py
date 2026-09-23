@@ -46,6 +46,12 @@ def load(path):
     return lambda o: m.predict(o, deterministic=True)[0]
 
 
+def load_maneuver(path):
+    """(policy, ManeuverEnvConfig) — env, modelin eğitildiği ayarlarla (ör. collective yetkisi) kurulur."""
+    from helicopter_env_maneuver import load_maneuver_policy
+    return load_maneuver_policy(path)
+
+
 def fly(env, policy, cmd: dict, start: dict, T: float | None, episode_s: float = 45.0, t_cmd: float = 3.0):
     item = (t_cmd, dict(cmd), T) if T else (t_cmd, dict(cmd))
     obs, info = env.reset(seed=0, options=dict(commands=[item], episode_s=episode_s, **start))
@@ -118,10 +124,11 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     from helicopter_env_maneuver import HelicopterEnvManeuver
-    env = HelicopterEnvManeuver(level=args.level)
-    pol = load(args.model)
+    pol, cfg = load_maneuver(args.model)
+    env = HelicopterEnvManeuver(level=args.level, config=cfg)
     out = []
-    print(f"MANEVRA — model {Path(args.model).name}, süre hedefi {args.level} çevikliği, başlangıç {args.start_alt:.0f} ft")
+    print(f"MANEVRA — model {Path(args.model).name}, süre hedefi {args.level} çevikliği, başlangıç {args.start_alt:.0f} ft, "
+          f"collective yetkisi ±{cfg.coll_scale:g}")
     print(f"{'rejim':15s} {'komut':30s} {'T':>5s} {'son':>5s} {'oturma':>7s} {'ok':>3s} {'max|φ|':>7s} {'max|θ|':>7s} "
           f"{'max|r|':>7s} {'max|q|':>6s} {'max|ḣ|':>6s} {'max|u̇|':>6s}  kuplaj")
     for label, u0, cmd in BATTERY:

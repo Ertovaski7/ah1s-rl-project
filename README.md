@@ -83,6 +83,20 @@ python evaluate_maneuver_policy.py --model models_maneuver/maneuver_M5_final.zip
 python command_viz.py                    # canlı 3D: varsayılan artık manevra modeli (800 ft, 60 kt başlangıç)
 ```
 
+## 1.6. Yeni: Dayanıklılık (robustness) — manevra ortasında gelen / ters komutlar, zarf sınırları
+
+Rüzgâr eklenmeden önce: manevra bitmeden gelen komutlar (slalomda ani ters dönüş, dönüş ortasında ani tırmanış, ani
+fren), hover / 100 kt / 250 ft sınırları. 49 koşuluk test takımı (`evaluate_robustness.py`) ve zorlayıcı eğitim seviyeleri
+S1–S4. Testlerdeki hataların kök nedeni dar collective yetkisiydi (±0.25 → 55° yatışta irtifa tutulamıyor); yetki davranış
+korunarak ±0.45'e genişletildi (`widen_collective.py`) ve S4'te ince ayar yapıldı: test senaryoları 40/49 → **44/49**,
+tek komutlar 14/16 → **16/16**, M5 episode başarısı %74 → **%87**. Model: `models_maneuver/maneuver_robust_final.zip`
+(görselleştirmenin yeni varsayılanı). Ayrıntılar: **bölüm 29**.
+
+```bash
+python evaluate_robustness.py --model models_maneuver/maneuver_robust_final.zip --compare models_maneuver/maneuver_M5_final.zip
+python command_viz.py                    # canlı 3D: dayanıklı model; manevra sürerken yeni komut verilebilir
+```
+
 ---
 
 # 2. Repo yapısı
@@ -107,8 +121,11 @@ ah1s-rl-project/
 ├── helicopter_env_maneuver.py               Komut env'inin alt sınıfı: attitude komutu (ACAH), hıza göre trim, süre hedefi
 ├── maneuver_curriculum.py                   Seviyeler M1 … M5 (çeviklik parametreleri → süre hedefi T)
 ├── evaluate_maneuver_policy.py              Tek komut testleri (0–90 kt) + eski komut modeliyle karşılaştırma
-├── models_maneuver/                         maneuver_M5_final.zip (M1 → M5 geçen model)
+├── evaluate_robustness.py                   Dayanıklılık testleri: kesilen / ters komutlar, zarf sınırları (bölüm 29)
+├── widen_collective.py                      Modelin collective yetkisini davranışı koruyarak genişletir (bölüm 29)
+├── models_maneuver/                         maneuver_M5_final.zip (M1 → M5), maneuver_robust_final.zip (dayanıklı)
 ├── docs/maneuver_curriculum/                Koşunun kanıtları (ilerleme CSV, curriculum_state, doğrulama, grafik)
+├── docs/robustness/                         Dayanıklılık kanıtları (test JSON / log'ları, eğitim CSV'leri, probe, grafik)
 │
 ├── run_colab_live_heading_dashboard.py      Canlı target-heading dashboard (Colab içinde)
 ├── validate_final_continuous_mission_v1.py  Heading görevi: Stage1 → Stage2 → komutlar → recovery (headless)
@@ -189,7 +206,8 @@ Repository’deki `vN` numaraları çoğunlukla **repair / training / validator 
 | `models_turn_hybrid/AH1S_TURN_FULL_ENTRY_V13_GATED_50_PATCH.pt` | V13 — V17 eğitiminin başlangıç noktası | training |
 | `models_turn_hybrid/AH1S_TURN_BC_WARMSTART.zip`, `..._V2_LAST.zip`, `..._V3_REPAIRED.zip` | Turn eğitim zincirinin ara adımları | training |
 | `models_command_curriculum/v2_R1_final.zip` (+ ara seviyeler, v1) | Komut ajanı: Δheading / Δhız / Δirtifa, ~15 ft/s (bölüm 26) | `evaluate_command_policy.py`, `command_viz.py --model …` |
-| `models_maneuver/maneuver_M5_final.zip` | Manevra ajanı: süre hedefli Δ komutları, 0–100 kt, attitude komutu (bölüm 28) | `evaluate_maneuver_policy.py`, `command_viz.py` (varsayılan) |
+| `models_maneuver/maneuver_M5_final.zip` | Manevra ajanı: süre hedefli Δ komutları, 0–100 kt, attitude komutu (bölüm 28) | `evaluate_maneuver_policy.py`, `command_viz.py --model …` |
+| `models_maneuver/maneuver_robust_final.zip` | Dayanıklı manevra ajanı: collective ±0.45 (modelin içinde kayıtlı) + S4 ince ayarı (bölüm 29) | `evaluate_robustness.py`, `command_viz.py` (varsayılan) |
 
 Runtime turn modelleri, orijinal "V22 20/20" doğrulamasında kullanılan dosyalarla; Stage 3 modeli de önceki geliştiricinin kilitlediği SHA-256 değeriyle byte-byte aynıdır. Kontrol için: `sha256sum -c models_sha256.txt`.
 
@@ -1006,7 +1024,7 @@ Tek uçuşta 6 ardışık komut (+90°, +8 ft/s, +100 ft, −45° & −60 ft, �
 
 Ajanı tarayıcıda izlemek için: istediğin an **Δheading / Δhız / Δirtifa** ver, helikopterin (low-poly Bell modeli)
 3D hareketini, ajanın kumandalarını ve komutun metriklerini gör. Uçuş gerçek JSBSim + PPO; sayfa yalnızca gösterir.
-Görev modelden anlaşılır (observation boyutu): **manevra** modeli (varsayılan, bölüm 28) ya da eski **komut** modeli (bölüm 26).
+Görev modelden anlaşılır (observation boyutu): **manevra** modeli (varsayılan: dayanıklı model, bölüm 29; önceki M5 modeli bölüm 28) ya da eski **komut** modeli (bölüm 26). Env, modelin zip'inde kayıtlı ayarlarla kurulur (dayanıklı model: collective ±0.45).
 
 ```bash
 python command_viz.py                                           # → http://127.0.0.1:8765 (manevra modeli, 800 ft / 60 kt)
@@ -1026,7 +1044,7 @@ Colab (localhost / paylaşım linki yok; eski dashboard gibi kernel callback'ler
 | HUD | Heading bandı (magenta hedef imi, ◇ yer izi = gerçek gidiş yönü), hız (ft/s, kt, yanal hız), irtifa AGL ve dikey hız, aktif komut. Manevra modelinde attitude göstergesi (yatış / yunuslama; magenta = ajanın attitude komutu). |
 | Komut ver | Üç Δ alanı + hızlı seçim düğmeleri; eğitim aralığı / güvenli aralık uyarısı; hız çarpanı 1–10×, duraklat, yeniden başlat (irtifa, hız, heading ya da rastgele). Manevra modelinde **süre hedefi** alanı: boş bırakılırsa seçili çeviklikten (Rahat M3 / Hızlı M4 / Agresif M5) hesaplanır, elle de girilebilir. |
 | Aktif komut | Komut verilen eksen: anlık hata, yükselme (%10→%90), aşma %, oturma; verilmeyen eksen: en büyük sapma / kuplaj sınırı; "tüm eksenler tolerans içinde" süresi (komut: 10 s, manevra: 5 s); manevrada T / son sınır çubuğu ve geri sayım; pencere kapanınca env'in başarı kararı. |
-| Komut kaydı | Her komut: zaman, uygulanan Δ (env işaret çevirdiyse görünür), oturma, aşma, son hata, kuplaj, sonuç. |
+| Komut kaydı | Her komut: zaman, uygulanan Δ (env işaret çevirdiyse görünür), süre hedefi (manevra; ters hareket payı parantez içinde), oturma, aşma, son hata, kuplaj, sonuç. Manevra bitmeden yeni komut gelirse önceki «↷ kesildi» olur (bölüm 29). |
 | Zaman serileri | Heading, hız, irtifa (hedef + tolerans bandı; manevrada süre hedefi takvimi ve son sınır ▼), ajanın 4 kumandası (trim'e eklenen, −1…+1), yatış / yunuslama (manevrada ajanın komutu ince çizgi), ödül; imleç tüm grafiklerde senkron; komut anları dikey çizgi; pencere 60 s / 3 dk / tümü; tablo görünümü. |
 | Dışa aktarma | JSON (sayfada «Kayıt aç» ile oynatılır) ve ACMI (Tacview). Colab'da «Uçuşu diske kaydet» → `/content/ah1s_flights/`. |
 
@@ -1189,6 +1207,7 @@ görevi (300 ft, 15 ft/s) 6/6.
   eksen sürelerinin en büyüğü; birleşik komutta eksenler aynı gücü paylaştığı için gerçek pay daha küçük.
 - **Yatış ~45–53°'de kalıyor.** 60 kt'ta 55° yatış çevikliği ~25°/s dönüş hızı ister; ajan ~15°/s'ye çıkıyor (aşırı açı
   cezası 60°'de başlıyor, güç sınırı). Daha agresif dönüş istenirse ceza eşiği ve T formülündeki yatış birlikte ele alınmalı.
+  → Kök neden bölüm 29.5'te bulundu: collective yetkisi (±0.25) 55° yatışta irtifayı tutmaya yetmiyor; dayanıklı modelde ±0.45.
 - **T "en geç" demek:** ajan takvimden öne geçebilir (ör. T = 14 s verilen Δv −40 / Δh +100'ü 6.8 s'de yaptı).
   "Tam T'de" (ör. yumuşak, yolcu konforu) isteniyorsa takvimin önüne geçmek de cezalandırılmalı.
 - ACAH iç döngüsü ve reset oto-pilotu probe'larla elle ayarlandı; gerçek AH-1S uçuş kontrol sistemi değildir.
@@ -1196,3 +1215,182 @@ görevi (300 ft, 15 ft/s) 6/6.
 
 Kaynaklar: [DTIC AD1064895 (ADS-33 tabanlı çeviklik seviyeleri)](https://apps.dtic.mil/sti/pdfs/AD1064895.pdf),
 [ADS-33E-PRF](https://www.avmc.army.mil/Portals/51/Documents/TechData%20PDF/ads33.pdf).
+
+---
+
+# 29. Dayanıklılık (robustness) — zorlayıcı episode'lar, test senaryoları, collective yetkisi (2026-09-23)
+
+**Mentor kararı:** rüzgâr vb. dış etkiler eklenmeden önce modelin dayanıklılığı ölçülüp güçlendirilecek: modeli zorlayan
+episode'lar tasarlanıp yeniden eğitilecek (ör. slalom yaparken ani ters yöne manevra, ani irtifa yükseltme). Ajan bütün
+action'ları episode'a göre en iyi şekilde kullanmayı öğrenmeye devam edecek. **Kullanıcı seçimi:** stres türleri
+"kesilen / ters komutlar" ve "zarf sınırları"; manevra ortasında gelen Δ **ölçülen duruma göre** uygulanır.
+
+**Özet:** test senaryoları ve zorlayıcı seviyeler (S1–S4) eklendi. M5 modelinden doğrudan ince ayar (3 deneme) deterministik
+başarıyı artırmadı; testlerdeki hataların kök nedeni **collective yetkisinin darlığı** çıktı (60–100 kt'ta 55° yatışta
+irtifa tutulamıyor → ajan ~45° yatışta kalıyor → büyük dönüşler geç). Yetki davranış korunarak ±0.25 → ±0.45 genişletildi
+ve S4'te ince ayar yapıldı. Sonuç modeli `models_maneuver/maneuver_robust_final.zip`: test senaryolarında tüm komutlar
+**40/49 → 44/49**, tek komut testleri **14/16 → 16/16**, seviyelerde deterministik episode başarısı M5 **%74 → %87**,
+S3 (sert kesmeler) **%62 → %75** (bkz. 29.7).
+
+## 29.1. Manevra ortasında gelen komut (env: `helicopter_env_maneuver.py`)
+
+- Yeni Δ o anki ölçülen değere göre uygulanır ("buradan itibaren 90° sola"); komut verilmeyen eksen **önceki hedefine
+  devam eder** (180° dönüşün ortasında Δh +150 → dönüş sürer, tırmanış eklenir).
+- **Etkin Δ:** komut verilen eksenler + önceki komuttan kalan, henüz tolerans bandına girmemiş eksenler. Süre hedefi,
+  kuplaj kontrolü ve takvim gecikmesi (observation / reward) bu eksenlerle hesaplanır.
+- **Süre hedefi payı** (`maneuver_curriculum.dynamic_time_target`): ters yöndeki hareket önce durdurulur. Yaw hızı r,
+  dikey hız ḣ ya da ivme u̇ yeni Δ'ya ters ise durma süresi |x|/a ve durma yolu x²/(2a) eklenir (a: yaw 12°/s²,
+  dikey 10 ft/s², ivme değişimi 4 ft/s³). Düz uçuşta pay 0 → standart komutlarda sonuç öncekiyle aynı (M5 testleri
+  birebir aynı çıktı).
+- **Kesilen komut:** yeni komut son sınırdan önce gelirse önceki pencere "kesildi" olur; süre hedefiyle yargılanmaz,
+  başarısı = komut verilmeyen eksenler kuplaj sınırında + güvenlik ihlali yok. Tutma süresi içinde kesilirse zamanında
+  girmiş ve o an bantta olması yeterli.
+- Heading güvenlik marjına (45°) ters yöne dönen helikopterin durma yolu r²/(2·12°/s²) eklenir (en fazla +45°).
+- Görselleştirme sayfası aynı kuralı gösterir: "↷ Kesildi", ters hareket payı, önceki komuttan devam eden eksenler.
+
+## 29.2. Zorlayıcı seviyeler: S1–S4 (`maneuver_curriculum.StressLevel`)
+
+| Seviye | Episode | Kesme | Kesen komutun türü | Başlangıç / sınır komutları |
+|---|---|---|---|---|
+| S1 | 4–6 komut; %25'i düz M5 episode'u | %70 olasılıkla, önceki T'nin %20–80'inde | ters %40, çapraz eksen %30, "biraz daha" %10, rastgele %20 | 0–100 kt, 600–1500 ft |
+| S2 | S1 + zarf sınırları | aynı | aynı | %60 kenar başlangıç: hover (0–8 kt), 85–100 kt, alçak irtifa (300–550 ft); %30 sınıra giden komut (100 kt'a çık, 0 kt'a in, 250 ft tabanına in) |
+| S3 | 5–8 komut; %20 düz M5 | %90, T'nin %15–60'ında | ters %50 (büyük), çapraz %20, "biraz daha" %10, rastgele %20 | S2 gibi (%20 sınır komutu) |
+| S4 | 3–6 komut; **%50 düz M5** (unutmayı önler) | %70, T'nin %20–80'inde | ters %45, çapraz %25, "biraz daha" %10, rastgele %20 | %50 kenar başlangıç, %20 sınır komutu |
+
+Çeviklik (süre hedefi) M5 ile aynı: 55° yatış, 25°/s pedal, 6 ft/s² ivme, 20 ft/s tırmanış. Seviye atlama eşiği episode
+başarısı (S1–S4: %65 / %65 / %55 / %60; 4–8 komutluk episode'da %80 çok sert) + komut türü kapıları: kesen komut
+(`kesen`), kesilen komut (`kesilen`) ve düz komut türleri ayrı ayrı ≥ %80.
+
+## 29.3. Test senaryoları: `evaluate_robustness.py`
+
+Eğitimde kullanılmayan, sabit senaryolar (heading'liler aynalarıyla, sağ ↔ sol) + S1 / S2'den sabit seed'li 10 rastgele
+episode = 49 koşu:
+
+- **kesilen (27):** slalomda 2.5 s ve 1.5 s'de ters dönüş (60 kt), hover'da pedal dönüşünü ters çevirme, 180° dönüş
+  ortasında +150 ft, dönüşte ani alçalma + fren (80 kt), hızlanırken ani fren, tırmanırken ani dalış, bob-up'ı ters
+  çevirme, 2 s arayla 5–6 komut (60 ve 98 kt), birleşik komutun tersi (60 ve 98 kt), çift kesme, ±180° testere, dikey
+  testere (380 ft), hız testeresi (hover).
+- **sınır (12):** 0 kt'ta pedal dönüşü / bob-up / hızlanıp tekrar 0 kt, 95 → 100 kt ve orada 180° dönüş, 250 ft'e inip
+  orada dönüş, 100 kt'ta 180° dönüşü ters çevirme, hover'dan +50 ft/s sonra dur, 400 ft'te tırmanıp 260 ft'e dalış,
+  98 kt'ta +90° / +150 ft / −50 ft/s birlikte.
+- **rastgele (10):** S1 seed 7001–7005, S2 seed 8001–8005.
+
+Ölçüler: güvenli (uçuş bitmedi), son komut (zamanında + 5 s + kuplaj), tüm komutlar (env'in episode kararı), kesen
+komuta tepki süresi (hareketin yeni yöne dönmesi), en büyük açılar, en düşük irtifa, action doygunluğu. Ek olarak her
+modelde `evaluate_maneuver_policy.py` (16 tek komut, 5–90 kt) ve seviyelerden 100'er deterministik episode (seed
+50000–50099; eğitimdeki değerlendirme seed'lerinden farklı).
+
+## 29.4. İlk ince ayarlar (M5 modelinden) — iyileşme yok
+
+Başlangıç modeli (M5, collective ±0.25) test senaryolarında: güvenli 49/49, son komut 42/49, tüm komutlar 40/49; hataların
+hepsi son sınırı 0.1–1.6 s kaçırma, çoğu 60–100 kt'ta büyük / ters dönüşlerde.
+
+| Koşu | Ayar | Deterministik sonuç |
+|---|---|---|
+| `rob_v2` | S1 → S2 → S3 seviye kapılarıyla, lr 1e-4, KL 0.02, rollout 2×2048 | kapılar 481 bin adımda geçildi (eğitim başarısı %74 / %68 / %66) ama deterministik başarı düştü: M5 %60, S1 %62, S2 %78, S3 %55 (40'ar episode); test senaryoları tüm komutlar 38/49 |
+| `rob_v3` | S4, lr 5e-5, KL 0.01, rollout 2×2048 | değerlendirme ortalaması %75.6 → %61.1 (500 bin adım), durduruldu |
+| `rob_v4` | S4, lr 3e-5, KL 0.01, rollout 2×4096, minibatch 512 | kararlı ama iyileşme yok: %74.0 → %76.0 (750 bin, en iyi) → %66.7 (1 M); en iyisi bağımsız testlerde M5 ile aynı (49/49, 42/49, 40/49; tek komut 14/16) |
+
+Eğitim sırasında deterministik değerlendirme (`--eval-freq`, sabit seed'ler, en iyisi `best.zip`) bu koşularda eklendi:
+stokastik eğitim başarısı deterministik performansı göstermiyor. Critic'in açıkladığı varyans ~0.2–0.3 (gelecek
+komutlar rastgele olduğu için beklenen); avantaj tahminleri gürültülü, küçük lr + KL sınırı + büyük rollout gerekli.
+
+## 29.5. Kök neden: collective yetkisi
+
+Başarısız koşularda ajan büyük dönüşlerde ~45° yatışta kalıyor (yatış komutu action[2] ≈ 0.7–0.8, doymuyor). Süre
+hedefi 55° yatışla hesaplı; 60–100 kt'ta 45° ile 180° dönüş son sınırı kaçırıyor. Ölçüm (`probe`, policy yok: yatış
+komutu 55°, collective ← irtifa hatası + dikey hız, ±1 → trim ± coll_scale; 900 ft, +180° dönüş):
+
+| Hız | collective yetkisi | en büyük irtifa kaybı | en büyük collective | collective doygun (zamanın) | en düşük rotor rpm | 180°'ye |
+|---|---|---|---|---|---|---|
+| 80 kt | trim ± 0.25 | **127 ft** | 0.69 | %48 | 319 | 12.8 s |
+| 80 kt | trim ± 0.45 | 29 ft | 0.89 | %22 | 316 | 12.6 s |
+| 100 kt | trim ± 0.25 | **125 ft** | 0.74 | %54 | 319 | 14.7 s |
+| 100 kt | trim ± 0.45 | 34 ft | 0.94 | %19 | 316 | 14.5 s |
+
+±0.25 ile 55° yatışta irtifa kuplaj sınırının (40 ft) çok dışına düşüyor; ajan kuplaj cezası ile süre cezası arasında
+~45° yatışı seçmiş. ±0.45 ile irtifa tutulabiliyor; rotor devri 315 rpm'in altına inmiyor (güvenlik sınırı 280–380 rpm).
+
+**Düzeltme:**
+- `ManeuverEnvConfig.coll_scale` 0.25 → 0.45 (yalnızca yeni model için; varsayılan 0.25, eski modeller değişmez).
+  Kumanda hızı cezası fiziksel collective hareketine göre (`coll_ref_scale` = 0.25): aynı collective hareketi aynı ceza.
+- **Davranışı koruyarak genişletme** (`widen_collective.py`, k = 0.25 / 0.45): action_net'in collective satırı ve bias
+  × k, log_std[collective] + ln k, ilk katmanda (policy ve value) obs[20] (filtrelenmiş collective) sütunu ÷ k. Eski
+  yetki içindeki her durumda fiziksel kumanda ve değer birebir aynı (rastgele 2000 observation'da en büyük fark 8e-6);
+  eski modelin doyduğu yerde artık ±0.45'e kadar gidebilir.
+- Model env ayarını zip'inde taşır (`model.ah1s_env_overrides = {"coll_scale": 0.45}`; SB3 modelin `__dict__`'ini
+  kaydeder). `evaluate_*`, `command_viz.py` ve `train_command_curriculum.py` env'i modelin ayarıyla kurar
+  (`helicopter_env_maneuver.load_maneuver_policy`, `config_for_model`, `read_env_overrides`); eğitimde `--coll-scale`.
+
+## 29.6. İnce ayar (`rob_v5`)
+
+Genişletilmiş modelden S4'te, lr 5e-5, KL 0.01, rollout 2×4096, minibatch 512, 500 bin adımda bir deterministik
+değerlendirme (M5, S2, S3; 50'şer episode, seed 90000+):
+
+| Adım | 0 (yalnızca genişletme) | 500 bin | **1 milyon (en iyi → model)** | 1.5 milyon | 2 milyon |
+|---|---|---|---|---|---|
+| M5 / S2 / S3 | %86 / %80 / %78 | %80 / %84 / %82 | **%88 / %84 / %82** | %82 / %80 / %82 | %72 / %78 / %76 |
+| ortalama | %81.3 | %82.0 | **%84.7** | %81.3 | %75.3 |
+
+2 milyondan sonra düşüş sürdüğü için 2.15 milyonda durduruldu (stokastik eğitim başarısı koşu boyunca %69–91, düşme
+≤ %0.1). 1 milyon adımdaki
+model (~25 dk eğitim) `models_maneuver/maneuver_robust_final.zip` olarak seçildi.
+
+## 29.7. Sonuçlar (bağımsız testler; Claude'un cloud ortamı, 2 çekirdek CPU, tek seed)
+
+| Test | M5 modeli (±0.25) | yalnızca genişletme (±0.45) | **dayanıklı model** (±0.45 + S4) |
+|---|---|---|---|
+| Test senaryoları: güvenli | 49/49 | 49/49 | **49/49** |
+| — son komut başarılı | 42/49 | 43/49 | **45/49** |
+| — tüm komutlar başarılı | 40/49 | 42/49 | **44/49** |
+| &nbsp;&nbsp; kesilen / sınır / rastgele | 22/27 · 9/12 · 9/10 | 22/27 · 10/12 · 10/10 | **24/27 · 11/12 · 9/10** |
+| — kesen komuta tepki (ort.) | 0.45 s | 0.43 s | **0.40 s** |
+| Tek komutlar (M5 süre hedefi, 5–90 kt) | 14/16 | 15/16 | **16/16** |
+| Seviye M5, 100 episode | %74 | %84 | **%87** |
+| Seviye S1, 100 episode | %81 | %81 | **%85** |
+| Seviye S2, 100 episode | %77 | %81 | **%82** |
+| Seviye S3, 100 episode | %62 | %69 | **%75** (1 episode hız sapmasıyla bitti) |
+
+- Kalan test hataları (5): çift kesme (+90°, 2 s sonra +90° daha, 2 s sonra −180°; 60 kt) 1.0 / 0.4 s geç, ±180°
+  testere 0.3 s geç, 100 kt'ta 180° dönüşü ters çevirme 0.2 s geç, bir rastgele S1 episode'unda 0.1 s geç. Önceki
+  model ilk üçünde 0.5–1.6 s geç kalıyordu; rastgele S1 7001'i ise geçiyordu. Önceki modelin 9 hatasından 5'i (slalomda
+  ters dönüş, testerenin aynası, 250 ft'te dönüş, 100 kt ters dönüşün aynası, rastgele S1 7005) artık başarılı.
+- Ters / büyük dönüşlerde (±180° testere, çift kesme, 100 kt ters dönüş) en büyük yatış ortalama 49° → 52° (en fazla
+  53° → 57°); 98 kt'ta art arda komutlarda 48–50° → 53–59°. En düşük irtifa değişmedi (kuplaj içinde). Action doygunluğu
+  (|a| > 0.95) %7.3 → %5.0; kumanda hareketi (ortalama |Δa|) 0.013 → 0.016 (biraz daha aktif).
+- Seviyelerde hataların hepsi birleşik komutlarda (heading + hız + irtifa birlikte; M5'te %81 → %89) ve kesen
+  komutlarda (S3'te %76 → %83); tek eksenli heading / hız / irtifa komutları üç modelde de %100, kesilen komutlar
+  (kuplaj) %99–100.
+
+Kanıtlar: `docs/robustness/` (değerlendirme JSON / log'ları, eğitim CSV'leri, probe çıktısı, şekil).
+
+![Dayanıklılık](docs/robustness/fig_robustness.png)
+
+## 29.8. Çalıştırma
+
+```bash
+python evaluate_robustness.py --model models_maneuver/maneuver_robust_final.zip --compare models_maneuver/maneuver_M5_final.zip
+python evaluate_maneuver_policy.py --model models_maneuver/maneuver_robust_final.zip --level M5
+# yeniden üretmek: (1) collective yetkisini davranışı koruyarak genişlet, (2) S4'te ince ayar (en iyisi models/best.zip)
+python widen_collective.py models_maneuver/maneuver_M5_final.zip runs/rob/m5_coll045.zip --coll-scale 0.45
+python train_command_curriculum.py --task maneuver --level S4 --init-model runs/rob/m5_coll045.zip --out runs/rob \
+    --total-steps 2000000 --no-promote --n-steps 4096 --batch-size 512 --fine-lr 5e-5 --fine-kl 0.01 \
+    --eval-freq 500000 --eval-episodes 50 --snapshot-freq 500000
+python command_viz.py --model models_maneuver/maneuver_robust_final.zip          # canlı: manevra sürerken yeni komut ver
+python command_viz.py record                                                     # demo uçuşları (rob_* görevleri dahil)
+```
+
+## 29.9. Bilinen sınırlar / açık sorular
+
+- **Tek seed, küçük farklar.** 100 episode'da ±%4–5 standart hata; M5 seviyesindeki %74 → %87 ve test senaryolarındaki
+  iyileşme bunun üstünde, S1–S3 farkları sınırda.
+- **İnce ayar deterministik başarıyı uzun vadede bozuyor** (her 4 koşuda da); en iyi ara model deterministik
+  değerlendirmeyle seçilmeli. Olası sebepler: gürültülü avantaj (critic), stokastik ve deterministik policy farkı.
+- Collective ±0.45 JSBSim AH-1S modelinde rotor devrini 315 rpm'in altına düşürmedi; gerçek güç / tork sınırları
+  (motor, transmisyon) modelde yok.
+- Kesilen komutun başarısı yalnızca kuplajla ölçülüyor; "yeni komuta ne kadar yumuşak geçti" (ör. yatış hızının işaret
+  değiştirmesi) ayrı bir ölçü değil.
+- **Yana kayma:** ani ters dönüşlerde yanal hız geçici olarak 20–26 ft/s'ye çıkıyor (demo uçuşları; M5 modelinde aynı
+  slalomda 20 ft/s, dayanıklı modelde 23 ft/s). Dönüşte |v| cezası sabit (`pen_side`); koordineli dönüş isteniyorsa
+  ceza / pedal koordinasyonu rüzgârdan önce ele alınabilir.
+- Rüzgâr / türbülans, sensör gürültüsü, model belirsizliği (kütle, ağırlık merkezi) yok — sonraki aşama.

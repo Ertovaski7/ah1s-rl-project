@@ -11,16 +11,19 @@ metriklerini (yükselme, aşma, oturma, kuplaj, eğitimdeki başarı kararı) ve
 zaman serilerini görürsün. Aynı sayfa kayıtlı uçuşları da oynatır.
 
 İki görev (model observation boyutundan anlaşılır):
-  manevra (varsayılan, models_maneuver/maneuver_M5_final.zip): helicopter_env_maneuver.py,
+  manevra (varsayılan: dayanıklı model models_maneuver/maneuver_robust_final.zip, README 29;
+      önceki models_maneuver/maneuver_M5_final.zip): helicopter_env_maneuver.py,
       0–100 kt, her komutun bir süre hedefi (T) var — boş bırakılırsa seçili çeviklikten
       (M3 rahat / M4 hızlı / M5 agresif). Sayfada attitude göstergesi ve ajanın yatış /
-      yunuslama komutları görünür.
+      yunuslama komutları görünür. Manevra sürerken yeni komut verilebilir (önceki «kesilir»).
+      Env, modelin zip'inde taşıdığı ayarlarla kurulur (dayanıklı model: collective ±0.45).
   komut (models_command_curriculum/v2_R1_final.zip): helicopter_env_command.py, 15 ft/s civarı.
 
 Kullanım
 --------
   Yerel (repo kökünde):
-    python command_viz.py                       # manevra modeli → http://127.0.0.1:8765
+    python command_viz.py                       # dayanıklı manevra modeli → http://127.0.0.1:8765
+    python command_viz.py --model models_maneuver/maneuver_M5_final.zip                    # önceki manevra modeli
     python command_viz.py --model models_command_curriculum/v2_R1_final.zip --port 8766   # eski komut modeli
   Colab (hücrede, satır içi; localhost / paylaşım linki yok):
     import command_viz; command_viz.colab()
@@ -53,7 +56,8 @@ if str(REPO_ROOT) not in sys.path:
 
 from command_curriculum import AXES  # noqa: E402
 from helicopter_env_command import CONTROL_DT, CommandEnvConfig, HelicopterEnvCommand  # noqa: E402
-from helicopter_env_maneuver import OBS_DIM_M, HelicopterEnvManeuver, ManeuverEnvConfig  # noqa: E402
+from helicopter_env_maneuver import (ENV_OVERRIDES_ATTR, OBS_DIM_M, HelicopterEnvManeuver,  # noqa: E402
+                                     ManeuverEnvConfig)
 from maneuver_curriculum import DEFAULT_MANEUVER_LEVELS  # noqa: E402
 
 VIZ_DIR = REPO_ROOT / "viz"
@@ -61,8 +65,9 @@ PAGE_FILE = VIZ_DIR / "command_viz.html"
 MODEL_FILE = VIZ_DIR / "heli_bell.glb"
 COMMAND_POLICY = REPO_ROOT / "models_command_curriculum" / "v2_R1_final.zip"
 MANEUVER_POLICY = REPO_ROOT / "models_maneuver" / "maneuver_M5_final.zip"
-# varsayılan: manevra modeli (süre hedefli Δ komutları, 0–100 kt); yoksa eski komut modeli
-DEFAULT_POLICY = MANEUVER_POLICY if MANEUVER_POLICY.exists() else COMMAND_POLICY
+ROBUST_POLICY = REPO_ROOT / "models_maneuver" / "maneuver_robust_final.zip"     # collective ±0.45 + S4 ince ayar (README 29)
+# varsayılan: dayanıklı manevra modeli; yoksa M5 manevra modeli; o da yoksa eski komut modeli
+DEFAULT_POLICY = next((p for p in (ROBUST_POLICY, MANEUVER_POLICY) if p.exists()), COMMAND_POLICY)
 # görev başına varsayılan başlangıç (eğitim aralığının içinde)
 DEFAULT_START = {"command": dict(alt=300.0, speed=15.0, heading=0.0, seed=0),
                  "maneuver": dict(alt=800.0, speed=101.3, heading=0.0, seed=0)}      # 800 ft, 60 kt
@@ -94,6 +99,8 @@ def _limits(cfg: CommandEnvConfig, task: str = "command") -> dict:
         trained = {"heading": 180.0, "speed": 50.0, "altitude": 150.0,
                    "start_alt_ft": [600.0, 1500.0], "start_speed_fps": [0.0, 169.0]}
         timing = dict(grace_frac=cfg.deadline_grace_frac, grace_min_s=cfg.deadline_grace_min_s,
+                      yaw_decel_dps2=cfg.yaw_decel_dps2, vs_decel_fps2=cfg.vs_decel_fps2,
+                      accel_jerk_fps3=cfg.accel_jerk_fps3,
                       levels=[dict(name=lv.name, description=lv.description, pedal_rate_dps=lv.pedal_rate_dps,
                                    bank_deg=lv.bank_deg, accel_fps2=lv.accel_fps2, climb_fps=lv.climb_fps,
                                    lag_s=lv.lag_s) for lv in DEFAULT_MANEUVER_LEVELS])
@@ -104,6 +111,9 @@ def _limits(cfg: CommandEnvConfig, task: str = "command") -> dict:
         timing = None
     return dict(
         task=task, timing=timing,
+        # manevra: kumanda yetkisi (collective trim ± coll_scale, pedal ± pedal_scale, attitude komutu ± φ / θ)
+        authority=(dict(coll_scale=cfg.coll_scale, pedal_scale=cfg.pedal_scale, roll_cmd_deg=cfg.roll_cmd_deg,
+                        pitch_cmd_deg=cfg.pitch_cmd_deg) if task == "maneuver" else None),
         tol={"heading": cfg.tol_heading_deg, "speed": cfg.tol_speed_fps, "altitude": cfg.tol_alt_ft},
         coupling=(dict(zip(AXES, cfg.coupling_limits)) if cfg.coupling_limits is not None else None),
         hold_s=cfg.success_hold_s,
@@ -141,10 +151,14 @@ def _clean(x):
 
 
 def load_policy(path: str | Path, with_obs_dim: bool = False):
+    """Deterministik policy. with_obs_dim → (fn, obs boyutu, env ayarları): görev obs boyutundan anlaşılır;
+    env ayarları modelin eğitildiği, varsayılandan farklı ayarlar (ör. {"coll_scale": 0.45}; eski modellerde {})."""
     from stable_baselines3 import PPO
     model = PPO.load(str(path), device="cpu")
     fn = lambda obs: model.predict(obs, deterministic=True)[0]          # noqa: E731
-    return (fn, int(model.observation_space.shape[0])) if with_obs_dim else fn
+    if with_obs_dim:
+        return fn, int(model.observation_space.shape[0]), dict(getattr(model, ENV_OVERRIDES_ATTR, None) or {})
+    return fn
 
 
 # =====================================================================
@@ -229,13 +243,13 @@ class LiveFlight:
                  policy=None, start: dict | None = None, task: str | None = None):
         self.policy_path = Path(policy_path)
         self.env_config = env_config
-        obs_dim = None
+        obs_dim, self.env_overrides = None, {}
         if policy is None:
-            policy, obs_dim = load_policy(self.policy_path, with_obs_dim=True)
+            policy, obs_dim, self.env_overrides = load_policy(self.policy_path, with_obs_dim=True)
         # görev modelin observation boyutundan anlaşılır (komut 19, manevra 24)
         self.task = task or ("maneuver" if obs_dim == OBS_DIM_M else "command")
         if self.task == "maneuver":
-            cfg = ManeuverEnvConfig()
+            cfg = ManeuverEnvConfig(**self.env_overrides)          # modelin eğitildiği ayarlar (ör. collective ±0.45)
             self.env = HelicopterEnvManeuver(level=level or "M5", config=cfg)
         else:
             cfg = CommandEnvConfig.v1() if env_config == "v1" else CommandEnvConfig()
@@ -419,6 +433,7 @@ class LiveFlight:
             self.rows = [self._row(info, np.zeros(4), np.zeros(4), self.env.trim, 0.0)]
             self.commands, self.events, self._pending_cmds = [], [], []
             self.meta = dict(model=self.policy_path.name, env_config=self.env_config, start=dict(opts),
+                             env_overrides=dict(self.env_overrides),
                              lat0_deg=math.degrees(lat0), lon0_deg=math.degrees(lon0), ground_msl_ft=ground,
                              setup=dict(mode=info["setup"].get("mode"), heading_deg=info["heading_deg"]),
                              created=datetime.now(timezone.utc).isoformat(timespec="seconds"))
@@ -453,7 +468,8 @@ class LiveFlight:
                     if k < len(self.commands):
                         self.commands[k].update(verdict=bool(r["success"]), coupling_ok=r.get("coupling_ok"),
                                                 final_err=r.get("final_err"), max_abs_err=r.get("max_abs_err"),
-                                                settle_s=r.get("settle_s"), on_time=r.get("on_time"))
+                                                settle_s=r.get("settle_s"), on_time=r.get("on_time"),
+                                                interrupted=bool(r.get("interrupted")))
                 self.state = "done"
                 self.message = f"Uçuş bitti: {self.termination}"
                 self.events.append(dict(t=float(info["t"]), type="end", reason=self.termination,
@@ -468,7 +484,8 @@ class LiveFlight:
             c = self.commands[k]
             if c["applied"] is None:                          # pencere bu adımda açıldı
                 c.update(applied=dict(w["cmd"]), ref=dict(env.ref), start=dict(env.cmd_start), t=float(w["t"]),
-                         T=w.get("T"), deadline=w.get("deadline"))
+                         T=w.get("T"), deadline=w.get("deadline"), allow_s=w.get("allow_s"),
+                         eff=dict(w["eff"]) if w.get("eff") else None)
                 c["ref"]["heading_wrapped"] = env.ref["heading"] % 360.0
                 if any(abs(c["applied"][a] - c["requested"][a]) > 1e-9 for a in AXES):
                     self.events.append(dict(t=float(w["t"]), type="adjusted", command=c["id"], message=(
@@ -478,7 +495,7 @@ class LiveFlight:
             c["max_abs_err"] = dict(w["max_abs_err"])
             if w["success"] is not None and c["verdict"] is None:   # pencere kapandı → env'in kararı
                 c.update(verdict=bool(w["success"]), coupling_ok=w.get("coupling_ok"), final_err=w.get("final_err"),
-                         settle_s=w.get("settle_s"), on_time=w.get("on_time"))
+                         settle_s=w.get("settle_s"), on_time=w.get("on_time"), interrupted=bool(w.get("interrupted")))
 
     def _row(self, info: dict, action, filt, controls, reward) -> list:
         f = self.env.fdm
@@ -541,7 +558,7 @@ class LiveFlight:
                     continue
                 t_end = self.commands[k + 1]["t"] if k + 1 < len(self.commands) else float(t[-1])
                 last = k + 1 == len(self.commands)
-                m = command_metrics(t, err, c["applied"], c["t"], t_end, self.limits,
+                m = command_metrics(t, err, c.get("eff") or c["applied"], c["t"], t_end, self.limits,
                                     terminated=bool(last and self.termination and self.termination != "time_limit"),
                                     deadline=c.get("deadline"))
                 cmds.append(dict(c, metrics=m))
@@ -746,12 +763,48 @@ def colab(model: str | Path = DEFAULT_POLICY, env_config: str = "v2", start: dic
 # KAYITLI DEMO UÇUŞLARI
 # =====================================================================
 
-# policy="maneuver" → manevra modeli (MANEUVER_POLICY ya da `record --maneuver-model`); diğerleri
-# models_command_curriculum/ içindeki komut modelleri. Manevra görevlerinde süre hedefi (T) verilmezse
+# policy="maneuver" → manevra modeli (MANEUVER_POLICY ya da `record --maneuver-model`); policy="robust" → dayanıklı
+# model (ROBUST_POLICY ya da `record --robust-model`); diğerleri models_command_curriculum/ içindeki komut modelleri.
+# Her model kendi env ayarıyla uçar (ör. dayanıklı model collective ±0.45). Manevra görevlerinde süre hedefi (T) verilmezse
 # env onu M5 çevikliğinden hesaplar (55° yatış, 25°/s pedal, 6 ft/s² ivme, 20 ft/s tırmanış, +2 s tepki).
 GOREV6 = [(5, {"heading": 90}), (40, {"speed": 8}), (75, {"altitude": 100}),
           (110, {"heading": -45, "altitude": -60}), (145, {"speed": -10}), (180, {"heading": 180})]
 MISSIONS = [
+    # ---- dayanıklılık (collective ±0.45 + S4 ince ayarlı model, README 29): manevra bitmeden gelen / ters komutlar,
+    #      zarf sınırları ----
+    dict(id="rob_slalom_ters", title="Dayanıklılık: slalomda ani ters dönüşler (60 kt)", policy="robust",
+         description="Her dönüş bitmeden ters yöne: +90°, 3 s sonra −90°, … Önceki komut «kesildi» sayılır; yeni Δ ölçülen "
+                     "heading'e göre, süre hedefi ters yöndeki dönüşü durdurma payıyla.",
+         start=dict(alt=800.0, speed=101.3, heading=0.0), duration=42.0,
+         schedule=[(5, {"heading": 90}), (8, {"heading": -90}), (11, {"heading": 90}), (14, {"heading": -90}),
+                   (17, {"heading": 45})]),
+    dict(id="rob_donus_tirmanis", title="Dayanıklılık: 180° dönüş ortasında ani tırmanış, sonra fren (60 kt)",
+         policy="robust",
+         description="+180° dönüş sürerken +150 ft (dönüş devam eder), ardından −30 ft/s. Verilmeyen eksen önceki hedefine devam eder.",
+         start=dict(alt=800.0, speed=101.3, heading=0.0), duration=45.0,
+         schedule=[(5, {"heading": 180}), (9, {"altitude": 150}), (13, {"speed": -30})]),
+    dict(id="rob_testere", title="Dayanıklılık: ±180° testere ve dikey ters (60 kt)", policy="robust",
+         description="+180°, 3 s sonra −180°, 3 s sonra +180°; ardından +150 ft tırmanırken 3 s sonra −200 ft.",
+         start=dict(alt=800.0, speed=101.3, heading=0.0), duration=58.0,
+         schedule=[(5, {"heading": 180}), (8, {"heading": -180}), (11, {"heading": 180}), (28, {"altitude": 150}),
+                   (31, {"altitude": -200})]),
+    dict(id="rob_sinir", title="Zarf sınırı: 100 kt'ta ters dönüş, hover'a kadar fren, hover'da pedal dönüşü",
+         policy="robust",
+         description="100 kt: +180°, 4 s sonra −180°; üç adımda −50 ft/s ile 100 kt → ~5 kt; hover'da +180° pedal dönüşü.",
+         start=dict(alt=900.0, speed=168.0, heading=0.0), duration=108.0,
+         schedule=[(5, {"heading": 180}), (9, {"heading": -180}), (34, {"speed": -50}), (52, {"speed": -50}),
+                   (70, {"speed": -50}), (88, {"heading": 180})]),
+    dict(id="rob_alcak", title="Zarf sınırı: alçak irtifada tırmanıp ani dalış, 250 ft'te dönüşler (30 kt)",
+         policy="robust",
+         description="400 ft: +100 ft, 3 s sonra −200 ft (≈ 250 ft taban); orada +180°, 4 s sonra −90°.",
+         start=dict(alt=400.0, speed=50.6, heading=0.0), duration=52.0,
+         schedule=[(5, {"altitude": 100}), (8, {"altitude": -200}), (26, {"heading": 180}), (30, {"heading": -90})]),
+    dict(id="rob_slalom_ters_m5", title="Karşılaştırma — ince ayar öncesi (M5) model: aynı ani ters dönüşler",
+         policy="maneuver",
+         description="Dayanıklılık eğitiminden önceki model (collective ±0.25), aynı slalom komutlarıyla (ilk uçuşla karşılaştır).",
+         start=dict(alt=800.0, speed=101.3, heading=0.0), duration=42.0,
+         schedule=[(5, {"heading": 90}), (8, {"heading": -90}), (11, {"heading": 90}), (14, {"heading": -90}),
+                   (17, {"heading": 45})]),
     dict(id="man_donusler60", title="Manevra: 60 kt'ta yatışlı dönüşler", policy="maneuver",
          description="800 ft, 60 kt: +90°, −180°, +90°, −45°. Süre hedefi M5 çevikliğinden (55° yatışa kadar).",
          start=dict(alt=800.0, speed=101.3, heading=0.0), duration=90.0,
@@ -799,7 +852,8 @@ MISSIONS = [
 ]
 
 
-def record_missions(out: Path, every: int = 2, only: list | None = None, maneuver_model: Path | None = None) -> dict:
+def record_missions(out: Path, every: int = 2, only: list | None = None, maneuver_model: Path | None = None,
+                    robust_model: Path | None = None) -> dict:
     flights = []
     cache = {}
     for m in MISSIONS:
@@ -807,6 +861,8 @@ def record_missions(out: Path, every: int = 2, only: list | None = None, maneuve
             continue
         if m["policy"] == "maneuver":
             path = Path(maneuver_model) if maneuver_model else MANEUVER_POLICY
+        elif m["policy"] == "robust":
+            path = Path(robust_model) if robust_model else ROBUST_POLICY
         else:
             path = REPO_ROOT / "models_command_curriculum" / m["policy"]
         key = (str(path), m.get("env_config", "v2"))
@@ -842,8 +898,10 @@ def main(argv=None):
         p.add_argument("--only", nargs="*", help="yalnızca bu görev kimlikleri")
         p.add_argument("--maneuver-model", type=Path, default=None,
                        help=f"manevra görevleri için model (varsayılan {MANEUVER_POLICY.relative_to(REPO_ROOT)})")
+        p.add_argument("--robust-model", type=Path, default=None,
+                       help=f"dayanıklılık görevleri için model (varsayılan {ROBUST_POLICY.relative_to(REPO_ROOT)})")
         a = p.parse_args(argv[1:])
-        record_missions(a.out, a.every, a.only, a.maneuver_model)
+        record_missions(a.out, a.every, a.only, a.maneuver_model, a.robust_model)
         return
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--model", type=Path, default=DEFAULT_POLICY,

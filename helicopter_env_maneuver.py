@@ -21,8 +21,10 @@ Komut env'inden farklar ve sebepleri (ölçüm: 2026-09-23 probları)
   işaretiyle aynı). Komutu her JSBSim adımında (133 Hz) çalışan PI-D iç döngü
   cyclic'e çevirir (uçuş kontrol sisteminin parçası; action önermez, teacher
   değildir). Ölçülen: 45° yatışa ~2.4 s, 20° yunuslamaya ~2.5 s.
-  action[0] collective (trim ± 0.25, ~±30 ft/s), action[3] pedal (trim ± 0.7,
-  hover'da ~25°/s). JSBSim AFCS yalnızca sönümleme (SAS) yapar.
+  action[0] collective (trim ± coll_scale: 0.25 → ~±30 ft/s; dayanıklı model
+  0.45, bölüm 29), action[3] pedal (trim ± 0.7, hover'da ~25°/s). JSBSim AFCS
+  yalnızca sönümleme (SAS) yapar. Model, varsayılandan farklı env ayarlarını
+  zip'inde taşır (`ah1s_env_overrides`; `load_maneuver_policy` / `config_for_model`).
 * Trim hıza göre çizelgelenir: JSBSim AH-1S `steady_flight_data.xml`
   tabloları (0–140 kt) + reset'te ölçülen sabit düzeltme. 0–100 kt'ın her
   hızında a = 0 ≈ düz uçuş.
@@ -52,7 +54,7 @@ from gymnasium import spaces
 from command_curriculum import AXES
 from helicopter_env_command import (CONTROL_DT, JSBSIM_DT, PHYSICS_STEPS, AfcsMode, CommandEnvConfig,
                                     HelicopterEnvCommand, wrap_deg)
-from maneuver_curriculum import DEFAULT_MANEUVER_LEVELS, ManeuverLevel, find_maneuver_level
+from maneuver_curriculum import DEFAULT_MANEUVER_LEVELS, ManeuverLevel, dynamic_time_target, find_maneuver_level
 
 OBS_DIM_M = 24
 SFD_KEYS = ("collective", "pitch", "roll", "yaw")        # fcs/automatic/<k>-trim-cmd-norm
@@ -70,7 +72,8 @@ class ManeuverEnvConfig(CommandEnvConfig):
     kq: float = 1.6
     kith: float = 1.5
     i_lim: float = 0.3
-    coll_scale: float = 0.25
+    coll_scale: float = 0.25               # collective yetkisi: trim ± coll_scale (dayanıklı model 0.45, bölüm 29)
+    coll_ref_scale: float = 0.25           # kumanda hızı cezası fiziksel collective hareketine göre (bu ölçekte 1)
     pedal_scale: float = 0.7
     coll_limits: tuple = (0.20, 1.0)
     action_filter_alpha: float = 0.5
@@ -90,6 +93,13 @@ class ManeuverEnvConfig(CommandEnvConfig):
     window_margin_s: float = 3.0
     first_command_s: tuple = (2.0, 4.0)
     max_episode_s: float = 240.0
+    # --- kesilen komutlar (dayanıklılık) ----------------------------------------------
+    # Süre hedefine eklenen pay: ters yöndeki yaw hızını / dikey hızı / ivmeyi durdurmak için
+    yaw_decel_dps2: float = 12.0
+    vs_decel_fps2: float = 10.0
+    accel_jerk_fps3: float = 4.0
+    # Kesen komutta heading güvenlik marjına eklenen durma yolu r²/(2·yaw_decel) için üst sınır
+    interrupt_margin_extra_max_deg: float = 45.0
     # --- reward -----------------------------------------------------------------
     kernel_heading: tuple = (2.0, 15.0)
     kernel_speed: tuple = (1.5, 8.0)
@@ -118,6 +128,46 @@ class ManeuverEnvConfig(CommandEnvConfig):
     speed_limits_fps: tuple = (-40.0, 210.0)
 
 
+# ---------------------------------------------------------------------------------------
+# Model ↔ env ayarı: bir model, eğitildiği env ayarlarını (varsayılandan farklı olanları) zip'inde taşır.
+# SB3 modelin __dict__'ini kaydeder / yükler; model.ah1s_env_overrides = {"coll_scale": 0.45} gibi.
+# Eski modellerde yoktur → varsayılan ayarlar. Modeli farklı ayarlı env'de uçurmak = yanlış kumanda ölçeği.
+# ---------------------------------------------------------------------------------------
+ENV_OVERRIDES_ATTR = "ah1s_env_overrides"
+OBS_FILT_INDEX = 20                      # obs[20:24] = filtrelenmiş action (collective, pitch, roll, pedal)
+
+
+def model_env_overrides(model) -> dict:
+    """Modelin kaydettiği env ayarları ({} → varsayılan ManeuverEnvConfig)."""
+    ov = dict(getattr(model, ENV_OVERRIDES_ATTR, None) or {})
+    unknown = [k for k in ov if k not in ManeuverEnvConfig.__dataclass_fields__]
+    if unknown:
+        raise ValueError(f"modelde bilinmeyen env ayarı: {unknown}")
+    return ov
+
+
+def read_env_overrides(path) -> dict:
+    """Zip'ten yalnızca ayarları okur (ağırlıkları yüklemeden)."""
+    from stable_baselines3.common.save_util import load_from_zip_file
+    data, _, _ = load_from_zip_file(str(path), load_data=True, device="cpu", print_system_info=False)
+    return dict((data or {}).get(ENV_OVERRIDES_ATTR) or {})
+
+
+def config_for_model(model=None, **extra) -> "ManeuverEnvConfig":
+    """Modelle uyumlu config: varsayılanlar + modelin ayarları + extra."""
+    ov = model_env_overrides(model) if model is not None else {}
+    ov.update(extra)
+    return ManeuverEnvConfig(**ov)
+
+
+def load_maneuver_policy(path, deterministic: bool = True):
+    """(policy(obs) → action, ManeuverEnvConfig) — config modelin eğitildiği env ayarlarıyla."""
+    from stable_baselines3 import PPO
+    model = PPO.load(str(path), device="cpu")
+    fn = lambda obs: model.predict(obs, deterministic=deterministic)[0]          # noqa: E731
+    return fn, config_for_model(model)
+
+
 class HelicopterEnvManeuver(HelicopterEnvCommand):
     metadata = {"render_modes": []}
 
@@ -135,6 +185,8 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
         self.fixed_schedule = False
         self.episode_end_t = np.inf
         self._sfd_cache = np.zeros(4)
+        self._hdg_margin_extra = 0.0
+        self._u_prev, self.u_dot = 0.0, 0.0
 
     def set_level(self, level) -> int:
         self.level_index = find_maneuver_level(level, self.levels)
@@ -255,8 +307,12 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
         if "level" in options:
             self.set_level(options["level"])
         lv, rng, cfg = self.level, self.np_random, self.cfg
-        h0 = float(options.get("start_alt_ft", rng.uniform(*lv.start_alt_ft)))
-        u0 = float(options.get("start_speed_fps", rng.uniform(*lv.start_speed_fps)))
+        if hasattr(lv, "sample_start") and not ("start_alt_ft" in options and "start_speed_fps" in options):
+            h_s, u_s = lv.sample_start(rng)
+        else:
+            h_s, u_s = rng.uniform(*lv.start_alt_ft), rng.uniform(*lv.start_speed_fps)
+        h0 = float(options.get("start_alt_ft", h_s))
+        u0 = float(options.get("start_speed_fps", u_s))
         psi0 = float(options["start_heading_deg"]) % 360.0 if "start_heading_deg" in options else float(rng.uniform(0, 360))
         errors, info_setup = [], None
         for attempt in range(3):
@@ -301,6 +357,8 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
 
         self.psi_unwrap = s["psi_deg"]
         self._psi_prev_meas = s["psi_deg"]
+        self._u_prev, self.u_dot = s["u"], 0.0
+        self._hdg_margin_extra = 0.0
         self.ref = {"heading": self.psi_unwrap, "speed": s["u"], "altitude": s["h"]}
         self.cmd_start = dict(self.ref)
         self.cmd_err0 = {a: 0.0 for a in AXES}
@@ -327,7 +385,10 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
             self.episode_end_t = np.inf
         else:
             self.fixed_schedule = False
-            self.pending = [lv.sample_command(rng) for _ in range(lv.n_commands)]
+            if hasattr(lv, "sample_schedule"):
+                self.pending = lv.sample_schedule(rng)
+            else:
+                self.pending = [lv.sample_command(rng) for _ in range(lv.n_commands)]
             self.next_issue_t = float(rng.uniform(*cfg.first_command_s))
             self.max_steps = int(round(cfg.max_episode_s / CONTROL_DT))
             self.episode_end_t = np.inf
@@ -363,9 +424,20 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
         while self.pending and t >= self.next_issue_t - 1e-9:
             d = self.pending.pop(0)
             if self.windows:
-                self._close_window(self.windows[-1])
+                self._close_window(self.windows[-1], interrupt_t=t)
             cmd = {a: float(d.get(a, 0.0)) for a in AXES}
             meas = {"heading": self.psi_unwrap, "speed": s["u"], "altitude": s["h"]}
+            edge = d.get("_edge")            # zarf sınırına giden komut (en fazla seviyenin Δ aralığı kadar)
+            if edge == "speed_max":
+                cmd["speed"] = min(50.0, lv.speed_bounds_fps[1] - meas["speed"])
+            elif edge == "speed_min":
+                cmd["speed"] = max(-50.0, lv.speed_bounds_fps[0] - meas["speed"])
+            elif edge == "alt_floor":
+                cmd["altitude"] = max(-150.0, cfg.cmd_min_alt_ft + 10.0 - meas["altitude"])
+            if edge and all(abs(cmd[a]) < m for a, m in zip(AXES, (5.0, 5.0, 20.0))):
+                cmd = {"heading": 0.0, "speed": 0.0, "altitude": 0.0}     # zaten sınırda: geri dön
+                cmd[{"speed_max": "speed", "speed_min": "speed"}.get(edge, "altitude")] = (
+                    -30.0 if edge == "speed_max" else 30.0 if edge == "speed_min" else 100.0)
             if cmd["speed"]:
                 lo, hi = lv.speed_bounds_fps
                 if not lo <= meas["speed"] + cmd["speed"] <= hi:
@@ -378,37 +450,81 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
                     self.ref[a] = meas[a] + cmd[a]
                     self.cmd_start[a] = meas[a]
                     self.last_delta[a] = cmd[a]
-            T = float(d["T"]) if d.get("T") else lv.time_target(cmd, s["u"])
-            deadline = max(T * (1.0 + cfg.deadline_grace_frac), T + cfg.deadline_grace_min_s)
             errs = self._errors(s)
+            # etkin Δ: komut verilen eksen + önceki komuttan kalan (henüz bantta olmayan) eksen
+            tol = {"heading": cfg.tol_heading_deg, "speed": cfg.tol_speed_fps, "altitude": cfg.tol_alt_ft}
+            eff = {a: (errs[a] if (cmd[a] != 0.0 or abs(errs[a]) > tol[a]) else 0.0) for a in AXES}
+            r_dps = math.degrees(s["r"])
+            T_dyn, allow = dynamic_time_target(eff, s["u"], r_dps, s["vs"], self.u_dot, lv, cfg.yaw_decel_dps2,
+                                               cfg.vs_decel_fps2, cfg.accel_jerk_fps3)
+            T = float(d["T"]) if d.get("T") else T_dyn
+            deadline = max(T * (1.0 + cfg.deadline_grace_frac), T + cfg.deadline_grace_min_s)
             for a in AXES:
                 self.cmd_err0[a] = errs[a]
                 self.prev_abs_err[a] = abs(errs[a])
-            self.windows.append(dict(t=t, cmd=cmd, T=T, deadline=deadline, e0=dict(errs), streak=0.0, entry_t=None,
-                                     success=None, max_abs_err={a: 0.0 for a in AXES}))
+            # ters yöne dönmekte olan helikopterin durma yolu kadar heading güvenlik marjı payı
+            self._hdg_margin_extra = (min(cfg.interrupt_margin_extra_max_deg, r_dps * r_dps / (2.0 * cfg.yaw_decel_dps2))
+                                      if eff["heading"] * r_dps < 0.0 else 0.0)
+            self.windows.append(dict(t=t, cmd=cmd, eff=eff, active={a: eff[a] != 0.0 for a in AXES}, T=T,
+                                     deadline=deadline, allow_s=allow, category=d.get("_cat"), interrupted=False,
+                                     e0=dict(errs), streak=0.0, entry_t=None, success=None,
+                                     max_abs_err={a: 0.0 for a in AXES}))
             if self.pending:
-                self.next_issue_t = (self.pending[0]["_t"] if self.fixed_schedule
-                                     else t + deadline + cfg.success_hold_s + cfg.window_margin_s)
+                if self.fixed_schedule:
+                    self.next_issue_t = self.pending[0]["_t"]
+                elif self.pending[0].get("_frac") is not None:            # kesen komut: manevra bitmeden
+                    self.next_issue_t = t + float(self.pending[0]["_frac"]) * T
+                else:
+                    self.next_issue_t = t + deadline + cfg.success_hold_s + cfg.window_margin_s
             else:
                 self.next_issue_t = np.inf
                 if not self.fixed_schedule:
                     self.episode_end_t = t + deadline + cfg.success_hold_s + cfg.window_margin_s
 
-    def _close_window(self, w: dict):
-        if w["success"] is None:
-            cfg = self.cfg
-            settle = (w["entry_t"] - w["t"]) if w["entry_t"] is not None else np.inf
-            on_time = settle <= w["deadline"] + 1e-9
-            held = w["streak"] >= cfg.success_hold_s - 1e-9
-            w["coupling_ok"] = True
-            if cfg.coupling_limits is not None:
-                for axis, limit in zip(AXES, cfg.coupling_limits):
-                    if w["cmd"][axis] == 0.0 and w["max_abs_err"][axis] > limit:
-                        w["coupling_ok"] = False
-            w["settle_s"] = float(settle)
-            w["on_time"] = bool(on_time)
-            w["success"] = bool(self.failure is None and on_time and held and w["coupling_ok"])
-            w["final_err"] = dict(self._last_err)
+    def _close_window(self, w: dict, interrupt_t: float | None = None):
+        """Pencereyi kapat ve karar ver. interrupt_t: yeni bir komut geldiği an (kesilen komut).
+
+        Kesilen pencere (yeni komut son sınırdan önce geldi, oturup tutmamıştı): süre hedefiyle
+        yargılanmaz; başarı = komut verilmeyen eksenler kuplaj sınırında + güvenlik ihlali yok.
+        Tutma süresi sırasında kesilirse: zamanında girmiş ve o an bantta olması yeterli."""
+        if w["success"] is not None:
+            return
+        cfg = self.cfg
+        settle = (w["entry_t"] - w["t"]) if w["entry_t"] is not None else np.inf
+        on_time = settle <= w["deadline"] + 1e-9
+        held = w["streak"] >= cfg.success_hold_s - 1e-9
+        active = w.get("active") or {a: w["cmd"][a] != 0.0 for a in AXES}
+        w["coupling_ok"] = True
+        if cfg.coupling_limits is not None:
+            for axis, limit in zip(AXES, cfg.coupling_limits):
+                if not active[axis] and w["max_abs_err"][axis] > limit:
+                    w["coupling_ok"] = False
+        w["settle_s"] = float(settle)
+        w["on_time"] = bool(on_time)
+        w["final_err"] = dict(self._last_err)
+        ok = self.failure is None and w["coupling_ok"]
+        elapsed = None if interrupt_t is None else interrupt_t - w["t"]
+        if elapsed is not None and not (on_time and held) and elapsed < w["deadline"] - 1e-9:
+            w["interrupted"] = True
+            w["success"] = bool(ok)
+        elif elapsed is not None and not held and elapsed < w["deadline"] + cfg.success_hold_s - 1e-9:
+            w["interrupted"] = True
+            w["success"] = bool(ok and on_time and w["streak"] > 0.0)
+        else:
+            w["success"] = bool(ok and on_time and held)
+
+    def _safety(self, s: dict, e: dict, ok: bool, finite: bool) -> str | None:
+        """Komut env'inin güvenlik kontrolleri; heading marjına kesen komuttaki durma yolu payı eklenir."""
+        fail = super()._safety(s, e, ok, finite)
+        if fail not in ("heading_wrong_way", "heading_overshoot") or self._hdg_margin_extra <= 0.0:
+            return fail
+        margin = self.cfg.heading_margin_deg + self._hdg_margin_extra
+        e0, eh = self.cmd_err0["heading"], e["heading"]
+        if abs(eh) > abs(e0) + margin:
+            return "heading_wrong_way"
+        if e0 != 0.0 and eh * math.copysign(1.0, e0) < -margin:
+            return "heading_overshoot"
+        return None
 
     def _schedule_lag(self, e: dict) -> tuple[np.ndarray, float, float]:
         """Takvim gecikmesi (eksen başına, işaretli, ölçekli), τ = geçen/T, T."""
@@ -418,8 +534,9 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
         t = self.steps * CONTROL_DT
         tau = (t - w["t"]) / max(w["T"], 1e-6)
         lag = np.zeros(3)
+        active = w.get("active") or {a: w["cmd"][a] != 0.0 for a in AXES}
         for k, a in enumerate(AXES):
-            if w["cmd"][a] == 0.0:
+            if not active[a]:
                 continue
             sched = abs(w["e0"][a]) * max(0.0, 1.0 - tau)
             lag[k] = math.copysign(max(0.0, abs(e[a]) - sched), e[a]) / self.cfg.sched_scale[k]
@@ -476,6 +593,8 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
         if finite:
             self.psi_unwrap += wrap_deg(s["psi_deg"] - self._psi_prev_meas)
             self._psi_prev_meas = s["psi_deg"]
+            self.u_dot += 0.3 * ((s["u"] - self._u_prev) / CONTROL_DT - self.u_dot)
+            self._u_prev = s["u"]
         e = self._errors(s) if finite else dict(self._last_err)
         if finite:
             self._last_err = dict(e)
@@ -520,7 +639,10 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
             info["command_results"] = [dict(t=w["t"], cmd=w["cmd"], T=w["T"], deadline=w["deadline"], success=w["success"],
                                             settle_s=w["settle_s"], on_time=w["on_time"], final_streak_s=w["streak"],
                                             max_abs_err=w["max_abs_err"], coupling_ok=w.get("coupling_ok", True),
-                                            final_err=w["final_err"]) for w in self.windows]
+                                            final_err=w["final_err"], interrupted=w.get("interrupted", False),
+                                            category=("interrupted" if w.get("interrupted") else w.get("category")),
+                                            eff=w.get("eff"), allow_s=w.get("allow_s", 0.0))
+                                       for w in self.windows]
             info["termination"] = self.failure or "time_limit"
             if terminated:
                 self._fdm_needs_refresh = True
@@ -557,13 +679,17 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
         side = cfg.pen_side * (s["v"] / 10.0) ** 2
         att = cfg.pen_att * ((max(0.0, abs(math.degrees(s["phi"])) - 60.0) / 15.0) ** 2
                              + (max(0.0, abs(math.degrees(s["theta"])) - 35.0) / 10.0) ** 2)
-        smooth = (cfg.pen_dctrl * float(np.mean(self._dfilt ** 2))
+        # kumanda hızı cezası fiziksel hareket üzerinden: collective yetkisi genişlerse (coll_scale) aynı collective
+        # hareketi aynı cezayı alır (coll_scale = coll_ref_scale → eski ceza, birebir)
+        w_ctrl = np.array([(cfg.coll_scale / cfg.coll_ref_scale) ** 2, 1.0, 1.0, 1.0])
+        smooth = (cfg.pen_dctrl * float(np.mean(w_ctrl * self._dfilt ** 2))
                   + cfg.pen_sat * float(np.mean(np.maximum(np.abs(a) - cfg.sat_threshold, 0.0))))
         couple = 0.0
         if cfg.coupling_limits is not None and cfg.pen_couple > 0.0:
-            cmd = self.windows[-1]["cmd"] if self.windows else None
+            w = self.windows[-1] if self.windows else None
+            active = (w.get("active") or {a: w["cmd"][a] != 0.0 for a in AXES}) if w else None
             for axis, lim in zip(AXES, cfg.coupling_limits):
-                if cmd is None or cmd[axis] == 0.0:
+                if active is None or not active[axis]:
                     x = min(1.0, max(0.0, abs(e[axis]) - cfg.couple_soft_frac * lim) / lim)
                     couple += cfg.pen_couple * x * x
         r = track + progress - sched - late - side - att - smooth - couple

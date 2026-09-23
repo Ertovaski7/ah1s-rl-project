@@ -446,6 +446,24 @@ function timeTarget(cmd, v, lv) {
   if (cmd.altitude) need.push(Math.abs(cmd.altitude) / lv.climb_fps);
   return lv.lag_s + Math.max(...need);
 }
+// maneuver_curriculum.dynamic_time_target ile aynı: ters yöndeki hareketi (yaw hızı, dikey hız, ivme) önce durdurma payı.
+// eff: eksen başına kalan Δ (komut + önceki komuttan kalan hata); st: {u, r (°/s), vs, u_dot}
+function dynTimeTarget(eff, st, lv, tm) {
+  const yd = tm?.yaw_decel_dps2 ?? 12, vd = tm?.vs_decel_fps2 ?? 10, aj = tm?.accel_jerk_fps3 ?? 4;
+  const need0 = [0], need = [0];
+  const axis = (delta, rate, cur, dec) => { const b = Math.abs(delta) / rate;
+    if (delta && cur * delta < 0) { const ts = Math.abs(cur) / dec, ds = cur * cur / (2 * dec); return [b, ts + (Math.abs(delta) + ds) / rate]; }
+    return [b, b]; };
+  const push = ([b, x]) => { need0.push(b); need.push(x); };
+  if (eff.heading) push(axis(eff.heading, headingRateTarget(st.u, lv), Math.abs(st.r) > 2 ? st.r : 0, yd));
+  if (eff.speed) push(axis(eff.speed, lv.accel_fps2, Math.abs(st.u_dot) > 1 ? st.u_dot : 0, aj));
+  if (eff.altitude) push(axis(eff.altitude, lv.climb_fps, Math.abs(st.vs) > 2 ? st.vs : 0, vd));
+  const T = lv.lag_s + Math.max(...need), T0 = lv.lag_s + Math.max(...need0);
+  return { T, allow: T - T0 };
+}
+// komutun etkin Δ'sı: env'in kaydı (eff) varsa o — manevra ortasında gelen komutta önceki komuttan kalan eksen de dahil
+const effOf = c => { const e = c?.eff, a = c?.applied || c?.requested || {}; const o = {};
+  for (const x of AXES) o[x] = e && fin(e[x]) && e[x] !== 0 ? +e[x] : (+a[x] || 0); return o; };
 function lowerBound(arr, x) { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < x) lo = m + 1; else hi = m; } return lo; }
 function upperBound(arr, x) { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] <= x) lo = m + 1; else hi = m; } return lo; }
 
@@ -515,7 +533,7 @@ function commandMetrics(fl, cmd, tEnd, terminated) {
   const i0 = lowerBound(t, cmd.t + dt - 1e-9), i1 = upperBound(t, tEnd + 1e-9) - 1;
   const out = { axes: {}, streak_s: 0, coupling_exceeded: false, n: Math.max(0, i1 - i0 + 1), success_live: false };
   if (i1 < i0) return out;
-  const applied = cmd.applied || cmd.requested || {};
+  const applied = effOf(cmd);                                   // kesen komutta devam eden eksen de izlenir
   const inside = new Uint8Array(out.n).fill(1);
   const iL = lowerBound(t, t[i1] - (L.hold_s ?? 10) - 1e-9);          // son hata: son hold_s (komut 10 s, manevra 5 s) ortalaması
   for (const a of AXES) {
@@ -1084,6 +1102,11 @@ function setMode(mode) {
 function setHint(id, text, cls) { const el = $("#" + id); el.textContent = text; el.className = "hint" + (cls ? " " + cls : ""); }
 
 // alt notlar: başarı kuralı ve güvenlik sınırları gösterilen uçuşun görevine göre (komut / manevra)
+// manevra: ajanın kumanda yetkisi (collective trim ± coll_scale; dayanıklı model ±0.45, README 29)
+function authText(L) {
+  const a = L?.authority; if (!a || !fin(a.coll_scale)) return "";
+  return `collective ±${fmt(a.coll_scale, 2)}`;
+}
 function renderNotes(L) {
   const man = L?.task === "maneuver", tol = L?.tol || DEFAULT_LIMITS.tol, cp = L?.coupling || DEFAULT_LIMITS.coupling, S = safetyOf(L), g = v => fmt(v, 0);
   const tolTxt = `|eψ| ≤ ${fmt(tol.heading, 1)}°, |ev| ≤ ${fmt(tol.speed, 1)} ft/s, |eh| ≤ ${g(tol.altitude)} ft`;
@@ -1092,7 +1115,9 @@ function renderNotes(L) {
     ? (() => { const gr = L.timing || { grace_frac: 0.25, grace_min_s: 1 };
         return ` (manevra, eğitimdeki kural): üç eksen birlikte tolerans bandına (${tolTxt}) son sınırdan önce girip ${g(L.hold_s ?? 5)} s kalmalı; ` +
           `son sınır = max(T·${fmt(1 + gr.grace_frac, 2)}, T + ${g(gr.grace_min_s)} s). Komut verilmeyen eksen kuplaj sınırında (${cpTxt}). ` +
-          `Boş bırakılan T seçili çeviklikten: T = tepki + max(|Δψ| / dönüş hızı, |Δv| / ivme, |Δh| / tırmanış); dönüş hızı = min(pedal hızı, g·tan(yatış) / V).`; })()
+          `Boş bırakılan T seçili çeviklikten: T = tepki + max(|Δψ| / dönüş hızı, |Δv| / ivme, |Δh| / tırmanış); dönüş hızı = min(pedal hızı, g·tan(yatış) / V). ` +
+          `Manevra bitmeden yeni komut gelirse önceki komut «kesildi» sayılır (süre hedefiyle değil, yalnızca kuplaj sınırıyla yargılanır); ` +
+          `yeni Δ ölçülen duruma göre uygulanır, verilmeyen eksen önceki hedefine devam eder ve süre hedefine ters yöndeki hareketi durdurma payı eklenir.`; })()
     : ` eğitimdeki kuralla aynı: komut penceresinin son ${g(L?.hold_s ?? 10)} s'si boyunca aynı anda ${tolTxt}; komut verilmeyen eksen pencere boyunca kuplaj sınırında (${cpTxt}). Kararı pencere kapanınca (yeni komut ya da uçuş sonu) env verir.`;
   $("#noteSuccess").replaceChildren(el("b", null, "Başarı"), document.createTextNode(txt));
   $("#noteSafety").replaceChildren(el("b", null, "Güvenlik"), document.createTextNode(
@@ -1139,7 +1164,7 @@ function selectFlight(k, startAt) {
   const fl = app.flights[k]; if (!fl) return;
   app.flight = fl; $("#flightSel").value = k;
   app.charts?.setTask(isMan(fl) ? "maneuver" : "command");
-  $("#flightDesc").textContent = [fl.description, fl.meta?.model ? `model: ${fl.meta.model}` : "", fl.termination ? `bitiş: ${reasonText(fl.termination, fl.limits)}` : ""].filter(Boolean).join(" · ");
+  $("#flightDesc").textContent = [fl.description, fl.meta?.model ? `model: ${fl.meta.model}` : "", authText(fl.limits), fl.termination ? `bitiş: ${reasonText(fl.termination, fl.limits)}` : ""].filter(Boolean).join(" · ");
   renderNotes(fl.limits);
   const sc = $("#scrub"); sc.max = fl.tEnd.toFixed(2);
   const T0 = startAt ?? Math.min(fl.tEnd, fl.commands[2] ? fl.commands[2].t + 18 : fl.tEnd * 0.45);
@@ -1189,6 +1214,7 @@ function updateSub() {
   const fl = app.flight; const m = fl?.meta || {}; const st = m.start || {};
   const parts = ["PPO ajanı", "JSBSim AH-1S"];
   if (m.model) parts.push(`model ${m.model}`);
+  const au = authText(fl?.limits || app.hello?.limits); if (au) parts.push(au);
   if (fin(st.alt)) parts.push(`başlangıç ${fmt(st.alt, 0)} ft · ${fmt(st.speed, 0)} ft/s`);
   $("#sub").replaceChildren(document.createTextNode(parts.join(" · ")));
 }
@@ -1200,6 +1226,7 @@ function statusOf(fl, k, T) {
   let cls = "run", icon = "→", text = "Hedefe gidiyor";
   if (!c.applied && app.mode === "live" && c.t > fl.tEnd - 1e-9) { icon = "…"; text = "Kuyrukta"; }
   else if (w.terminated) { cls = "bad"; icon = "✗"; text = "Uçuş bitti"; }
+  else if (w.closed && c.verdict != null && c.interrupted) { cls = c.verdict ? "run" : "bad"; icon = "↷"; text = c.verdict ? "Kesildi · kuplaj içinde" : "Kesildi · kuplaj aşıldı"; }
   else if (w.closed && c.verdict != null) { cls = c.verdict ? "good" : "bad"; icon = c.verdict ? "✓" : "✗"; text = c.verdict ? "Başarılı" : "Başarısız"; }
   else if (m.coupling_exceeded) { cls = "serious"; icon = "⚠"; text = "Kuplaj sınırı aşıldı"; }
   else if (fin(c.deadline) && m.on_time === false && w.tEnd - c.t > c.deadline) { cls = "serious"; icon = "⏱"; text = "Süre hedefi kaçtı"; }
@@ -1223,6 +1250,8 @@ function renderActive(fl, T) {
   const head = el("div", "act-head"); head.append(el("span", "what", `K${c.id} · ${cmdText(applied)}`), el("span", "when", `t = ${fmt(c.t, 1)} s · ${fmt(Math.max(0, T - c.t), 1)} s önce`));
   frag.append(head);
   if (c.applied && AXES.some(a => Math.abs((c.applied[a] || 0) - (c.requested?.[a] || 0)) > 1e-9)) frag.append(el("div", "hint warn", `İstenen ${cmdText(c.requested)} → güvenli aralık için ${cmdText(c.applied)} uygulandı.`));
+  { const ef = effOf(c), carried = AXES.filter(a => ef[a] && !(applied || {})[a]);
+    if (carried.length) frag.append(el("div", "hint", `Önceki komuttan devam eden: ${carried.map(a => AX[a].name.toLowerCase()).join(", ")} (hedefi korunuyor).`)); }
   for (const a of AXES) {
     const x = m.axes[a]; if (!x) continue;
     const row = el("div", "mrow"); const ax = el("div", "ax", AX[a].name);
@@ -1248,16 +1277,20 @@ function renderActive(fl, T) {
   sbox.append(sl, sm); srow.append(sax, sbox); frag.append(srow);
   if (fin(c.T) && fin(c.deadline)) {
     const el0 = Math.max(0, w.tEnd - c.t), box = el("div", "sched");
-    const row = el("div", "row"); row.append(el("span", null, `Süre hedefi T = ${fmt(c.T, 1)} s · son sınır ${fmt(c.deadline, 1)} s`), el("span", null, `geçen ${fmt(el0, 1)} s`));
+    const allowTxt = fin(c.allow_s) && c.allow_s > 0.05 ? ` (ters hareket payı +${fmt(c.allow_s, 1)})` : "";
+    const row = el("div", "row"); row.append(el("span", null, `Süre hedefi T = ${fmt(c.T, 1)} s${allowTxt} · son sınır ${fmt(c.deadline, 1)} s`), el("span", null, `geçen ${fmt(el0, 1)} s`));
     const late = m.on_time === false && el0 > c.deadline, done = fin(m.settle_all_s) && m.on_time;
     const bar = el("div", "bar" + (late ? " late" : done ? " done" : "")); const fill = el("i"); fill.style.width = (100 * clamp((done ? m.settle_all_s : el0) / (c.deadline * 1.25), 0, 1)) + "%";
     const mark = el("b"); mark.style.left = (100 / 1.25) + "%"; mark.title = "son sınır"; bar.append(fill, mark);
-    const need = AXES.filter(a => applied[a]).map(a => `${fmt(Math.abs(applied[a]) / Math.max(1e-6, c.T), 1)} ${a === "heading" ? "°/s" : a === "speed" ? "ft/s²" : "ft/s"}`).join(" · ");
+    const ef = effOf(c);
+    const need = AXES.filter(a => ef[a]).map(a => `${fmt(Math.abs(ef[a]) / Math.max(1e-6, c.T), 1)} ${a === "heading" ? "°/s" : a === "speed" ? "ft/s²" : "ft/s"}`).join(" · ");
     const row2 = el("div", "row"); row2.append(el("span", null, done ? `bantta: ${fmt(m.settle_all_s, 1)} s (zamanında)` : late ? "süre hedefi kaçtı" : "bant bekleniyor"),
       el("span", null, `gereken ort. ${need}`));
     box.append(row, bar, row2); frag.insertBefore(box, frag.children[1] || null);
   }
-  const vtxt = w.closed && c.verdict != null ? `Env kararı: ${c.verdict ? "başarılı ✓" : "başarısız ✗"}` : (w.terminated ? "Env kararı: uçuş bitti ✗" : "Env kararı pencere kapanınca verilir (yeni komut ya da uçuş sonu).");
+  const vtxt = w.closed && c.verdict != null
+    ? (c.interrupted ? `Env kararı: kesildi (manevra bitmeden yeni komut) — kuplaj ${c.verdict ? "içinde ✓" : "aşıldı ✗"}` : `Env kararı: ${c.verdict ? "başarılı ✓" : "başarısız ✗"}`)
+    : (w.terminated ? "Env kararı: uçuş bitti ✗" : "Env kararı pencere kapanınca verilir (yeni komut ya da uçuş sonu).");
   frag.append(el("div", "verdict", vtxt));
   body.replaceChildren(frag);
   hud.chip.hidden = false; hud.chipK.textContent = `K${c.id} · ${text}`; hud.chipTxt.textContent = cmdText(applied);
@@ -1275,9 +1308,9 @@ function renderLog(fl, T) {
     const tr = el("tr", i === k ? "active" : null);
     const man = fin(c.T), settle = man ? m.settle_all_s : x.settle_s;
     tr.append(el("td", null, "K" + c.id), el("td", null, fmt(c.t, 1)), el("td", "cmd", cmdText(applied)),
-      el("td", null, man ? `${fmt(c.T, 1)} s` : "—"),
-      el("td", null, fin(settle) ? `${fmt(settle, 1)} s${man ? (m.on_time ? " ✓" : " ⏱") : ""}` : "—"), el("td", null, fin(x.overshoot_pct) ? fmt(x.overshoot_pct, 1) + "%" : "—"),
-      el("td", null, AXES.filter(a => applied[a]).map(a => `${cmdAx.length > 1 ? AX[a].sym + " " : ""}${sgn(m.axes[a]?.final, AX[a].nd + 1)}`).join(" · ")), el("td", null, coupl),
+      el("td", null, man ? `${fmt(c.T, 1)} s${fin(c.allow_s) && c.allow_s > 0.05 ? ` (+${fmt(c.allow_s, 1)})` : ""}` : "—"),
+      el("td", null, c.interrupted && w.closed ? "kesildi" : fin(settle) ? `${fmt(settle, 1)} s${man ? (m.on_time ? " ✓" : " ⏱") : ""}` : "—"), el("td", null, fin(x.overshoot_pct) ? fmt(x.overshoot_pct, 1) + "%" : "—"),
+      el("td", null, c.interrupted && w.closed ? "—" : AXES.filter(a => applied[a]).map(a => `${cmdAx.length > 1 ? AX[a].sym + " " : ""}${sgn(m.axes[a]?.final, AX[a].nd + 1)}`).join(" · ")), el("td", null, coupl),
       el("td", cls === "good" ? "res-ok" : cls === "bad" ? "res-bad" : null, `${icon} ${w.closed || w.terminated ? text : (cls === "good" ? "tutuyor" : "sürüyor")}`));
     rows.push(tr);
   }
@@ -1347,7 +1380,12 @@ function presetLevel() {
 }
 function autoT(d) {
   const lv = presetLevel(); if (!lv) return NaN;
-  const s = app.flight?.sample(app.T); return timeTarget(d, s ? s.u : 0, lv);
+  const fl = app.flight, s = fl?.sample(app.T); if (!s) return timeTarget(d, 0, lv);
+  // env ile aynı: verilmeyen eksende önceki komuttan kalan hata da süreye girer; ters yöndeki hareketin durma payı eklenir
+  const tol = (fl.limits || DEFAULT_LIMITS).tol, e = { heading: s.e_psi, speed: s.e_u, altitude: s.e_h }, eff = {};
+  for (const a of AXES) eff[a] = d[a] ? d[a] : (Math.abs(e[a]) > tol[a] ? e[a] : 0);
+  const s0 = fl.sample(Math.max(0, app.T - 0.5)), u_dot = s0 && app.T > 0.5 ? (s.u - s0.u) / 0.5 : 0;
+  return dynTimeTarget(eff, { u: s.u, r: s.r, vs: s.vs, u_dot }, lv, app.hello?.limits?.timing).T;
 }
 function buildPresets() {
   const box = $("#timePresets"); box.replaceChildren();

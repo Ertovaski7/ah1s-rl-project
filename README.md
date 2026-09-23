@@ -53,6 +53,20 @@ python visualize_final_multiturn.py 20 -30 75               # aynı görev -> ah
 
 Panelde `FORWARD / READY` görüldüğünde `Target Heading` alanına değer girilip `Fly to Heading` düğmesine basılır. Sistem komut başladığı andaki current heading ile hedef arasındaki en kısa relatif dönüşü hesaplar. Örneğin `350° -> 10°`, `+20°` komutuna çevrilir.
 
+## 1.4. Yeni: Komut curriculum'u (PPO sıfırdan, teacher yok)
+
+Arayüzden gelen **Δheading / Δhız / Δirtifa** komutlarını uygulayan tek bir PPO ajanı; küçük komutlardan
+büyüğe otomatik curriculum (±5° → ±10° → … → hız → irtifa). Colab: `komut_curriculum.ipynb`.
+Ayrıntılar ve ilk sonuçlar: **bölüm 26**.
+
+```bash
+python diagnose_command_env.py                                              # eğitimsiz sağlık kontrolü (~1 dk)
+python train_command_curriculum.py --out runs/cmd --total-steps 6000000      # PPO sıfırdan, otomatik seviye atlama
+python evaluate_command_policy.py --model runs/cmd/models/level_00_H1.zip --level H1 --zero-baseline
+# eğitmeden, hazır modelle: tek uçuşta art arda komutlar
+python evaluate_command_policy.py --model models_command_curriculum/v2_R1_final.zip --mission 5:heading:+90 40:speed:+8 75:altitude:+100
+```
+
 ---
 
 # 2. Repo yapısı
@@ -60,6 +74,17 @@ Panelde `FORWARD / READY` görüldüğünde `Target Heading` alanına değer gir
 ```text
 ah1s-rl-project/
 ├── stajım.ipynb                             Colab defteri (kurulum → kontrol → dashboard → testler)
+├── komut_curriculum.ipynb                   Colab defteri: komut curriculum'u (kurulum → eğitim → değerlendirme)
+│
+│   Komut curriculum'u — PPO sıfırdan, teacher yok (bölüm 26)
+├── helicopter_env_command.py                Δheading / Δhız / Δirtifa komut takibi env'i (havada başlatma)
+├── command_curriculum.py                    Seviyeler: H1 ±5° → … → H6 ±180° → V1–V3 hız → A1–A4 irtifa → C1, R1
+├── train_command_curriculum.py              PPO eğitimi + otomatik seviye atlama (başarı ≥ %80)
+├── evaluate_command_policy.py               Step response değerlendirmesi (+ a=0 karşılaştırması)
+├── diagnose_command_env.py                  Eğitimsiz sağlık kontrolü (başlatma, açık-döngü tepkiler, hız)
+├── models_command_curriculum/               Bu curriculum'un ilk koşularından modeller (v2_R1_final önerilen)
+├── docs/command_curriculum/                 İlk koşuların kanıtları (ilerleme CSV, doğrulama, grafikler)
+│
 ├── run_colab_live_heading_dashboard.py      Canlı target-heading dashboard (Colab içinde)
 ├── validate_final_continuous_mission_v1.py  Heading görevi: Stage1 → Stage2 → komutlar → recovery (headless)
 ├── validate_stage3_stop_hover.py            Durma görevi: Stage1 → Stage2 → Stage3 hedefte durma + 5 s hover
@@ -811,3 +836,135 @@ Post-turn logic  : AFCS transition → Stage 2 PPO
 # 25. Tek cümlede proje
 
 > **AH-1S helikopteri JSBSim üzerinde PPO tabanlı policy’lerle 300 ft’e kaldıran, ileri uçuran, mevcut heading’e göre parametrik relative turn yaptıran, dönüş sonrası dinamikleri AFCS transition ile sönümleyip yeni heading üzerinde tekrar ileri uçuşa devam ettiren kesintisiz çok-aşamalı bir RL uçuş kontrol sistemidir.**
+
+---
+
+# 26. Komut curriculum'u — Δheading / Δhız / Δirtifa (PPO sıfırdan, 2026-09-22)
+
+**Amaç:** hangi irtifa / heading / hızdan başlarsa başlasın, arayüzden gelen **Δheading, Δhız, Δirtifa** komutlarını uygulayan **tek** bir PPO ajanı.
+
+**Mentor kararı (2026-09-22):** teacher / student distillation yok (1000 ft'e kadar deneme-yanılma ile student üretmek pahalı). PPO **rastgele ağırlıklarla** başlar; helikopter belirli bir irtifada (**300 ft, 15 ft/s**) başlar; kısa episode'larda önce **±5°** heading, öğrenince **±10°**, ... sonra hız için aynısı. Rüzgâr yok.
+
+Colab: `komut_curriculum.ipynb` (kurulum → Drive → sağlık kontrolü → eğitim → ilerleme grafiği → değerlendirme → görev demosu).
+
+## 26.1. Eski zincirden farkı
+
+| | Eski zincir (Stage 1/2, Turn) | Komut curriculum'u |
+|---|---|---|
+| Hedef | 300 ft sabit; obs'ta mutlak irtifa var | yalnızca komuta göre **hata**; mutlak irtifa / heading yok |
+| Eğitim | klasik teacher → behavior cloning → kısa PPO | **PPO sıfırdan**, teacher yok |
+| Heading'i kim tutar | AFCS heading-hold (`psi-trim`) | **PPO** (AFCS heading-hold kapalı, yalnızca yaw damper) |
+| Başlangıç | yerden kalkış (~70 s sim) | **havada** (aşağıda), ~0.1 s gerçek süre |
+| Model sayısı | her faz ayrı + specialist patch'ler | **tek ağ**, tüm seviyeler boyunca aynı ağırlıklar devam eder |
+
+## 26.2. Env: `helicopter_env_command.py`
+
+**Başlangıç (reset):** rotor yerde ısınır (resmi warm-up) → JSBSim initial condition (`ic/h-agl-ft`, `ic/u-fps`, `ic/psi-true-rad` + `run_ic()`) ile helikopter **dönen rotorla** 300 ft / 15 ft/s / rastgele heading'e taşınır ("teleport"; rotor devri korunur, ~320 rpm) → reset'e özel klasik PI kontrolcü (collective ← irtifa/dikey hız, elevator ← hız, heading ← AFCS) sıkı dengeye oturtur (~30 s sim, ~0.1 s gerçek) → PPO devralır. Bu kontrolcü **teacher değildir**: yalnızca başlangıç koşulunu kurar, PPO'ya action önermez, verisi eğitimde kullanılmaz. Teleport başarısız olursa yedek yol: yerden tırmanış. Aynı FDM başarılı episode'lardan sonra yeniden teleport edilir (her 25 episode'da ya da düşmeden sonra sıfırdan kurulur).
+
+**AFCS (JSBSim `systems/afcs.xml`):** roll ve pitch kanalları açık (yatış / yunuslama açısı tutma + sönümleme: `roll 1.0`, `pitch 0.5`, eski sistemle aynı). Yaw kanalında **heading-hold kapalı** (`ap/afcs/heading-hold-enable = 0`), yalnızca yaw-rate damper (`ap/afcs/adj/yaw-rate-ctrl-gain = 0.2`). Yani heading'i tutan ve değiştiren PPO'dur; AFCS yalnızca stabilizasyon (SAS) yapar. Handover'da heading-hold'un pedala verdiği sabit katkı rudder trimine taşınır, böylece `a = 0` denge olur.
+
+**Observation (19):** e_ψ/10°, e_ψ/180°, e_h/20 ft, e_h/200 ft, e_v/4 ft/s, e_v/30 ft/s, dikey hız, u (ileri hava hızı), v (yanal hız), roll, pitch, p, q, r, rotor rpm hatası, filtrelenmiş 4 action. e_ψ unwrap edilmiş kalan dönüştür (±180°'den büyük komutlarda da yön korunur). Mutlak irtifa ve mutlak heading **yok**.
+
+**Action (4):** handover anındaki trim etrafında residual, birinci dereceden filtreyle (α = 0.4): `kumanda = trim + ölçek · f`. Ölçekler ve gerçek JSBSim'de ölçülen etkileri (`diagnose_command_env.py`, ±0.5 action, 4 s):
+
+| Kanal | Ölçek | ±0.5 action → |
+|---|---|---|
+| collective | 0.06 | dikey hız ±4 ft/s |
+| elevator | 0.05 | pitch ∓1°, hız ±2.5 ft/s (4 s'de) |
+| aileron | 0.30 | roll ±3.5°, heading ±11° (8 s'de) |
+| rudder | 0.20 | yaw rate ∓3.9°/s (pozitif rudder → burun SOLA) |
+
+**Komutlar:** seviyeye göre 90–120 s episode; komutlar t ≈ 3–8 s ve t ≈ 40–65 s'de. Δ, komut anındaki **ölçülen** değere göre uygulanır (`h_ref = h + Δh`, ...). Komut verilmeyen eksen referansını korur (düz uç, hızı ve irtifayı koru).
+
+**Reward (v2, adım başı ×0.1):**
+- takip: her eksende ince Gauss + kaba Laplace çekirdek (ψ 1.5°/10°, v 1/5 ft/s, h 5/30 ft; ağırlık 1.0 / 0.7 / 0.7),
+- ilerleme: potansiyel tabanlı (bir komutu tamamen kapatmak = +10),
+- cezalar: roll, açısal hızlar, yanal kayma, kumanda hızı (filtrelenmiş action değişimi, ×5), doygunluk (|a| > 0.8, ×2),
+- **kuplaj cezası:** komut verilmeyen eksenin hatası sınırın yarısını aşınca karesel, kırpılı ceza (sınırlar: heading 5°, hız 4 ft/s, irtifa 25 ft),
+- güvenlik ihlalinde −50 ve episode biter.
+- v1 (ilk koşu): yalnızca Laplace takip + ilerleme + küçük cezalar (`CommandEnvConfig.v1()`, `--env-config v1`).
+
+**Başarı (curriculum için):** her komut penceresinin **son 10 s**'si boyunca aynı anda |e_ψ| ≤ 1.5°, |e_v| ≤ 1.5 ft/s, |e_h| ≤ 10 ft, güvenlik ihlali yok **ve** (v2) komut verilmeyen eksen pencere boyunca kuplaj sınırının içinde. Episode başarılı = tüm pencereler başarılı. (Toleranslar öneridir; mentorla netleştirilecek.)
+
+**Güvenlik (episode'u bitirir):** |roll| > 40°, |pitch| > 30°, |r| > 45°/s, |p| > 90°/s, irtifa < 50 ft, rotor 280–380 rpm dışı, irtifa / hız komut bandının 75 ft / 12 ft/s dışına çıkması, heading'in 30°'den fazla ters yöne ya da hedefin ötesine gitmesi.
+
+## 26.3. Seviyeler: `command_curriculum.py`
+
+| Seviye | Komut | Tekrar (unutmasın diye) |
+|---|---|---|
+| H1 → H6 | heading ±5°, ±10°, ±20°, ±45°, ±90°, ±180° | komutların %25'i tüm aralıktan |
+| V1 → V3 | hız ±3, ±6, ±10 ft/s | komutların %40'ı heading (±180°) |
+| A1 → A4 | irtifa ±10, ±25, ±50, ±100 ft | %30 heading, %20 hız |
+| C1 | Δψ ±45°, Δv ±6, Δh ±50 aynı anda | komutların %50'si tek eksen (tüm aralıklar) |
+| R1 | birleşik + rastgele başlangıç (200–1000 ft, 10–25 ft/s) | aynı |
+
+Seviye atlama: son 100 episode'un başarısı ≥ %80 **ve** seviyedeki her komut türünün (heading / hız / irtifa / birleşik; tekrarlar dahil) ayrı ayrı ≥ %80'i (en az 30 komut; `--axis-gate`, varsayılan açık) → model `models/level_XX_<ad>.zip` kaydedilir, **aynı ağ** bir sonraki seviyeye geçer. Sıra ve aralıklar yalnızca `DEFAULT_LEVELS` listesinden değiştirilir.
+
+## 26.4. Çalıştırma
+
+```bash
+python diagnose_command_env.py                                            # eğitimsiz sağlık kontrolü (~1 dk)
+python train_command_curriculum.py --out runs/cmd --total-steps 6000000    # PPO sıfırdan, otomatik seviye
+python train_command_curriculum.py --out runs/cmd --total-steps 6000000 --resume      # kaldığı yerden
+python train_command_curriculum.py --out runs/h1 --level H1 --no-promote   # tek seviyede kal
+python train_command_curriculum.py --out runs/cont --level V1 --init-model runs/cmd/models/level_05_H6.zip
+python evaluate_command_policy.py --model runs/cmd/models/level_00_H1.zip --level H1 --zero-baseline
+python evaluate_command_policy.py --model models_command_curriculum/v2_R1_final.zip --commands heading:+90 speed:-5 --start-alt 800
+python evaluate_command_policy.py --model models_command_curriculum/v2_R1_final.zip --mission 5:heading:+90 40:speed:+8 75:altitude:+100
+```
+
+Hız: tek çekirdekte ~4400 kontrol adımı/s (JSBSim); PPO güncellemesiyle birlikte 2 çekirdekte ~1000 adım/s.
+
+## 26.5. Sonuçlar (Claude'un cloud ortamı: JSBSim 1.3.1 kaynaktan derlendi, SB3 2.9, torch 2.14 CPU, 2 çekirdek)
+
+Kanıt dosyaları: `docs/command_curriculum/` (ilerleme CSV'leri, `curriculum_state` JSON'ları, görev grafikleri, 110 testlik doğrulama JSON'u). Modeller: `models_command_curriculum/` (SHA-256 `models_sha256.txt`'de).
+
+**v2 (varsayılan ayar) — son model `v2_R1_final.zip`**
+
+| Seviye | Seviyede adım | Süre | Not |
+|---|---|---|---|
+| H1 ±5° | 136 bin | 2.3 dk | PPO sıfırdan; ilk seviye |
+| H2 / H3 / H4 | 120 bin (her biri) | ~2 dk | ilk 100 episode'da %100 |
+| **H5 ±90°** | **451 bin** | **7.6 dk** | curriculum burada gerçekten çalıştı: ajan dönüşte hızı koruyana kadar (kuplaj ≤ 4 ft/s) başarı %9 → %80 |
+| H6 ±180° | 160 bin | 2.8 dk | |
+| V1 → R1 (9 seviye) | 160–195 bin (her biri) | ~2.5–3 dk | H6 modelinden devam, ince ayar (lr 1e-4, KL 0.02), eksen başına başarı kapısı |
+| **Toplam** | **2.61 milyon** | **~42 dk** | 15/15 seviye |
+
+Doğrulama (deterministik policy, v2 başarı kriteri = son 10 s tolerans + kuplaj sınırı):
+
+| Test grubu | v2 son model | v1 son model | a = 0 |
+|---|---|---|---|
+| Standart başlangıç (300 ft / 15 ft/s): ±5°, ±45°, −90°, +180°, hız +3/−6/+10, irtifa +25/−50/+100, birleşik | **24/24** | 11/12 | 0/12 |
+| Farklı başlangıç (200 ft/10 ft/s, 600/20, 1000/25) × 7 komut | **21/21** | 18/21 (90° dönüşlerde kuplaj) | — |
+| Eğitimde görülmeyen başlangıç (1500 ft; 30 ft/s) × 4 komut | **8/8** | — | — |
+
+Son hata medyanı (v2): heading ~0.1°, hız ~0.1 ft/s, irtifa ~0.5 ft.
+
+Kumanda yumuşaklığı ve kuplaj (300 ft / 15 ft/s, tek komut):
+
+| | v1 son model | v2 son model |
+|---|---|---|
+| Düz uçuşta elevator doygunluğu (son 20 s) | %39 (uçtan uca titreşim) | %0 |
+| Düz uçuşta hız dalgalanması (tepe-tepe) | 0.21 ft/s | 0.00 ft/s |
+| +90° dönüşte en büyük hız / irtifa sapması | 5.7 ft/s / 13.5 ft | **1.1 ft/s / 1.1 ft** |
+| +8 ft/s hız komutunda heading / irtifa sapması | 2.5° / 1.4 ft | 2.1° / 1.7 ft |
+| +100 ft irtifa komutunda heading / hız sapması | 0.6° / 0.5 ft/s | 1.5° / 0.3 ft/s |
+
+Tek uçuşta 6 ardışık komut (+90°, +8 ft/s, +100 ft, −45° & −60 ft, −10 ft/s, +180°): v2 6/6 (grafik: `docs/command_curriculum/fig_mission_v2.png`; v1 için `fig_mission_v1.png`).
+
+**Bu koşulardan öğrenilenler (mentor için):**
+
+1. **Asıl öğrenme H1'de oluyor.** Yalnızca ±5° ile eğitilen H1 modeli (2.3 dk) büyük dönüş, hız ve irtifa komutlarının çoğunu zaten yapıyor (v2 kriteriyle 11/12). Observation'da mutlak değer değil yalnızca hata olduğu için ajan genel bir "hatayı sıfırla" davranışı öğreniyor.
+2. **Başarı kriteri gevşekse curriculum bir şey öğretmiyor, kalite bozulabiliyor.** v1'de (yalnızca son 10 s) tüm seviyeler ilk denemede geçti; ama uzun eğitim son modelde kumanda titreşimi ve dönüşte büyük hız / irtifa kaçırması üretti.
+3. **Başarı kriteri reward'da temsil edilmeli.** v2'de kuplaj sınırı yalnızca başarı kriterine eklenince H5'te başarı %1'e düştü (ajan ne yapması gerektiğini reward'dan göremedi). Reward'a başarı kriteriyle hizalı, kırpılı kuplaj cezası eklenince H5 7.6 dk'da geçildi.
+4. **Unutma (catastrophic forgetting).** Hız / irtifa seviyelerinde heading komutları azınlıkta kalınca ajan büyük dönüşleri bozdu (lr 3e-4 ile V1'de heading başarısı %97 → %25; bir koşuda ±130° dönüşler ters yöne gitti) ama genel başarı oranı bunu gizledi. Çözüm: seviye atlamada **her komut türü için ayrı başarı** şartı, daha fazla tekrar (%30–50) ve sonraki seviyelerde **küçük öğrenme hızı + KL sınırı** (1e-4, 0.02; `--fine-from V1`).
+5. **Rastgele başlatılan PPO** bu kurulumla (hata tabanlı observation, trim etrafında residual action, AFCS yalnızca SAS) teacher olmadan H1'i ~2 dk'da öğreniyor.
+
+## 26.6. Bilinen sınırlar / açık sorular
+
+- **15 ft/s (≈9 kt) rejimi:** bu hızda heading değişimi büyük ölçüde pedalla yapılır (hover'a yakın). Yüksek hızda (40–60 kt) dönüş yatışla (bank) yapılır ve trimler hızla çok değişir (JSBSim `steady_flight_data.xml` tabloları: 0 → 60 kt'ta collective 0.61 → 0.41, elevator −0.22 → +0.02, rudder 0.40 → 0.04). Geniş hız zarfı için action'ın trim etrafında residual olması yetmeyebilir; SFD tablosuyla trim çizelgeleme ya da daha geniş action aralığı gerekir.
+- **Açık-döngü dikey mod yavaş ıraksıyor:** a = 0 ile 60 s'de +45 ft. PPO irtifayı aktif tutmak zorunda (öğreniyor).
+- **Toleranslar / kuplaj sınırları öneri:** 1.5° / 1.5 ft/s / 10 ft (son 10 s) ve 5° / 4 ft/s / 25 ft (kuplaj). Mentorla netleştirilmeli.
+- **Başlangıç koşulu:** teleport + reset-only PI stabilizasyonu; gerçek görevde ajan önceki fazın bıraktığı durumdan devralacak (Stage 2 → komut ajanı geçişi henüz yapılmadı).
+- Tek seed ile eğitildi; farklı seed'lerle tekrar önerilir.
+

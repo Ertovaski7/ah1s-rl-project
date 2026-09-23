@@ -1,0 +1,279 @@
+{
+  "level_index": 14,
+  "level": "R1",
+  "timesteps": 1500800,
+  "history": [
+    {
+      "level": "V1",
+      "level_index": 6,
+      "success_rate": 0.99,
+      "episodes": 100,
+      "axis_success": {
+        "heading": 0.9879518072289156,
+        "speed": 1.0
+      },
+      "steps_at_level": 160000,
+      "total_steps": 160000,
+      "wall_min_at_level": 2.5476229906082155
+    },
+    {
+      "level": "V2",
+      "level_index": 7,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "axis_success": {
+        "heading": 1.0,
+        "speed": 1.0
+      },
+      "steps_at_level": 160000,
+      "total_steps": 320000,
+      "wall_min_at_level": 2.5339643875757853
+    },
+    {
+      "level": "V3",
+      "level_index": 8,
+      "success_rate": 0.94,
+      "episodes": 100,
+      "axis_success": {
+        "heading": 0.9418604651162791,
+        "speed": 0.99
+      },
+      "steps_at_level": 160000,
+      "total_steps": 480000,
+      "wall_min_at_level": 2.491989024480184
+    },
+    {
+      "level": "A1",
+      "level_index": 9,
+      "success_rate": 0.98,
+      "episodes": 100,
+      "axis_success": {
+        "speed": 1.0,
+        "heading": 0.96875,
+        "altitude": 1.0
+      },
+      "steps_at_level": 160000,
+      "total_steps": 640000,
+      "wall_min_at_level": 2.500989031791687
+    },
+    {
+      "level": "A2",
+      "level_index": 10,
+      "success_rate": 0.99,
+      "episodes": 100,
+      "axis_success": {
+        "altitude": 1.0,
+        "heading": 0.9848484848484849,
+        "speed": 1.0
+      },
+      "steps_at_level": 160000,
+      "total_steps": 800000,
+      "wall_min_at_level": 2.51117479801178
+    },
+    {
+      "level": "A3",
+      "level_index": 11,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "axis_success": {
+        "altitude": 1.0,
+        "heading": 1.0,
+        "speed": 1.0
+      },
+      "steps_at_level": 160000,
+      "total_steps": 960000,
+      "wall_min_at_level": 2.533342929681142
+    },
+    {
+      "level": "A4",
+      "level_index": 12,
+      "success_rate": 0.99,
+      "episodes": 100,
+      "axis_success": {
+        "heading": 0.9848484848484849,
+        "altitude": 1.0,
+        "speed": 1.0
+      },
+      "steps_at_level": 160000,
+      "total_steps": 1120000,
+      "wall_min_at_level": 2.5208184719085693
+    },
+    {
+      "level": "C1",
+      "level_index": 13,
+      "success_rate": 1.0,
+      "episodes": 116,
+      "axis_success": {
+        "altitude": 1.0,
+        "heading": 1.0,
+        "speed": 1.0,
+        "combined": 1.0
+      },
+      "steps_at_level": 185600,
+      "total_steps": 1305600,
+      "wall_min_at_level": 2.9186330755551655
+    },
+    {
+      "level": "R1",
+      "level_index": 14,
+      "success_rate": 1.0,
+      "episodes": 122,
+      "axis_success": {
+        "combined": 1.0,
+        "altitude": 1.0,
+        "speed": 1.0,
+        "heading": 1.0
+      },
+      "steps_at_level": 195200,
+      "total_steps": 1500800,
+      "wall_min_at_level": 3.0726378917694093
+    }
+  ],
+  "args": {
+    "out": "/home/claude/runs/cmd_v2_run2",
+    "total_steps": 6000000,
+    "level": "V1",
+    "stop_after": null,
+    "promote": true,
+    "window": 100,
+    "min_episodes": 100,
+    "threshold": 0.8,
+    "axis_gate": true,
+    "axis_min_commands": 30,
+    "resume": false,
+    "init_model": "/home/claude/runs/cmd_v2_run1/models/level_05_H6.zip",
+    "n_envs": 2,
+    "vec": "subproc",
+    "env_config": "v2",
+    "seed": 42,
+    "lr": 0.0001,
+    "n_steps": 2048,
+    "batch_size": 256,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.0,
+    "target_kl": 0.02,
+    "log_std_init": -1.0,
+    "net": "128,128",
+    "save_freq": 100000,
+    "smoke": false
+  },
+  "env_config": {
+    "start_mode": "teleport",
+    "reuse_fdm": true,
+    "fdm_refresh_episodes": 25,
+    "random_start_heading": true,
+    "start_heading_deg": 180.0,
+    "settle_max_s": 120.0,
+    "settle_min_s": 25.0,
+    "settle_hold_s": 5.0,
+    "trim_avg_s": 3.0,
+    "climb_max_s": 180.0,
+    "afcs_setup": {
+      "pitch": 0.5,
+      "roll": 1.0,
+      "yaw": 1.0,
+      "heading_hold": true,
+      "yaw_rate_gain": 0.2
+    },
+    "afcs_train": {
+      "pitch": 0.5,
+      "roll": 1.0,
+      "yaw": 0.99,
+      "heading_hold": false,
+      "yaw_rate_gain": 0.2
+    },
+    "action_scale": [
+      0.06,
+      0.05,
+      0.3,
+      0.2
+    ],
+    "action_filter_alpha": 0.4,
+    "control_limits": [
+      [
+        0.4,
+        0.8
+      ],
+      [
+        -0.35,
+        0.1
+      ],
+      [
+        -1.0,
+        1.0
+      ],
+      [
+        -1.0,
+        1.0
+      ]
+    ],
+    "cmd_speed_range": [
+      3.0,
+      60.0
+    ],
+    "cmd_min_alt_ft": 150.0,
+    "w_heading": 1.0,
+    "w_speed": 0.7,
+    "w_alt": 0.7,
+    "kernel_heading": [
+      1.5,
+      10.0
+    ],
+    "kernel_speed": [
+      1.0,
+      5.0
+    ],
+    "kernel_alt": [
+      5.0,
+      30.0
+    ],
+    "fine_kernel": "gauss",
+    "progress_weight": 10.0,
+    "progress_min_scale": [
+      5.0,
+      2.0,
+      10.0
+    ],
+    "pen_roll": 0.1,
+    "pen_rate": 0.05,
+    "pen_side": 0.02,
+    "pen_jerk": 0.05,
+    "pen_ctrl": 0.01,
+    "pen_dctrl": 5.0,
+    "pen_sat": 2.0,
+    "sat_threshold": 0.8,
+    "pen_couple": 2.0,
+    "couple_soft_frac": 0.5,
+    "fail_penalty": 50.0,
+    "reward_scale": 0.1,
+    "tol_heading_deg": 1.5,
+    "tol_speed_fps": 1.5,
+    "tol_alt_ft": 10.0,
+    "success_hold_s": 10.0,
+    "coupling_limits": [
+      5.0,
+      4.0,
+      25.0
+    ],
+    "max_roll_deg": 40.0,
+    "max_pitch_deg": 30.0,
+    "max_yaw_rate_dps": 45.0,
+    "max_roll_rate_dps": 90.0,
+    "min_agl_ft": 50.0,
+    "alt_margin_ft": 75.0,
+    "speed_margin_fps": 12.0,
+    "heading_margin_deg": 30.0,
+    "speed_limits_fps": [
+      -5.0,
+      150.0
+    ],
+    "rpm_limits": [
+      280.0,
+      380.0
+    ]
+  },
+  "saved_at": "2026-09-22 17:40:13"
+}

@@ -1,0 +1,259 @@
+{
+  "level_index": 6,
+  "level": "K7a",
+  "timesteps": 1177154,
+  "history": [
+    {
+      "level": "K1",
+      "level_index": 0,
+      "success_rate": 0.8,
+      "episodes": 371,
+      "axis_success": {
+        "hold": 0.8
+      },
+      "steps_at_level": 127154,
+      "total_steps": 127154,
+      "wall_min_at_level": 3.7550446430842084
+    },
+    {
+      "level": "K2",
+      "level_index": 1,
+      "success_rate": 0.99,
+      "episodes": 100,
+      "axis_success": {
+        "takeoff": 0.99
+      },
+      "steps_at_level": 19668,
+      "total_steps": 146822,
+      "wall_min_at_level": 0.5014895081520081
+    },
+    {
+      "level": "K3",
+      "level_index": 2,
+      "success_rate": 1.0,
+      "episodes": 100,
+      "axis_success": {
+        "takeoff": 1.0
+      },
+      "steps_at_level": 26538,
+      "total_steps": 173360,
+      "wall_min_at_level": 0.6711675484975179
+    },
+    {
+      "level": "K4",
+      "level_index": 3,
+      "success_rate": 0.9,
+      "episodes": 100,
+      "axis_success": {
+        "takeoff": 0.9
+      },
+      "steps_at_level": 54150,
+      "total_steps": 227510,
+      "wall_min_at_level": 1.2522433042526244
+    },
+    {
+      "level": "K5",
+      "level_index": 4,
+      "success_rate": 0.97,
+      "episodes": 100,
+      "axis_success": {
+        "takeoff": 1.0,
+        "move": 0.96,
+        "bob": 1.0,
+        "hold": 1.0,
+        "turn": 1.0
+      },
+      "steps_at_level": 73156,
+      "total_steps": 300666,
+      "wall_min_at_level": 1.7733455816904704
+    },
+    {
+      "level": "K6",
+      "level_index": 5,
+      "success_rate": 0.99,
+      "episodes": 256,
+      "axis_success": {
+        "interrupted": 1.0,
+        "climb_to": 1.0,
+        "takeoff": 1.0,
+        "turn": 1.0,
+        "move": 0.9666666666666667,
+        "bob": 1.0
+      },
+      "steps_at_level": 225474,
+      "total_steps": 526140,
+      "wall_min_at_level": 5.28215799331665
+    }
+  ],
+  "args": {
+    "task": "takeoff",
+    "out": "/home/claude/runs/to_v1",
+    "total_steps": 30000000,
+    "level": "K1",
+    "stop_after": null,
+    "promote": true,
+    "window": 100,
+    "min_episodes": 100,
+    "threshold": 0.8,
+    "axis_gate": true,
+    "axis_min_commands": 30,
+    "resume": true,
+    "init_model": null,
+    "n_envs": 2,
+    "vec": "subproc",
+    "env_config": "v2",
+    "coll_scale": null,
+    "seed": 42,
+    "lr": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 256,
+    "n_epochs": 10,
+    "gamma": 0.995,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.0,
+    "target_kl": null,
+    "log_std_init": -1.2,
+    "fine_from": "K5",
+    "fine_lr": 0.0002,
+    "fine_kl": 0.03,
+    "net": "128,128",
+    "save_freq": 50000,
+    "snapshot_freq": 1000000,
+    "eval_freq": 0,
+    "eval_levels": "K2,K4,K9",
+    "eval_episodes": 30,
+    "smoke": false,
+    "env_overrides": {}
+  },
+  "env_config": {
+    "hover_trim": [
+      0.603,
+      -0.151,
+      0.192,
+      0.41
+    ],
+    "ctrl_range": [
+      0.6,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "expo": 0.8,
+    "action_filter_alpha": 0.5,
+    "rate_limit": [
+      0.6,
+      3.0,
+      3.0,
+      3.0
+    ],
+    "tol_h": [
+      3.0,
+      0.01,
+      10.0
+    ],
+    "tol_xy": [
+      6.0,
+      0.007,
+      12.0
+    ],
+    "tol_psi_deg": 3.0,
+    "tol_v_fps": 2.0,
+    "tol_vs_fps": 2.0,
+    "land_tol_xy_ft": 8.0,
+    "land_tol_psi_deg": 5.0,
+    "land_weight_frac": 0.7,
+    "land_hold_s": 3.0,
+    "touchdown_ok_fps": 4.0,
+    "coupling_limits": [
+      20.0,
+      15.0,
+      10.0
+    ],
+    "gap_s": [
+      0.5,
+      1.5
+    ],
+    "end_margin_s": 1.0,
+    "max_episode_s": 420.0,
+    "w_xy": 1.0,
+    "w_h": 1.0,
+    "w_psi": 0.7,
+    "w_v": 0.5,
+    "w_vs": 0.5,
+    "w_r": 0.3,
+    "kernel_xy": [
+      3.0,
+      25.0
+    ],
+    "kernel_h": [
+      3.0,
+      30.0
+    ],
+    "kernel_psi": [
+      2.0,
+      15.0
+    ],
+    "kernel_v": [
+      1.5,
+      6.0
+    ],
+    "kernel_vs": [
+      1.5,
+      6.0
+    ],
+    "kernel_r": [
+      3.0,
+      15.0
+    ],
+    "guide_k_xy": 0.25,
+    "guide_k_h": 0.3,
+    "guide_k_psi": 0.6,
+    "hold_v_max": 3.0,
+    "progress_weight": 10.0,
+    "progress_min_scale": [
+      10.0,
+      10.0,
+      10.0
+    ],
+    "pen_sched": 1.0,
+    "sched_scale": [
+      20.0,
+      20.0,
+      20.0
+    ],
+    "pen_late": 0.5,
+    "pen_att": 1.0,
+    "pen_rate": 0.05,
+    "pen_dctrl": 2.0,
+    "pen_sat": 0.5,
+    "sat_threshold": 0.95,
+    "pen_couple": 2.0,
+    "couple_soft_frac": 0.5,
+    "pen_touchdown": 5.0,
+    "pen_sink": 1.0,
+    "sink_base_fps": 2.0,
+    "sink_slope": 0.25,
+    "w_land": 2.5,
+    "pen_slide": 0.2,
+    "fail_penalty": 50.0,
+    "reward_scale": 0.1,
+    "max_roll_deg": 45.0,
+    "max_pitch_deg": 40.0,
+    "max_rate_dps": 100.0,
+    "max_yaw_rate_dps": 90.0,
+    "ground_max_att_deg": 15.0,
+    "crash_vs_fps": 10.0,
+    "flyaway_ft": 150.0,
+    "alt_over_ft": 200.0,
+    "max_speed_fps": 60.0,
+    "rpm_limits": [
+      280.0,
+      380.0
+    ],
+    "settle_max_s": 60.0,
+    "settle_hold_s": 2.0,
+    "ground_settle_s": 1.0
+  },
+  "saved_at": "2026-09-24 13:50:46"
+}

@@ -38,6 +38,12 @@ Kullanım (Colab, repo kökünde)
 Manevra curriculum'u (Δ komut + süre hedefi, 0–100 kt; helicopter_env_maneuver.py,
 maneuver_curriculum.py — seviyeler M1…M5):
   %run train_command_curriculum.py --task maneuver --out runs/man --total-steps 8000000
+
+Kalkış / hover / iniş curriculum'u (dört kumanda doğrudan; helicopter_env_takeoff.py,
+takeoff_curriculum.py — seviyeler K1…K9, K5'ten itibaren ince ayar modu):
+  %run train_command_curriculum.py --task takeoff --out runs/to --total-steps 12000000
+  Seviyelerin `rehearse` / `p_rehearse` ayarı: eğitim env'lerinde episode'ların bir kısmı eski seviyelerden
+  (unutmaya karşı); bu episode'lar seviye atlama istatistiğine girmez, log'da "tekrar:" diye ayrıca görünür.
 """
 
 import argparse
@@ -61,6 +67,9 @@ INFO_KEYS = ("episode_success", "level_index", "commands_ok", "commands_total")
 
 
 def make_config(name: str, task: str = "command", overrides: dict | None = None):
+    if task == "takeoff":
+        from helicopter_env_takeoff import TakeoffEnvConfig
+        return TakeoffEnvConfig(**(overrides or {}))
     if task == "maneuver":
         from helicopter_env_maneuver import ManeuverEnvConfig
         return ManeuverEnvConfig(**(overrides or {}))
@@ -69,17 +78,25 @@ def make_config(name: str, task: str = "command", overrides: dict | None = None)
 
 
 def task_levels(task: str):
+    if task == "takeoff":
+        from takeoff_curriculum import DEFAULT_TAKEOFF_LEVELS
+        return DEFAULT_TAKEOFF_LEVELS
     if task == "maneuver":
         from maneuver_curriculum import DEFAULT_MANEUVER_LEVELS
         return DEFAULT_MANEUVER_LEVELS
     return DEFAULT_LEVELS
 
 
-def make_env_fn(rank: int, level_index: int, config_name: str, task: str = "command", overrides: dict | None = None):
+def make_env_fn(rank: int, level_index: int, config_name: str, task: str = "command", overrides: dict | None = None,
+                train: bool = False):
     def _init():
         # SubprocVecEnv işçisinde de repo kökü import yolunda olsun
         if str(REPO_ROOT) not in sys.path:
             sys.path.insert(0, str(REPO_ROOT))
+        if task == "takeoff":
+            from helicopter_env_takeoff import HelicopterEnvTakeoff
+            # train=True: seviyenin rehearse / p_rehearse ayarıyla eski seviyelerden de episode (unutmaya karşı)
+            return HelicopterEnvTakeoff(level=level_index, config=make_config(config_name, task, overrides), rehearsal=train)
         if task == "maneuver":
             from helicopter_env_maneuver import HelicopterEnvManeuver
             return HelicopterEnvManeuver(level=level_index, config=make_config(config_name, task, overrides))
@@ -91,7 +108,7 @@ def make_env_fn(rank: int, level_index: int, config_name: str, task: str = "comm
 def build_vec_env(n_envs: int, level_index: int, vec: str, config_name: str = "v2", task: str = "command",
                   overrides: dict | None = None):
     from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
-    fns = [make_env_fn(i, level_index, config_name, task, overrides) for i in range(n_envs)]
+    fns = [make_env_fn(i, level_index, config_name, task, overrides, train=True) for i in range(n_envs)]
     if vec == "subproc" and n_envs > 1:
         method = "fork" if sys.platform.startswith("linux") else None
         venv = SubprocVecEnv(fns, start_method=method)
@@ -119,6 +136,7 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
             self.cmd_err = deque(maxlen=args.window)     # komut penceresi sonundaki |e_ψ| (seviyeye göre)
             # eksen türüne göre komut başarısı (heading / speed / altitude / combined) — unutmayı yakalar
             self.axis_ok = {}
+            self.rehearse_ok = {}                        # eski seviyelerden tekrar episode'ları (seviye adı → başarılar)
             self.history = list(history)
             self.last_save = 0
             self.last_snap = 0
@@ -153,7 +171,13 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
 
         def _on_step(self) -> bool:
             for info, done in zip(self.locals["infos"], self.locals["dones"]):
-                if not done or info.get("level_index") != self.level:
+                if not done:
+                    continue
+                if info.get("level_index") != self.level:
+                    # tekrar (rehearsal) episode'u: eski seviyenin başarısını ayrıca izle (unutma göstergesi)
+                    if info.get("level") in getattr(levels[self.level], "rehearse", ()):
+                        self.rehearse_ok.setdefault(info["level"], deque(maxlen=args.window)).append(
+                            bool(info.get("episode_success", False)))
                     continue
                 self.recent.append(bool(info.get("episode_success", False)))
                 self.n_eps += 1
@@ -170,7 +194,12 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
                 self.model.save(out / "models" / f"snap_{self.num_timesteps // 1000:05d}k.zip")
                 self.last_snap = self.num_timesteps
             if args.eval_freq and self.num_timesteps - self.last_eval >= args.eval_freq:
-                self._evaluate()
+                cur = self._evaluate()
+                # --promote-on-eval: mevcut seviyenin DETERMİNİSTİK başarısı eşiği geçince de seviye atla
+                # (inişte stokastik policy'nin gürültüsü temas hızını / oturmayı bozuyor; eğitim başarısı düşük kalıyor)
+                if args.promote and args.promote_on_eval and cur is not None and cur >= self._threshold():
+                    print(f"[curriculum] deterministik değerlendirme {cur:.0%} ≥ eşik {self._threshold():.0%} → seviye atlama")
+                    return self._promote()
             if (args.promote and len(self.recent) >= args.window and self.n_eps >= args.min_episodes
                     and float(np.mean(self.recent)) >= self._threshold() and self._axes_ok()):
                 return self._promote()
@@ -222,7 +251,9 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
             print(f"[curriculum] {row['timesteps']:>9d} adım | {row['wall_min']:6.1f} dk | seviye {row['level']} | "
                   f"episode {self.n_eps:4d} | başarı(son {len(self.recent)}) {rate:5.1%} | "
                   f"düşme {row['fail_rate']:5.1%} {row['top_failure']} | ödül {row['ep_rew_mean']:.1f} | "
-                  f"eksen: {self._axis_summary()}", flush=True)
+                  f"eksen: {self._axis_summary()}" + (f" | tekrar: " + " ".join(
+                      f"{k}={np.mean(v):.0%}({len(v)})" for k, v in sorted(self.rehearse_ok.items())) if self.rehearse_ok else ""),
+                  flush=True)
 
         # -------------------------------------------------------------
         def _evaluate(self):
@@ -233,7 +264,11 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
             if self.eval_env is None:
                 self.eval_env = make_env_fn(0, 0, args.env_config, args.task, args.env_overrides)()
             t0, rates = time.time(), {}
-            for lv in [x.strip() for x in args.eval_levels.split(",") if x.strip()]:
+            names = [x.strip() for x in args.eval_levels.split(",") if x.strip()]
+            cur_name = levels[self.level].name
+            if args.promote_on_eval and cur_name not in names:
+                names.append(cur_name)
+            for lv in names:
                 ok = 0
                 for k in range(args.eval_episodes):
                     obs, _ = self.eval_env.reset(seed=90_000 + k, options=dict(level=lv))
@@ -243,13 +278,17 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
                         done = term or trunc
                     ok += bool(info.get("episode_success", False))
                 rates[lv] = ok / max(1, args.eval_episodes)
-            score = float(np.mean(list(rates.values()))) if rates else 0.0
+            fixed = [x.strip() for x in args.eval_levels.split(",") if x.strip()]
+            base = [rates[k] for k in fixed if k in rates] or list(rates.values())
+            score = float(np.mean(base)) if base else 0.0          # best.zip: yalnızca --eval-levels ortalaması
             best = score > self.best_eval
             if best:
                 self.best_eval = score
                 (out / "models").mkdir(parents=True, exist_ok=True)
                 self.model.save(out / "models" / "best.zip")
-            row = dict(timesteps=self.num_timesteps, score=score, **{f"success_{k}": v for k, v in rates.items()})
+            row = dict(timesteps=self.num_timesteps, score=score, **{f"success_{k}": rates.get(k) for k in fixed})
+            if args.promote_on_eval:                                # sabit sütunlar (seviye değişse de CSV bozulmasın)
+                row.update(current_level=cur_name, success_current=rates.get(cur_name))
             path = out / "eval.csv"
             new = not path.exists()
             with open(path, "a", newline="") as f:
@@ -260,6 +299,7 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
             print(f"[eval] {self.num_timesteps:>9d} adım | deterministik başarı " +
                   " ".join(f"{k}={v:.0%}" for k, v in rates.items()) +
                   f" | ortalama {score:.1%}{'  ← en iyi, best.zip' if best else ''} ({time.time() - t0:.0f} s)", flush=True)
+            return rates.get(cur_name)
 
         def _save(self, tag: str):
             (out / "models").mkdir(parents=True, exist_ok=True)
@@ -295,6 +335,7 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
             self.cmd_err.clear()
             self.term.clear()
             self.axis_ok = {}
+            self.rehearse_ok = {}
             self.n_eps = 0
             self.level_start_steps = self.num_timesteps
             self.level_start_time = time.time()
@@ -314,8 +355,9 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--task", choices=["command", "maneuver"], default="command",
-                   help="command: Δ komut curriculum'u (H1…R1); maneuver: süre hedefli manevralar (M1…M5)")
+    p.add_argument("--task", choices=["command", "maneuver", "takeoff"], default="command",
+                   help="command: Δ komut curriculum'u (H1…R1); maneuver: süre hedefli manevralar (M1…M5, S1…S4); "
+                        "takeoff: yerden kalkış / hover / iniş, 4 kumanda doğrudan (K1…K9)")
     p.add_argument("--out", default="runs/command_curriculum", help="çıktı klasörü (Colab'da Drive önerilir)")
     p.add_argument("--total-steps", type=int, default=6_000_000,
                    help="üst sınır; son seviye geçilince eğitim kendiliğinden biter")
@@ -350,18 +392,23 @@ def parse_args(argv=None):
     p.add_argument("--clip-range", type=float, default=0.2)
     p.add_argument("--ent-coef", type=float, default=0.0)
     p.add_argument("--target-kl", type=float, default=None)
-    p.add_argument("--log-std-init", type=float, default=-1.0, help="başlangıç keşif gürültüsü: σ = e^x (−1 → 0.37)")
+    p.add_argument("--log-std-init", type=float, default=None,
+                   help="başlangıç keşif gürültüsü: σ = e^x (varsayılan −1 → 0.37; kalkış −1.2 → 0.30)")
     p.add_argument("--fine-from", default=None,
                    help="bu seviyeden itibaren ince ayar (küçük lr + KL sınırı; varsayılan V1 / M3); 'none' → kapalı")
     p.add_argument("--fine-lr", type=float, default=1e-4)
     p.add_argument("--fine-kl", type=float, default=0.02)
+    p.add_argument("--promote-on-eval", action="store_true",
+                   help="mevcut seviyenin deterministik değerlendirme başarısı eşiği geçince de seviye atla "
+                        "(değerlendirmeye mevcut seviye eklenir)")
     p.add_argument("--net", default="128,128", help="gizli katmanlar (pi ve vf için ayrı ağ)")
     p.add_argument("--save-freq", type=int, default=100_000, help="latest.zip kayıt aralığı (adım)")
     p.add_argument("--snapshot-freq", type=int, default=0,
                    help="bu kadar adımda bir models/snap_<adım>k.zip (0 = kapalı; en iyi ara modeli seçmek için)")
     p.add_argument("--eval-freq", type=int, default=0,
                    help="bu kadar adımda bir deterministik değerlendirme (sabit seed'ler); en iyisi models/best.zip")
-    p.add_argument("--eval-levels", default="M5,S2,S3", help="değerlendirme seviyeleri (virgülle)")
+    p.add_argument("--eval-levels", default=None,
+                   help="değerlendirme seviyeleri (virgülle; varsayılan manevra M5,S2,S3 · kalkış K2,K4,K9)")
     p.add_argument("--eval-episodes", type=int, default=30, help="seviye başına değerlendirme episode'u")
     p.add_argument("--smoke", action="store_true", help="çok kısa deneme koşusu")
     return p.parse_args(argv)
@@ -370,11 +417,15 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
     if args.level is None:
-        args.level = "M1" if args.task == "maneuver" else "H1"
+        args.level = {"maneuver": "M1", "takeoff": "K1"}.get(args.task, "H1")
     if args.fine_from is None:
-        args.fine_from = "M3" if args.task == "maneuver" else "V1"
+        args.fine_from = {"maneuver": "M3", "takeoff": "K5"}.get(args.task, "V1")
     if args.gamma is None:
-        args.gamma = 0.995 if args.task == "maneuver" else 0.99
+        args.gamma = 0.995 if args.task in ("maneuver", "takeoff") else 0.99
+    if args.log_std_init is None:
+        args.log_std_init = -1.2 if args.task == "takeoff" else -1.0     # kalkış: dört kumanda doğrudan, daha az gürültü
+    if args.eval_levels is None:
+        args.eval_levels = {"takeoff": "K2,K4,K9"}.get(args.task, "M5,S2,S3")
     if str(args.fine_from).lower() == "none":
         args.fine_from = None
     if args.smoke:
@@ -472,7 +523,8 @@ def main(argv=None):
     t0 = time.time()
     try:
         model.learn(total_timesteps=args.total_steps, callback=cb, reset_num_timesteps=not args.resume,
-                    tb_log_name="ppo_man" if args.task == "maneuver" else "ppo_cmd", progress_bar=False)
+                    tb_log_name={"maneuver": "ppo_man", "takeoff": "ppo_takeoff"}.get(args.task, "ppo_cmd"),
+                    progress_bar=False)
     except KeyboardInterrupt:
         print("\n[train] durduruldu (Ctrl+C / Colab stop) — kaydediliyor...")
         cb._save("latest")

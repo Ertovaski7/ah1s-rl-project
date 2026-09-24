@@ -97,6 +97,20 @@ python evaluate_robustness.py --model models_maneuver/maneuver_robust_final.zip 
 python command_viz.py                    # canlı 3D: dayanıklı model; manevra sürerken yeni komut verilebilir
 ```
 
+## 1.7. Yeni: Kalkış, hover ve iniş — dört kumanda doğrudan
+
+Rotor warm-up'tan sonra yerden kalkış (12–1000 ft), hover, hover manevraları (yerinde dönüş, ileri / geri / yana kayma,
+bob-up / down), kalkış sürerken hedef değişikliği, pad'e yumuşak iniş, ağırlık / CG (8500–10280 lbs) ve hover'da
+bozucular. Ajan collective, longitudinal / lateral cyclic ve pedalın **dördünü de doğrudan** kullanıyor (AFCS yalnızca
+SAS, hiçbir kumanda sınırlanmadı). PPO sıfırdan, seviyeler K1 → K9. Model `models_takeoff/takeoff_final.zip`: 28 test
+senaryosunun 28'i başarılı, seviyelerde K1–K8 %100, K9 (karma) %95; inişte temas −2…−3.9 ft/s. İnişin öğrenilmesi
+için bulunan engeller ve düzeltmeleri (keşif, yerel optimum, unutma, ödül tasarımı): **bölüm 30**.
+
+```bash
+python evaluate_takeoff.py --model models_takeoff/takeoff_final.zip        # 28 senaryo, ~3 dk
+python command_viz.py --model models_takeoff/takeoff_final.zip             # canlı 3D: yerde başla, «Kalk / çık», iniş, bozucular
+```
+
 ---
 
 # 2. Repo yapısı
@@ -126,6 +140,13 @@ ah1s-rl-project/
 ├── models_maneuver/                         maneuver_M5_final.zip (M1 → M5), maneuver_robust_final.zip (dayanıklı)
 ├── docs/maneuver_curriculum/                Koşunun kanıtları (ilerleme CSV, curriculum_state, doğrulama, grafik)
 ├── docs/robustness/                         Dayanıklılık kanıtları (test JSON / log'ları, eğitim CSV'leri, probe, grafik)
+│
+│   Kalkış, hover ve iniş — dört kumanda doğrudan (bölüm 30)
+├── helicopter_env_takeoff.py                Yerden / havadan başlayan görev dizisi env'i: kalkış, hover, manevralar, iniş, bozucu
+├── takeoff_curriculum.py                    Seviyeler K1 … K9 (+ K7a iniş okulu), tekrar (rehearsal), iniş profili ve süre hedefi
+├── evaluate_takeoff.py                      28 sabit senaryo + seviye istatistikleri + dört kumandanın kullanımı
+├── models_takeoff/                          takeoff_final.zip
+├── docs/takeoff/                            Probe, şekil, senaryo / seviye sonuçları, koşuların CSV'leri
 │
 ├── run_colab_live_heading_dashboard.py      Canlı target-heading dashboard (Colab içinde)
 ├── validate_final_continuous_mission_v1.py  Heading görevi: Stage1 → Stage2 → komutlar → recovery (headless)
@@ -208,6 +229,7 @@ Repository’deki `vN` numaraları çoğunlukla **repair / training / validator 
 | `models_command_curriculum/v2_R1_final.zip` (+ ara seviyeler, v1) | Komut ajanı: Δheading / Δhız / Δirtifa, ~15 ft/s (bölüm 26) | `evaluate_command_policy.py`, `command_viz.py --model …` |
 | `models_maneuver/maneuver_M5_final.zip` | Manevra ajanı: süre hedefli Δ komutları, 0–100 kt, attitude komutu (bölüm 28) | `evaluate_maneuver_policy.py`, `command_viz.py --model …` |
 | `models_maneuver/maneuver_robust_final.zip` | Dayanıklı manevra ajanı: collective ±0.45 (modelin içinde kayıtlı) + S4 ince ayarı (bölüm 29) | `evaluate_robustness.py`, `command_viz.py` (varsayılan) |
+| `models_takeoff/takeoff_final.zip` | Kalkış / hover / iniş ajanı: dört kumanda doğrudan, K1 → K9 (bölüm 30) | `evaluate_takeoff.py`, `command_viz.py --model …` |
 
 Runtime turn modelleri, orijinal "V22 20/20" doğrulamasında kullanılan dosyalarla; Stage 3 modeli de önceki geliştiricinin kilitlediği SHA-256 değeriyle byte-byte aynıdır. Kontrol için: `sha256sum -c models_sha256.txt`.
 
@@ -1394,3 +1416,233 @@ python command_viz.py record                                                    
   slalomda 20 ft/s, dayanıklı modelde 23 ft/s). Dönüşte |v| cezası sabit (`pen_side`); koordineli dönüş isteniyorsa
   ceza / pedal koordinasyonu rüzgârdan önce ele alınabilir.
 - Rüzgâr / türbülans, sensör gürültüsü, model belirsizliği (kütle, ağırlık merkezi) yok — sonraki aşama.
+
+---
+
+# 30. Kalkış, hover ve iniş — dört kumanda doğrudan (2026-09-24)
+
+**Mentor isteği:** rotor warm-up'tan sonra yerden kalkıp 1000 ft'e kadar istenen irtifaya çıkmak ve orada hover'da
+kalmak. Ajan dört kumandanın dördünü de kontrol etmeyi öğrenmeli — yalnızca collective ve elevator değil; lateral
+cyclic ve pedal dikey kalkışta daha az önemli görünse de onları sınırlamak ya da AFCS'ye bırakmak kolay yol olurdu.
+Farklı episode türleri önerilebilir; modelin dayanıklılığı (robustness) geliştirilecek.
+**Kullanıcı seçimleri:** doğrudan kumanda (hover trimi etrafında dört stick, tam yetki; AFCS yalnızca SAS = rate
+damping), episode türleri: hover manevraları, hedef değişikliği, iniş (landing), ağırlık ve bozucular.
+
+**Özet:** yeni env (`helicopter_env_takeoff.py`), seviyeler K1 → K9 (`takeoff_curriculum.py`) ve 28 sabit test senaryosu
+(`evaluate_takeoff.py`). PPO sıfırdan; kalkış ve hover manevraları hızlı öğrenildi, iniş için bir dizi engel teşhis edilip
+düzeltildi (30.4). Sonuç modeli `models_takeoff/takeoff_final.zip`: **28 senaryonun 28'inde tüm görevler başarılı
+(60/60 görev)**, seviyelerden 40'ar deterministik episode'da **K1–K8 %100, K9 (karma) %95**; inişte yumuşak temas
+(−2…−3.3 ft/s; tam yakıtta −3.7…−3.9 ft/s, sınır 4). İniş eğitiminden önceki model (K6) aynı testlerde 21/28, inişlerde
+0/3 (2 sert iniş). Dört kumandanın dördü de etkin kullanılıyor (30.5).
+
+## 30.1. Neden dört kumanda — probe (ölçüm, policy yok)
+
+- **Açık döngü kalkış** (cyclic / pedal sabit, collective rampası): SFD trimleriyle 12 s'de heading +81° (yaw hızı
+  11.5°/s), pad'den ~220 ft uzaklaşma; PID'le bulunmuş hover trimleriyle bile 16 s'de +20° ve 55 ft (şekil, sol üst).
+  Sebep: collective arttıkça ana rotor torku artar (yaw) → pedal; tail rotor itkisi helikopteri yana iter (translating
+  tendency) → lateral cyclic; burun salınımı → longitudinal cyclic. Dördü de gerekli.
+- **Hover trimleri** (8500 lbs, SAS, PID ile): OGE (yer etkisi dışı) collective 0.603, elevator −0.151, aileron 0.192,
+  rudder 0.410; 8 ft'te (IGE, yer etkisi içinde) collective 0.565; 1000 ft'te 0.613. Liftoff collective ~0.605.
+- **Ağırlık / CG** (iki tank × 890 lbs → 8500–10280 lbs, CG 169.5–175.2 in): collective 0.610 / 0.661 / 0.712, pedal
+  0.415 / 0.451 / 0.491 (boş / yarım / dolu); CG önde elevator −0.181, arkada −0.119.
+- **Adım cevapları** (300 ft hover): collective +0.06 → 3 s'de +7 ft/s tırmanış; lateral cyclic +0.15 → 2 s'de +5.6°
+  yatış; pedal +0.15 → 2 s'de −10.4° heading.
+- **Yerde kızaklardaki ağırlık oranı** (weight on skids) collective'e göre: 0 → 0.98, 0.2 → 0.70, 0.3 → 0.51,
+  0.45 → 0.22, 0.55 → 0.02. İniş başarısı bu yüzden "ağırlığın ≥ %70'i kızaklarda" (collective ≲ 0.2) diye tanımlı.
+- Maliyet: FDM kurulumu 0.007 s, rotor warm-up 0.038 s → her reset'te yeni FDM ucuz. Probe scriptleri:
+  `docs/takeoff/probe_takeoff.py`.
+
+## 30.2. Env: `helicopter_env_takeoff.py` (`HelicopterEnvCommand`'ın alt sınıfı)
+
+**Action (4), a ∈ [−1, 1]:** a → alçak geçiren filtre (α = 0.5) → expo y = 0.2·a + 0.8·a³ (merkezde ince, uçta tam
+yetki) → kumanda = hover trimi + aralık·y (collective ±0.6, cyclic / pedal ±1), kırpma → kumanda hızı sınırı
+(collective 0.6/s, cyclic / pedal 3/s). a = 0 → OGE hover trimi. Filtre durumu gerçek kumandadan geri hesaplanır.
+Hiçbir kumanda AFCS'ye bırakılmadı; AFCS yalnızca roll / pitch / yaw rate damping (attitude / heading hold kapalı).
+
+**Observation (29):** hedef konum hatası burun eksenine göre (ileri, sağa; ince + kaba ölçek), irtifa hatası, heading
+hatası, takvim gecikmesi (konum / irtifa / heading), τ = geçen / T, T, yer hızı (ileri, yana), dikey hız, φ, θ, p, q,
+r, kızak yüksekliği (log), rotor devri, kızaklardaki ağırlık oranı, iniş bayrağı, kumandaların o anki konumu (4).
+
+**Başlangıç:** yerde (rotor warm-up sonrası, collective 0, cyclic / pedal trimde) ya da havada (teleport + yalnızca
+reset'te çalışan bir PID ile oturtulmuş hover; policy'ye action önermez). Eğitimde ayrıca iniş için **reverse
+curriculum** başlangıçları: `touch` (yerde, collective 0.30–0.52 → kızaklar hafif yüklü) ve `low` (kızaklar 1.5–4 ft).
+
+**Görevler** (bir episode bir görev dizisidir): kalkış (`takeoff`, CG irtifası 12–1000 ft), hover tut (`hold`),
+yerinde dönüş (`turn`, Δψ), yer değiştirme (`move`, burun eksenine göre ileri / sağa), bob-up / bob-down (`bob`),
+hedef değişikliği (`climb_to`: kalkış sürerken yeni irtifa, ölçülen duruma göre), iniş (`land`), bozucu sonrası
+toparlanma (`recover`: kumanda darbesi — ajan göremez —, yatay / dikey itki, attitude sapması). Süre hedefi
+T = tepki + yol / hız; son sınır = max(1.25·T, T + 2 s).
+
+**Başarı:** son sınırdan önce banda girip tutma süresi boyunca kalmak + kuplaj + güvenlik.
+- Hover bandı: konum ±6…12 ft, irtifa ±3…10 ft (hedef irtifaya göre), heading ±3°, yatay hız ≤ 2 ft/s, dikey ≤ 2 ft/s;
+  tutma 10 s (ilk görev) / 5 s.
+- İniş bandı: dört kızak noktası yerde, ağırlığın ≥ %70'i kızaklarda, yer hızı ≤ 1 ft/s, pad'e ≤ 8 ft, heading ±5°,
+  3 s; en sert temas ≤ 4 ft/s.
+- Kuplaj (komut verilmeyen eksen): konum 20 ft, irtifa 15 ft, heading 10°.
+- Güvenlik (episode biter): yatış 45°, yunuslama 40°, oran 100°/s, yaw 90°/s, yerde 15° (devrilme), temas > 10 ft/s,
+  kuyruk teması (tail strike), pad'den 150 ft, hedefin 200 ft üstü, 60 ft/s, rotor 280–380 rpm.
+
+**Reward** (ölçek 0.1): hedef çekirdekleri (konum, irtifa, heading) + yönlendirme çekirdekleri (hedefe doğru istenen
+yatay / dikey / yaw hızı) + ilerleme − takvim gecikmesi − süre aşımı − aşırı açı / oran − kumanda hızı ve doygunluk −
+kuplaj (sınırın %25'inden itibaren karesel) − sert temas (2 ft/s'nin üstü) − yere yakınken fazla alçalma hızı (izin
+1.5 + 0.2·kızak yüksekliği ft/s) + **görev başarı ödülü** (pencere başarıyla bitince +30). İniş penceresinde ayrıca:
+alçalma profili (ḣ = −clip(0.25·kızak yüksekliği, 1, 5) ft/s) aşımı cezası, havadayken pad'e hizalanma cezası, ve
+temas yumuşaksa (en sert temas ≤ 3 ft/s tam, ≥ 5 ft/s sıfır) **iniş ödülleri**: dört nokta temas, kızaklardaki ağırlık,
+iniş bandında olmak, collective'i IGE triminden flat pitch'e indirme (action uzayında doğrusal). Yerde (iniş
+penceresinde) konum çekimi ve istenen yatay hız yok. İniş süre hedefi aynı profilden (`land_profile_time`).
+
+## 30.3. Seviyeler: `takeoff_curriculum.py`
+
+| Seviye | Episode | Çeviklik (süre hedefi) | Eşik |
+|---|---|---|---|
+| K1 | Havada başla (15–150 ft, küçük hız / attitude bozukluğu), 15 s hover tut | — | %80 (stokastik) |
+| K2 | Yerden kalkış → 10–25 ft hover, 10 s | tırmanış 5 ft/s, tepki 6 s | %80 |
+| K3 | Kalkış → 25–200 ft | 8 ft/s, 5 s | %80 |
+| K4 | Kalkış → 200–1000 ft | 12 ft/s, 5 s | %80 |
+| K5 | Hover manevraları: yarısı yerden kalkış, yarısı havada; 2–4 görev (dönüş 30–180°, kayma 15–60 ft ileri / geri / yana, bob ±15–50 ft) | 8 ft/s, 15°/s, 8 ft/s kayma | %70 |
+| K6 | Hedef değişikliği: kalkış 60–1000 ft, %90 olasılıkla 1–2 kez yeni irtifa (aşağıda dur / yükseğe çık / alçak hover), +0–1 manevra | 10 ft/s | %70 |
+| K7a | İniş okulu: 12–60 ft'ten (+0–1 manevra) iniş; **%35 yerde hafif yüklü, %35 çok alçak hover** başlangıcı (reverse curriculum); tekrar K5 / K6 %15 | iniş profili (5 ft/s) | %80 |
+| K7 | İniş: kalkış / hover 15–200 ft, 0–2 manevra, iniş; tekrar K5 / K6 / K7a %20 | profil | %70 (deterministik) |
+| K8 | Ağırlık / CG (her tank 0–890 lbs), 1–2 bozucu, 1–3 manevra, %30 hedef değişikliği, %40 iniş; %20 ağırlıklı iniş son aşaması; tekrar %10 | 10 ft/s | %65 (deterministik) |
+| K9 | Karma ince ayar: hepsi, kalkış 10–1000 ft, %50 iniş, 0–2 bozucu; tekrar %8 | 10 ft/s | — (sabit bütçe) |
+
+- **Tekrar (rehearsal):** K7a'dan itibaren eğitim env'lerinde episode'ların %8–20'si eski seviyelerden
+  (`rehearse` / `p_rehearse`); seviye atlama istatistiğine girmez, log'da `tekrar:` diye ayrıca görünür. Yalnızca
+  iniş seviyesinde eğitince K5 (hover manevraları) deterministik başarısı %100 → %65'e düşmüştü.
+- **Seviye atlama:** stokastik eğitim başarısı eşiği geçince (K1–K7a) ya da `--promote-on-eval` ile mevcut seviyenin
+  deterministik değerlendirmesi eşiği geçince (K7, K8: inişte keşif gürültüsü temas hızını bozuyor, eğitim başarısı
+  deterministikten çok düşük kalıyor).
+
+## 30.4. Eğitim süreci — iniş neden zordu (bulgular)
+
+K1–K6 hızlı öğrenildi (PPO sıfırdan, `to_v1`: hover 127 bin adım; K6'yı geçmek toplam ~530 bin adım, ~15 dk).
+**İniş** ise ajanın en zorlandığı görev oldu; her denemede bir sonraki engel çıktı. Sırasıyla (hepsi deterministik
+değerlendirme ve tek tek uçuş izleriyle teşhis edildi):
+
+| Koşu | Gözlem (teşhis) | Değişiklik |
+|---|---|---|
+| to_v1 K7 | Ajan collective'i 0.16'ya kesip −25 ft/s dalıyor → sert temas | yere yakınken alçalma hızı cezası (flare); ara seviye K7a (alçaktan iniş); inişte irtifa "ilerleme" ödülü kaldırıldı |
+| to_v1 K7a | Yumuşak temas ama kızaklar hafif yüklü, sekiyor; sonra K5 / 300 ft kalkış bozuldu (**unutma**) | — |
+| to_v2 | K5 %100 → %65 (unutma) | **tekrar (rehearsal)**: episode'ların bir kısmı eski seviyelerden |
+| to_v3 | Temas −2 ft/s, sonra 1–4 ft'te IGE hover'a geri tırmanıyor (yerel optimum) | yerdeyken collective indirme ödülü (collective uzayında) |
+| to_v4 | Yerde hafif yüklü başlasa bile collective'i kaldırıp havalanıyor. **Kök neden:** expo eşleme (y = 0.2a + 0.8a³) trim çevresinde çok düz; %70 ağırlık collective ~0.2 → a ≈ −0.9 ister, keşif gürültüsü (σ ≈ 0.2) oraya ulaşmıyor; collective'e göre ödülün o bölgede eğimi yok | **reverse curriculum** başlangıçları (yerde hafif yüklü / çok alçak hover) + indirme ödülü **action uzayında doğrusal** |
+| to_v5 | İniş öğrenildi (K7a %70) ama K6 %85 → %40–50: uzun dikey geçişlerde konum ~0.5 ft/s sürükleniyor (700 ft'te 20–25 ft > kuplaj 20) | kuplaj cezası sınırın %25'inden (%50 yerine), ×3 |
+| to_v7 | Başarı ödülü + lr 2e-4: yana kayma yavaşladı (K5 %73) | lr 1e-4'e dönüldü |
+| to_v8 | K7a %75 ↔ %25 salınım: son 2–3 ft'i collective'i kesip 4–5 ft/s ile "düşüyor" (yerdeki adım başına ödül bunu kârlı yapıyor) | iniş ödülleri × **temas yumuşaklığı** (≤ 3 ft/s tam, ≥ 5 ft/s yok), temas cezası 25, görev başarı ödülü |
+| **to_v9** | K7a geçildi (%91), 500 bin adımda K3 / K5 / K6 / K7a / K7 hepsi %100 (deterministik). K7'nin stokastik eğitim başarısı %68'de kaldı → elle K8'e geçildi (o sırada `--promote-on-eval` yoktu) | — |
+| to_v10 | K8'de (ağırlık) K7 %0: yumuşak temastan sonra pad merkezine "gitmek" için cyclic'i ileri itip burnu 6° aşağıda iki kızak noktası üstünde oturuyor | yerdeyken konum çekimi yok (iniş toleransı içinde), istenen yatay hız 0 |
+| to_v11–v14 | Ağır helikopter 200+ ft'ten ~15 ft/s dalıp geç frenliyor → 5 ft/s temas (indirimli getiri erken varmayı ödüllendiriyor); yavaş alçalmada pad'den 11–16 ft sürüklenme; ağırlıkla collective yetersiz inmesi | inişte alçalma profili cezası (istenenin +2 ft/s üstü), pad'e hizalanma cezası, collective hedefi flat pitch; (yerde cyclic ortalama cezası denendi: ajan inişte havadayken de cyclic kullanmayı bıraktı → kaldırıldı) |
+| to_v15 | K8 geçildi (deterministik %65) | — |
+| to_v16–17 | K9'da uzun inişlerde son sınır kaçıyor: süre hedefi (hs / hız + 3 s) profilin yavaşlamasını saymıyordu (50 ft'ten iniş profille ~23 s, son sınır 20 s) | iniş süre hedefi = profil süresi (`land_profile_time`); episode sınırı 600 s |
+| to_v18 | Ağır helikopterde collective ~0.3'te kalıyor (ağırlık %60, bant %70 istiyor) | iniş bandının içinde olmak da adım başına ödül (ölçütün kendisi) |
+
+Öğrenilenler (RL tarafı):
+- **Keşif, ödülün action uzayındaki eğimine bağlı.** Expo eşlemenin düz bölgesinde fiziksel kumandaya bağlı ödül
+  pratikte sıfır gradyan verir; ödülü action uzayında tanımlamak ya da başlangıcı hedefe yakın seçmek (reverse
+  curriculum) bunu çözdü.
+- **Adım başına ödül + indirim, "erken var" baskısı yaratır** (dalış, son ft'lerde düşme). Ödülü ölçütün kendisine
+  (temas hızı ≤ 4 ft/s, bantta olmak) bağlamak ve profil cezası bunu dengeledi.
+- **Bir durumda öğretilen davranış başka duruma sızar.** Yerde cyclic'i ortalama cezası, aynı gözlem bayrağıyla
+  (iniş) havadayken de cyclic kullanmamayı öğretti. Ceza kaldırılınca düzeldi.
+- **Unutma gerçek:** yalnızca yeni seviyede eğitmek eski becerileri bozuyor; tekrar (rehearsal) bunu önledi.
+- **Stokastik eğitim başarısı inişte yanıltıcı** (gürültü temas hızını / oturmayı bozuyor): K7a–K8'de seviye atlama
+  deterministik değerlendirmeyle (`--promote-on-eval`).
+
+## 30.5. Sonuçlar
+
+Bağımsız testler (deterministik policy; senaryolar ve seed'ler eğitimde / eğitim içi değerlendirmede kullanılmadı).
+Karşılaştırma: iniş eğitiminden önceki model (`to_v1` K6 seviyesini geçen ağ).
+
+| Test | K6 modeli (iniş yok) | **Sonuç modeli** |
+|---|---|---|
+| Senaryolar (28): güvenli (uçuş bitmedi) | 26/28 | **28/28** |
+| — tüm görevler başarılı | 21/28 | **28/28** |
+| — görev | 52/60 | **60/60** |
+| &nbsp;&nbsp; kalkış / manevra / hedef / iniş / ağırlık / bozucu | 5/5 · 7/7 · 3/3 · 0/3 · 1/5 · 5/5 | **5/5 · 7/7 · 3/3 · 3/3 · 5/5 · 5/5** |
+| Seviye K1 · K2 · K3 · K4 (40 episode, seed 70000+) | — | **%100 · %100 · %100 · %100** |
+| Seviye K5 (hover manevraları) | %100 | **%100** |
+| Seviye K6 (hedef değişikliği) | — | **%100** |
+| Seviye K7a · K7 (iniş) | — · %0 (7/40 sert iniş) | **%100 · %100** |
+| Seviye K8 (ağırlık + bozucu + iniş) | %45 (iniş %0) | **%100** |
+| Seviye K9 (karma) | %48 (iniş %0) | **%95** (iniş %90) |
+
+Senaryo ayrıntıları (sonuç modeli; `docs/takeoff/senaryolar_final.txt`):
+- **Kalkış** 15 / 50 / 150 / 500 / 1000 ft: yerden kesilme 1.2 s, pad'den en fazla 1.2–2.4 ft uzaklaşma, heading
+  sapması ~1°, tırmanış 14–18 ft/s (15 ft'e 5 ft/s); hover bandına süre hedefinin önünde (1000 ft: 73 s, son sınır
+  110 s). Kesilme anında kısa bir lateral cyclic hareketi var (en büyük yatış 8–10°, şekilde 2. satır).
+- **Hover manevraları:** 90° dönüş 4 s, 180° 10 s, 360° 14 s (eğitimde en fazla 180° vardı); 50 ft ileri / geri 9 s,
+  40 ft yana 8–9 s; bob-up / down ±40 ft 5–7 s; kombine görev (kalkış → 90° → 30 ft sağa → +30 ft → −180°) 5/5.
+- **Hedef değişikliği:** 800 → 300 ft, 200 → 600 ft, 500 → 20 ft (alçak hover) üçü de başarılı.
+- **İniş:** 50 ft'ten −2.0 ft/s, 300 ft'ten −2.3 ft/s, 30 ft yana kaydıktan sonra −2.1 ft/s; tek tank dolu (9390 lbs),
+  CG önde / arkada −3.3 / −3.1 ft/s; **tam yakıt (10280 lbs) 100 / 300 ft'ten −3.7 / −3.9 ft/s (başarılı ama sınıra
+  yakın)**. Temas sonrası collective aşağı, dört nokta yerde, ağırlığın ≥ %70'i kızaklarda.
+- **Bozucular** (100 ft hover): lateral cyclic ve pedal darbesi, 10 ft/s yana itki, +10° yatış, 8° burun yukarı →
+  0–4 s'de banda dönüş.
+- **Dört kumanda** (trimden sapma, 28 senaryo): RMS collective 0.090, long. cyclic 0.066, lat. cyclic 0.147, pedal
+  0.089; cyclic ve pedal tam yetkiye (±1) kadar kullanılıyor. Kalkışın ilk 8 s'sinde collective ile pedal arasındaki
+  korelasyon +0.52 (tork telafisi). Aynı yerden açık döngü kalkış (cyclic / pedal trimde) 16 s'de 20° dönüp 55 ft
+  kayıyor; ajan heading'i 1°, konumu 1.2 ft içinde tutuyor (şekil).
+
+![Kalkış / iniş ajanı](docs/takeoff/fig_takeoff.png)
+
+Eğitim: son modelin soyu `to_v1` (K1–K6, 0.53 M adım) → `to_v3 … to_v9` (iniş, K7a / K7; ödül değişiklikleriyle,
+~2.5 M adım) → `to_v15` (K8, 0.25 M) → `to_v17` (K9, 0.25 M) → `to_v18` (K9 ince ayar, 2 M adım; 250 bin adımda bir
+deterministik değerlendirme, en iyi ara model bağımsız testlerle seçildi: 0.75 M / 1.25 M / 2 M adayları arasında 2 M).
+Toplam ~5.1 M adım, 2 çekirdekte ~3 saat. `to_v18` değerlendirmeleri (20'şer episode, seed 90000+):
+
+| Adım | 0 | 0.25 M | 0.5 M | 0.75 M | 1 M | 1.25 M | 1.5 M | 1.75 M | **2 M** | 2.25 M | 2.5 M |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| K5 / K6 / K7 / K8 / K9 ort. | %77 | %86 | %85 | %92 | %90 | %96 | %81 | %92 | **%97** | %92 | %95 |
+
+İnce ayarda deterministik başarı dalgalanıyor (dayanıklılık aşamasındaki gibi); model bağımsız testlerle seçilmeli.
+Kanıtlar: `docs/takeoff/` (probe çıktısı, şekil scripti, senaryo ve seviye sonuçları JSON / metin, iki model için,
+koşuların ilerleme / değerlendirme CSV'leri ve curriculum_state).
+
+## 30.6. Çalıştırma
+
+```bash
+python evaluate_takeoff.py --model models_takeoff/takeoff_final.zip                 # 28 senaryo (~3 dk)
+python evaluate_takeoff.py --model models_takeoff/takeoff_final.zip --no-scenarios --levels K5,K7,K8,K9 --episodes 50
+python command_viz.py --model models_takeoff/takeoff_final.zip                      # canlı 3D: yerde başla, görev ver
+python command_viz.py record                                                        # demo uçuşları (to_* görevleri dahil)
+python docs/takeoff/probe_takeoff.py openloop                                       # açık döngü kalkış (neden 4 kumanda)
+python docs/takeoff/fig_takeoff.py --model models_takeoff/takeoff_final.zip          # şekil
+
+# Hazır modelden ince ayar (ör. yeni episode türü ya da ödül denemesi): K9'da sabit bütçe, en iyi ara model bağımsız testle
+python train_command_curriculum.py --task takeoff --level K9 --no-promote --init-model models_takeoff/takeoff_final.zip \
+    --out runs/to_k9 --total-steps 1000000 --snapshot-freq 250000 --eval-freq 250000 --eval-levels K5,K6,K7,K8,K9
+
+# PPO sıfırdan: K1 → K8 kapılarla, sonra K9. Dikkat: son ayarlarla sıfırdan koşuda K1–K6 geçildi ama iniş (K7a)
+# 0.8 M adımda öğrenilmedi (30.7) — son model iniş aşamasını ara ödül tasarımlarından geçerek öğrendi.
+python train_command_curriculum.py --task takeoff --out runs/to --stop-after K8 --promote-on-eval \
+    --total-steps 12000000 --eval-freq 250000 --eval-levels K3,K5,K6,K7,K8
+```
+
+`--promote-on-eval`: her değerlendirmede mevcut seviye de deterministik olarak koşulur (seed 90000+); eşiği geçince
+seviye atlanır (stokastik eğitim başarısı eşiği de hâlâ geçerli, hangisi önce). K9'da atlama yok; en iyi ara model
+bağımsız testlerle seçilir (seviye istatistikleri seed 70000+, senaryolar).
+
+## 30.7. Bilinen sınırlar / açık sorular
+
+- **Tek seed, uzun ödül zinciri.** Son model, ödülü adım adım değiştirilen 10 koşudan geçti (30.4). Aynı ayarlarla
+  sıfırdan yeniden üretme: son env / curriculum ile PPO sıfırdan (`to_repro`, `--stop-after K8 --promote-on-eval`) K1–K6'yı
+  0.52 M adımda geçti (orijinal 0.53 M), ama **iniş (K7a) 0.55 M adımda (lr 1e-4) + 0.3 M adımda (lr 2e-4, K6
+  checkpoint'inden) öğrenilmedi**: ajan yerde hafif yüklü başlasa da collective'i kaldırıp IGE hover'a dönüyor (to_v4'teki
+  yerel optimum), yaklaşmalarda sert temas. Son modelin soyunda iniş, ara ödül tasarımlarıyla (collective ödülü önce
+  collective uzayında, sonra action uzayında; yumuşaklık çarpanı yokken) geçen ~0.8 M adımdan sonra ortaya çıktı. Yani
+  sonuç model bu yolun ürünü; tek koşuda sıfırdan yeniden üretme doğrulanmadı. Öneri: yalnızca "touch" başlangıçlı bir
+  ara seviye (oturma okulu) ya da iniş aşamasında yumuşaklık çarpanını kademeli devreye almak.
+- **İniş hâlâ en zayıf görev:** K9'da iniş %90; tam yakıtta (10280 lbs) temas −3.7…−3.9 ft/s (sınır 4, pay az).
+  Ajan ağırlığı gözlemiyor (yalnızca dinamikten / collective konumundan çıkarıyor); gerçek helikopterde bilinen brüt
+  ağırlık (yakıt miktarından) gözleme eklenebilir.
+- Hover'da xy konum hatası dikey geçişlerde ve büyük dönüşlerde birkaç ft'lik kalıcı sapma bırakıyor (360° dönüşte
+  en fazla 14.6 ft; kuplaj sınırı 20 ft). ADS-33 hovering turn için istenen ±3 ft (yeterli ±6 ft) daha sıkı.
+- JSBSim AH-1S modelinde motor gücü / transmisyon torku sınırı yok; hızlı tırmanışta gerçek güç sınırları
+  denetlenmedi. Yer etkisi modelde var (IGE trimi ~0.565, OGE 0.603).
+- İniş bayrağı iniş bittikten sonra da (kızaklar yerdeyken) açık kalıyor: canlı uçuşta iniş bitince helikopter yeni
+  görev gelene kadar yerde kalıyor (ölçüldü: 40+ s). Bu değişiklik değerlendirmeden sonra yapıldı; görev sonuçları
+  aynı (senaryolar birebir aynı).
+- Rüzgâr / türbülans, sensör gürültüsü yok (sıradaki aşama).
+- **Önerilen yeni episode türleri:** hover ve inişte rüzgâr / gust (sabit + cosine-gust, JSBSim `atmosphere/gust-*`),
+  hassas iniş (ADS-33: ±3 ft), eğimli zemine iniş (slope landing), dar alan / engel üstünden kalkış, maksimum ağırlıkta
+  koşarak kalkış (running takeoff), rotor devri düşmesi / güç sınırı, hareketli platforma iniş.

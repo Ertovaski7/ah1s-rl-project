@@ -1,0 +1,11 @@
+Model: models_takeoff/takeoff_final.zip. Deterministik, seviye başına 40 episode, seed 70000+.
+K1: episode başarısı 100% (40)  bitiş {'time_limit': 40}  hold=100%(40)
+K2: episode başarısı 100% (40)  bitiş {'time_limit': 40}  takeoff=100%(40)
+K3: episode başarısı 100% (40)  bitiş {'time_limit': 40}  takeoff=100%(40)
+K4: episode başarısı 100% (40)  bitiş {'time_limit': 40}  takeoff=100%(40)
+K5: episode başarısı 100% (40)  bitiş {'time_limit': 40}  bob=100%(41) hold=100%(20) move=100%(49) takeoff=100%(20) turn=100%(34)
+K6: episode başarısı 100% (40)  bitiş {'time_limit': 40}  bob=100%(7) climb_to=100%(31) interrupted=100%(49) move=100%(7) takeoff=100%(9) turn=100%(8)
+K7a: episode başarısı 100% (40)  bitiş {'time_limit': 40}  bob=100%(1) hold=100%(10) land=100%(40) move=100%(3) takeoff=100%(2) turn=100%(1)
+K7: episode başarısı 100% (40)  bitiş {'time_limit': 40}  bob=100%(15) hold=100%(20) land=100%(40) move=100%(16) takeoff=100%(20) turn=100%(13)
+K8: episode başarısı 100% (40)  bitiş {'time_limit': 40}  bob=100%(19) climb_to=100%(7) hold=100%(12) interrupted=100%(9) land=100%(22) move=100%(25) recover=100%(40) takeoff=100%(10) turn=100%(9)
+K9: episode başarısı 95% (40)  bitiş {'time_limit': 40}  bob=100%(14) climb_to=100%(7) hold=100%(14) interrupted=100%(9) land=90%(20) move=100%(23) recover=100%(41) takeoff=100%(12) turn=100%(10)

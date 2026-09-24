@@ -1,0 +1,36 @@
+=== openloop
+SFD trim (0 kt): coll 0.601 elev -0.223 ail 0.255 rud 0.409
+t=  2.0 coll=0.302 h=   6.4 vs= +0.1 wow=4 fz=  -4462 psi=  -0.0 r=  -0.0 phi= +1.2 th= -0.1 N=  +0.1 E=  -0.2 rpm=322
+liftoff t=3.98s coll=0.605
+t=  4.0 coll=0.605 h=   6.9 vs= +0.8 wow=0 fz=      0 psi=  +0.1 r=  -0.0 phi= +2.2 th= +0.6 N=  +0.2 E=  -0.5 rpm=319
+t=  6.0 coll=0.620 h=  13.0 vs= +4.2 wow=0 fz=      0 psi=  +2.7 r=  +2.3 phi= +3.4 th= +2.3 N=  +2.8 E=  -9.1 rpm=318
+t=  8.0 coll=0.620 h=  20.9 vs= +3.4 wow=0 fz=      0 psi=  +9.7 r=  +4.6 phi= +3.3 th= +3.6 N= +12.5 E= -30.6 rpm=318
+t= 10.0 coll=0.620 h=  27.0 vs= +3.1 wow=0 fz=      0 psi= +21.1 r=  +7.1 phi= +2.3 th= +4.6 N= +32.6 E= -61.2 rpm=318
+t= 12.0 coll=0.620 h=  34.2 vs= +4.1 wow=0 fz=      0 psi= +38.1 r=  +9.5 phi= +0.6 th= +5.8 N= +68.0 E= -96.9 rpm=319
+t= 14.0 coll=0.620 h=  44.2 vs= +5.8 wow=0 fz=      0 psi= +59.2 r= +11.0 phi= -1.0 th= +7.6 N=+117.8 E=-126.4 rpm=319
+t= 16.0 coll=0.620 h=  56.8 vs= +7.1 wow=0 fz=      0 psi= +81.4 r= +11.5 phi= -1.6 th= +9.9 N=+175.0 E=-138.8 rpm=319
+=== trims
+liftoff t=3.60s coll=0.582
+hover h≈   8.1 (ref    8): coll 0.5648 elev -0.1558 ail +0.1862 rud +0.3873 rpm 320.4 phi -2.49 th -0.56 pos N +1.4 E -3.8
+hover h≈  12.0 (ref   12): coll 0.5817 elev -0.1518 ail +0.1881 rud +0.3994 rpm 321.7 phi -2.65 th -0.36 pos N -0.0 E -0.1
+hover h≈  20.0 (ref   20): coll 0.5987 elev -0.1511 ail +0.1912 rud +0.4086 rpm 322.5 phi -2.81 th -0.39 pos N +0.0 E -0.0
+hover h≈  35.0 (ref   35): coll 0.6028 elev -0.1512 ail +0.1923 rud +0.4105 rpm 323.1 phi -2.86 th -0.37 pos N +0.0 E -0.0
+hover h≈  60.0 (ref   60): coll 0.6023 elev -0.1506 ail +0.1921 rud +0.4102 rpm 323.5 phi -2.85 th -0.38 pos N +0.0 E -0.0
+hover h≈ 150.0 (ref  150): coll 0.6027 elev -0.1508 ail +0.1923 rud +0.4101 rpm 323.8 phi -2.86 th -0.36 pos N -0.0 E -0.1
+hover h≈ 400.0 (ref  400): coll 0.6055 elev -0.1514 ail +0.1933 rud +0.4123 rpm 324.1 phi -2.87 th -0.41 pos N +0.0 E -0.0
+hover h≈ 999.9 (ref 1000): coll 0.6131 elev -0.1508 ail +0.1959 rud +0.4162 rpm 324.4 phi -2.87 th -0.38 pos N +0.1 E -0.3
+=== steps
+collective  +0.03: max|p|   0.2 max|q|   0.1 max|r|   0.5 °/s vs@1s  +1.5 @3s  +3.6 ft/s | Δφ@1s  -0.1 Δθ@1s  -0.0 Δψ@1s  +0.3 | Δφ@2s  -0.2 Δθ@2s  -0.1 Δψ@2s  +0.7
+collective  +0.06: max|p|   0.4 max|q|   0.1 max|r|   1.0 °/s vs@1s  +2.9 @3s  +7.1 ft/s | Δφ@1s  -0.2 Δθ@1s  -0.1 Δψ@1s  +0.6 | Δφ@2s  -0.3 Δθ@2s  -0.1 Δψ@2s  +1.3
+long.cyclic +0.05: max|p|   0.1 max|q|   0.8 max|r|   0.0 °/s vs@1s  +0.0 @3s  -0.0 ft/s | Δφ@1s  +0.0 Δθ@1s  -0.6 Δψ@1s  +0.0 | Δφ@2s  -0.0 Δθ@2s  -1.3 Δψ@2s  +0.1
+long.cyclic +0.15: max|p|   0.4 max|q|   2.4 max|r|   0.2 °/s vs@1s  -0.0 @3s  -0.2 ft/s | Δφ@1s  +0.1 Δθ@1s  -1.8 Δψ@1s  +0.1 | Δφ@2s  +0.1 Δθ@2s  -3.8 Δψ@2s  +0.2
+lat.cyclic  +0.05: max|p|   1.1 max|q|   0.1 max|r|   0.4 °/s vs@1s  +0.0 @3s  -0.1 ft/s | Δφ@1s  +0.9 Δθ@1s  -0.0 Δψ@1s  +0.0 | Δφ@2s  +1.8 Δθ@2s  -0.1 Δψ@2s  +0.1
+lat.cyclic  +0.15: max|p|   3.3 max|q|   0.1 max|r|   1.1 °/s vs@1s  -0.0 @3s  -0.2 ft/s | Δφ@1s  +2.7 Δθ@1s  +0.0 Δψ@1s  +0.1 | Δφ@2s  +5.6 Δθ@2s  -0.1 Δψ@2s  +0.4
+pedal       +0.05: max|p|   0.1 max|q|   0.1 max|r|   2.2 °/s vs@1s  +0.0 @3s  -0.0 ft/s | Δφ@1s  -0.0 Δθ@1s  -0.1 Δψ@1s  -1.2 | Δφ@2s  -0.1 Δθ@2s  -0.3 Δψ@2s  -3.5
+pedal       +0.15: max|p|   0.3 max|q|   0.3 max|r|   6.7 °/s vs@1s  +0.0 @3s  +0.0 ft/s | Δφ@1s  -0.0 Δθ@1s  -0.2 Δψ@1s  -3.7 | Δφ@2s  -0.2 Δθ@2s  -0.5 Δψ@2s -10.4
+=== weight
+fuel (0, 0): W 8500 lbs CG x 172.0 in → coll 0.6097 elev -0.1505 ail +0.1933 rud +0.4150 rpm 322.2 h 300.0 th -0.39
+fuel (445, 445): W 9390 lbs CG x 172.4 in → coll 0.6611 elev -0.1501 ail +0.1974 rud +0.4513 rpm 321.9 h 300.0 th -0.37
+fuel (890, 890): W 10280 lbs CG x 172.7 in → coll 0.7119 elev -0.1499 ail +0.2013 rud +0.4906 rpm 321.6 h 300.0 th -0.35
+fuel (890, 0): W 9390 lbs CG x 169.5 in → coll 0.6611 elev -0.1813 ail +0.1981 rud +0.4460 rpm 321.9 h 300.0 th -0.70
+fuel (0, 890): W 9390 lbs CG x 175.2 in → coll 0.6611 elev -0.1186 ail +0.1968 rud +0.4566 rpm 321.9 h 300.0 th -0.03

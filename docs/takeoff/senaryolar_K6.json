@@ -1,0 +1,1970 @@
+{
+ "model": "to_v1/models/level_05_K6.zip (K6'yı geçen ağ, iniş eğitiminden önce; repoda yok)",
+ "results": [
+  {
+   "id": "kalkis_15",
+   "group": "kalkış",
+   "title": "Yerden 15 ft alçak hover",
+   "level": "K2",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 1,
+   "n": 1,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 7.7,
+     "deadline": 9.7,
+     "settle_s": 3.4,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 3.1,
+      "h": 8.7,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.2,
+   "max_drift": 3.4257247825217876,
+   "max_roll": 3.298355047642157,
+   "max_pitch": 0.6010882634362312,
+   "max_climb": 5.336867451658365,
+   "max_sink": 0.5703089690954579,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5579999999999999,
+    0.04462258488450588,
+    0.3926123943099814,
+    0.06086766461523746
+   ],
+   "ctrl_rms": [
+    0.09032946289045513,
+    0.01018985340694321,
+    0.07635076610079126,
+    0.012953701153275122
+   ],
+   "coll_pedal_corr": 0.058649600731150116,
+   "duration": 14.399999999999999
+  },
+  {
+   "id": "kalkis_50",
+   "group": "kalkış",
+   "title": "Yerden 50 ft hover",
+   "level": "K3",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 1,
+   "n": 1,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 10.5,
+     "deadline": 13.1,
+     "settle_s": 5.0,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.8,
+      "h": 43.7,
+      "psi": 1.7
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.2,
+   "max_drift": 2.983889101211862,
+   "max_roll": 4.333007309384438,
+   "max_pitch": 1.0857387447565827,
+   "max_climb": 21.0957272175772,
+   "max_sink": 0.698554667281985,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5579999999999999,
+    0.06864020755503472,
+    0.42887589724415875,
+    0.39420985788691526
+   ],
+   "ctrl_rms": [
+    0.12533130327553946,
+    0.028198209918635468,
+    0.08160170306428893,
+    0.08067822201844312
+   ],
+   "coll_pedal_corr": 0.6010899825035113,
+   "duration": 15.975
+  },
+  {
+   "id": "kalkis_150",
+   "group": "kalkış",
+   "title": "Yerden 150 ft hover",
+   "level": "K3",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 1,
+   "n": 1,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 23.0,
+     "deadline": 28.7,
+     "settle_s": 9.7,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 143.7,
+      "psi": 1.6
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.2,
+   "max_drift": 2.4469280283868904,
+   "max_roll": 4.797087127097306,
+   "max_pitch": 1.0712617420404216,
+   "max_climb": 21.628359697686253,
+   "max_sink": 0.675563069498013,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5579999999999999,
+    0.052318071532640925,
+    0.3762371731396309,
+    0.40838709913132715
+   ],
+   "ctrl_rms": [
+    0.12853121512134197,
+    0.019922760658332022,
+    0.0683257209029268,
+    0.07664115380897675
+   ],
+   "coll_pedal_corr": 0.5210510535576572,
+   "duration": 20.7
+  },
+  {
+   "id": "kalkis_500",
+   "group": "kalkış",
+   "title": "Yerden 500 ft hover",
+   "level": "K4",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 1,
+   "n": 1,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 46.1,
+     "deadline": 57.7,
+     "settle_s": 24.5,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.9,
+      "h": 493.7,
+      "psi": 1.7
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.2,
+   "max_drift": 2.8577414158869123,
+   "max_roll": 5.525464056165729,
+   "max_pitch": 1.2319297150903334,
+   "max_climb": 23.661501653256472,
+   "max_sink": 0.7202489239454803,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5579999999999999,
+    0.06999975421314078,
+    0.2636719155603211,
+    0.4243198585707035
+   ],
+   "ctrl_rms": [
+    0.14000134156362798,
+    0.02394079265415101,
+    0.05059139806803326,
+    0.07609383825015557
+   ],
+   "coll_pedal_corr": 0.5099725324231009,
+   "duration": 35.55
+  },
+  {
+   "id": "kalkis_1000",
+   "group": "kalkış",
+   "title": "Yerden 1000 ft hover",
+   "level": "K4",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 1,
+   "n": 1,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 87.8,
+     "deadline": 109.8,
+     "settle_s": 43.5,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 993.7,
+      "psi": 2.1
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.2,
+   "max_drift": 2.369534648706207,
+   "max_roll": 4.953759942841374,
+   "max_pitch": 1.2310086571346162,
+   "max_climb": 25.83458865022859,
+   "max_sink": 0.855272665257625,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5579999999999999,
+    0.05803585276059156,
+    0.29797622979021965,
+    0.3910275251749428
+   ],
+   "ctrl_rms": [
+    0.1517379268143522,
+    0.024561573939698992,
+    0.050838689099003416,
+    0.07452920132105778
+   ],
+   "coll_pedal_corr": 0.44226957895052893,
+   "duration": 54.525
+  },
+  {
+   "id": "donus_90",
+   "group": "manevra",
+   "title": "100 ft hover: yerinde +90° dönüş",
+   "level": "K5",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 0.4,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "turn",
+     "success": true,
+     "T": 10.0,
+     "deadline": 12.5,
+     "settle_s": 3.7,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.6,
+      "h": 1.2,
+      "psi": 90.0
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 2.688480111887337,
+   "max_roll": 3.748787654909894,
+   "max_pitch": 1.3545682793988842,
+   "max_climb": 1.3799290267181143,
+   "max_sink": 2.9515844812472865,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.1420452875103534,
+    0.287229058019816,
+    0.20196944730911118,
+    0.9999999991988482
+   ],
+   "ctrl_rms": [
+    0.02566202513369813,
+    0.07369677524699975,
+    0.03353407643006088,
+    0.34474071179965277
+   ],
+   "coll_pedal_corr": null,
+   "duration": 20.55
+  },
+  {
+   "id": "donus_180",
+   "group": "manevra",
+   "title": "100 ft hover: yerinde −180° dönüş",
+   "level": "K5",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 0.4,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "turn",
+     "success": true,
+     "T": 16.0,
+     "deadline": 20.0,
+     "settle_s": 10.5,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 7.4,
+      "h": 2.9,
+      "psi": 180.0
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 7.383535307405517,
+   "max_roll": 5.208963485383528,
+   "max_pitch": 3.058481210880709,
+   "max_climb": 3.3022913202424946,
+   "max_sink": 0.8014639760861647,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.1309365336164543,
+    0.3423329331764477,
+    0.808,
+    0.5900000000000001
+   ],
+   "ctrl_rms": [
+    0.0178407099081601,
+    0.10651047586336888,
+    0.11753362746869404,
+    0.2988662424070386
+   ],
+   "coll_pedal_corr": null,
+   "duration": 27.375
+  },
+  {
+   "id": "donus_360",
+   "group": "manevra",
+   "title": "100 ft hover: yerinde +360° dönüş (pirouette)",
+   "level": "K5",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 0.4,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "turn",
+     "success": true,
+     "T": 28.0,
+     "deadline": 35.0,
+     "settle_s": 10.3,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 8.8,
+      "h": 2.2,
+      "psi": 360.0
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 8.80470263312398,
+   "max_roll": 4.4337703131158355,
+   "max_pitch": 6.414538908559574,
+   "max_climb": 2.1932682195812925,
+   "max_sink": 1.2794125651975334,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.12603895077130933,
+    0.849,
+    0.2545837934949174,
+    0.9999999999999949
+   ],
+   "ctrl_rms": [
+    0.01818899994720281,
+    0.18922570625472337,
+    0.09189665693894815,
+    0.5538245171104327
+   ],
+   "coll_pedal_corr": null,
+   "duration": 27.224999999999998
+  },
+  {
+   "id": "kayma_ileri_geri",
+   "group": "manevra",
+   "title": "100 ft hover: 50 ft ileri, sonra 50 ft geri",
+   "level": "K5",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 3,
+   "n": 3,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 0.4,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "move",
+     "success": true,
+     "T": 12.2,
+     "deadline": 15.3,
+     "settle_s": 9.2,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 50.0,
+      "h": 0.8,
+      "psi": 2.5
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "move",
+     "success": true,
+     "T": 12.2,
+     "deadline": 15.3,
+     "settle_s": 8.5,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 50.1,
+      "h": 2.3,
+      "psi": 2.8
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 50.05738535006329,
+   "max_roll": 5.5784872705787825,
+   "max_pitch": 10.932929086085236,
+   "max_climb": 0.8161770966038109,
+   "max_sink": 0.7818663663168839,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.025633483991953643,
+    0.9984277286688678,
+    0.2722572568398018,
+    0.10889798250630761
+   ],
+   "ctrl_rms": [
+    0.008889131954155818,
+    0.23775406752391215,
+    0.06204216559243408,
+    0.024733021235684924
+   ],
+   "coll_pedal_corr": null,
+   "duration": 40.125
+  },
+  {
+   "id": "kayma_yan",
+   "group": "manevra",
+   "title": "100 ft hover: 40 ft sağa, sonra 40 ft sola (sidestep)",
+   "level": "K5",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 3,
+   "n": 3,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 0.4,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "move",
+     "success": true,
+     "T": 11.0,
+     "deadline": 13.8,
+     "settle_s": 10.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 40.0,
+      "h": 0.6,
+      "psi": 0.4
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "move",
+     "success": true,
+     "T": 11.0,
+     "deadline": 13.8,
+     "settle_s": 12.0,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 40.2,
+      "h": 1.5,
+      "psi": 0.6
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 40.21276801499457,
+   "max_roll": 11.239076955966953,
+   "max_pitch": 0.9606024161781644,
+   "max_climb": 0.29744682999410343,
+   "max_sink": 0.3623332065261583,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.019541818315724768,
+    0.10001625296094727,
+    0.9009984787614458,
+    0.044512376825031896
+   ],
+   "ctrl_rms": [
+    0.00689931774100898,
+    0.017663931858319937,
+    0.12638382854346775,
+    0.015682756455512585
+   ],
+   "coll_pedal_corr": null,
+   "duration": 44.475
+  },
+  {
+   "id": "bob_up_down",
+   "group": "manevra",
+   "title": "30 ft hover: +40 ft bob-up, −40 ft bob-down",
+   "level": "K5",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 3,
+   "n": 3,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.5,
+      "h": 0.0,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "bob",
+     "success": true,
+     "T": 9.0,
+     "deadline": 11.2,
+     "settle_s": 3.9,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 3.5,
+      "h": 40.0,
+      "psi": 2.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "bob",
+     "success": true,
+     "T": 10.7,
+     "deadline": 13.3,
+     "settle_s": 5.0,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 3.6,
+      "h": 40.0,
+      "psi": 1.9
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 3.583685780104,
+   "max_roll": 5.7761133321499685,
+   "max_pitch": 2.4152238602604075,
+   "max_climb": 21.413837890203595,
+   "max_sink": 27.40397881327942,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5659293082823976,
+    0.4539124393843955,
+    0.6088451305573102,
+    0.5226524346997794
+   ],
+   "ctrl_rms": [
+    0.13196283249142887,
+    0.0596871164583155,
+    0.09826657655681098,
+    0.09346776975393754
+   ],
+   "coll_pedal_corr": null,
+   "duration": 31.349999999999998
+  },
+  {
+   "id": "kombine",
+   "group": "manevra",
+   "title": "Kalkış 80 ft → +90° → 30 ft sağa → +30 ft → −180°",
+   "level": "K5",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 5,
+   "n": 5,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 13.2,
+     "deadline": 16.5,
+     "settle_s": 6.5,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 3.1,
+      "h": 73.7,
+      "psi": 1.6
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "turn",
+     "success": true,
+     "T": 10.0,
+     "deadline": 12.5,
+     "settle_s": 3.7,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.9,
+      "h": 1.6,
+      "psi": 90.0
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "move",
+     "success": true,
+     "T": 9.8,
+     "deadline": 12.2,
+     "settle_s": 7.3,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 30.0,
+      "h": 0.4,
+      "psi": 0.3
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "bob",
+     "success": true,
+     "T": 7.8,
+     "deadline": 9.8,
+     "settle_s": 3.4,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 3.5,
+      "h": 30.0,
+      "psi": 2.1
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "turn",
+     "success": true,
+     "T": 16.0,
+     "deadline": 20.0,
+     "settle_s": 10.5,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 6.9,
+      "h": 2.3,
+      "psi": 180.0
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.2,
+   "max_drift": 29.965902323881934,
+   "max_roll": 5.425925849512096,
+   "max_pitch": 2.9750275258360475,
+   "max_climb": 21.167637490297807,
+   "max_sink": 2.814129098453381,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5579999999999999,
+    0.3275316735271051,
+    0.808,
+    0.999999999188125
+   ],
+   "ctrl_rms": [
+    0.08186686271110592,
+    0.08238006892407715,
+    0.11851116629849592,
+    0.2787506435288966
+   ],
+   "coll_pedal_corr": 0.6160447225833889,
+   "duration": 65.475
+  },
+  {
+   "id": "hedef_800_300",
+   "group": "hedef",
+   "title": "Kalkış 800 ft, %30'da yeni hedef 300 ft",
+   "level": "K6",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 84.4,
+     "deadline": 105.5,
+     "settle_s": null,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 1.7,
+      "h": 793.7,
+      "psi": 2.3
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "climb_to",
+     "success": true,
+     "T": 57.9,
+     "deadline": 72.3,
+     "settle_s": 17.3,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 4.0,
+      "h": 308.0,
+      "psi": 2.1
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.2,
+   "max_drift": 3.991977807674831,
+   "max_roll": 5.169068378333739,
+   "max_pitch": 1.8457357822302156,
+   "max_climb": 25.174951988091454,
+   "max_sink": 29.309243613640746,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.599689273844665,
+    0.20182812307661527,
+    0.3766192805393558,
+    0.4031359441287798
+   ],
+   "ctrl_rms": [
+    0.1658314027572378,
+    0.040271726765939445,
+    0.07397803674891279,
+    0.08074708598341876
+   ],
+   "coll_pedal_corr": 0.4842483833558454,
+   "duration": 48.675
+  },
+  {
+   "id": "hedef_200_600",
+   "group": "hedef",
+   "title": "Kalkış 200 ft, %50'de yeni hedef 600 ft",
+   "level": "K6",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 24.4,
+     "deadline": 30.5,
+     "settle_s": 11.9,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.3,
+      "h": 193.7,
+      "psi": 1.5
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "climb_to",
+     "success": true,
+     "T": 44.8,
+     "deadline": 56.0,
+     "settle_s": 19.6,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.8,
+      "h": 398.2,
+      "psi": 2.3
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.2,
+   "max_drift": 2.813287076882581,
+   "max_roll": 5.070007813504995,
+   "max_pitch": 1.2579961461211473,
+   "max_climb": 24.042622078953073,
+   "max_sink": 0.7133951416570469,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5579999999999999,
+    0.07275847569319047,
+    0.35288909768949017,
+    0.44476314016194357
+   ],
+   "ctrl_rms": [
+    0.1554981177983157,
+    0.02442671813420944,
+    0.06067283306882716,
+    0.09634930735706483
+   ],
+   "coll_pedal_corr": 0.49565065364821986,
+   "duration": 37.8
+  },
+  {
+   "id": "hedef_500_20",
+   "group": "hedef",
+   "title": "Kalkış 500 ft, %40'ta alçak hover'a (20 ft) dön",
+   "level": "K6",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 54.4,
+     "deadline": 68.0,
+     "settle_s": null,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.2,
+      "h": 493.7,
+      "psi": 1.9
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "climb_to",
+     "success": true,
+     "T": 84.6,
+     "deadline": 105.8,
+     "settle_s": 24.8,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 4.2,
+      "h": 469.4,
+      "psi": 1.9
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.2,
+   "max_drift": 4.163217711862123,
+   "max_roll": 5.317897377593132,
+   "max_pitch": 2.2833220063532056,
+   "max_climb": 23.721428544328784,
+   "max_sink": 29.308712345230365,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5997358880974045,
+    0.21042057345325588,
+    0.33784511371640125,
+    0.4224306287738521
+   ],
+   "ctrl_rms": [
+    0.15154292998071608,
+    0.04565379729978499,
+    0.06374870608179661,
+    0.08113878357078128
+   ],
+   "coll_pedal_corr": 0.5131176636409193,
+   "duration": 52.574999999999996
+  },
+  {
+   "id": "inis_50",
+   "group": "iniş",
+   "title": "Kalkış 50 ft → pad'e iniş",
+   "level": "K7",
+   "safe": false,
+   "termination": "hard_landing",
+   "episode_ok": false,
+   "n_ok": 1,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 9.5,
+     "deadline": 11.8,
+     "settle_s": 5.0,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 3.0,
+      "h": 43.7,
+      "psi": 1.7
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "land",
+     "success": false,
+     "T": 22.1,
+     "deadline": 27.6,
+     "settle_s": null,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 4.4,
+      "h": 43.3,
+      "psi": 1.9
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.2,
+   "max_drift": 4.414473301161231,
+   "max_roll": 6.317649847854759,
+   "max_pitch": 1.100758398190189,
+   "max_climb": 21.094618018416927,
+   "max_sink": 27.316064640179732,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5634445994903243,
+    0.06879879070510478,
+    0.42819818131981524,
+    0.3955604797388667
+   ],
+   "ctrl_rms": [
+    0.16521816034631343,
+    0.030279450854983823,
+    0.09175459367772944,
+    0.08059013974406458
+   ],
+   "coll_pedal_corr": 0.6044517754804569,
+   "duration": 18.45
+  },
+  {
+   "id": "inis_300",
+   "group": "iniş",
+   "title": "300 ft hover'dan iniş",
+   "level": "K7",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "n_ok": 1,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 0.5,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "land",
+     "success": false,
+     "T": 72.3,
+     "deadline": 90.3,
+     "settle_s": null,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 5.1,
+      "h": 294.2,
+      "psi": 1.3
+     },
+     "touchdown_vs": -2.41
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 5.111691552014451,
+   "max_roll": 4.479199462263269,
+   "max_pitch": 2.0476615160972322,
+   "max_climb": 1.460175668484717,
+   "max_sink": 27.34433571979165,
+   "touchdown_vs": -2.4126102041919153,
+   "ctrl_max": [
+    0.5635394442298096,
+    0.1362398483492957,
+    0.18647065974520166,
+    0.12727252966075658
+   ],
+   "ctrl_rms": [
+    0.05970895734099338,
+    0.026578297435922056,
+    0.024083980430020014,
+    0.03446556093726116
+   ],
+   "coll_pedal_corr": null,
+   "duration": 105.225
+  },
+  {
+   "id": "inis_kayma",
+   "group": "iniş",
+   "title": "Kalkış 40 ft → 30 ft sola kay → iniş",
+   "level": "K7",
+   "safe": false,
+   "termination": "hard_landing",
+   "episode_ok": false,
+   "n_ok": 2,
+   "n": 3,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 8.2,
+     "deadline": 10.3,
+     "settle_s": 4.3,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 3.1,
+      "h": 33.7,
+      "psi": 1.6
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "move",
+     "success": true,
+     "T": 9.8,
+     "deadline": 12.2,
+     "settle_s": 10.0,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 30.2,
+      "h": 0.5,
+      "psi": 0.4
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "land",
+     "success": false,
+     "T": 20.1,
+     "deadline": 25.1,
+     "settle_s": null,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 4.1,
+      "h": 33.4,
+      "psi": 1.8
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.2,
+   "max_drift": 30.16646513836187,
+   "max_roll": 11.504741728316377,
+   "max_pitch": 1.125729748888573,
+   "max_climb": 19.97647165279452,
+   "max_sink": 27.16695438612723,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5605702356900644,
+    0.09790940353205338,
+    0.9407603245661236,
+    0.3719459485428755
+   ],
+   "ctrl_rms": [
+    0.11841649920353246,
+    0.027370675001795193,
+    0.14063512437426184,
+    0.055679109926786666
+   ],
+   "coll_pedal_corr": 0.5837384769931419,
+   "duration": 32.925
+  },
+  {
+   "id": "agir_kalkis",
+   "group": "ağırlık",
+   "title": "Tam yakıt (10280 lbs): kalkış 500 ft + 180° dönüş",
+   "level": "K8",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 53.4,
+     "deadline": 66.8,
+     "settle_s": 26.4,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.8,
+      "h": 494.3,
+      "psi": 1.9
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "turn",
+     "success": true,
+     "T": 16.0,
+     "deadline": 20.0,
+     "settle_s": 6.6,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 6.2,
+      "h": 9.2,
+      "psi": 180.0
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": 1.3499999999999999,
+   "max_drift": 6.174763902696579,
+   "max_roll": 5.226367840173975,
+   "max_pitch": 5.264239354587593,
+   "max_climb": 21.708386851171802,
+   "max_sink": 2.6819109684103424,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.5579999999999999,
+    0.6969404408882948,
+    0.2694179523919249,
+    0.9999999999999949
+   ],
+   "ctrl_rms": [
+    0.19862455370288046,
+    0.12229574643386099,
+    0.058477198187486736,
+    0.3200214284338859
+   ],
+   "coll_pedal_corr": 0.7205735471298127,
+   "duration": 49.5
+  },
+  {
+   "id": "agir_inis",
+   "group": "ağırlık",
+   "title": "Tam yakıt (10280 lbs): kalkış 100 ft → pad'e iniş",
+   "level": "K8",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "n_ok": 0,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": false,
+     "T": 13.4,
+     "deadline": 16.8,
+     "settle_s": null,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.5,
+      "h": 94.3,
+      "psi": 1.4
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "land",
+     "success": false,
+     "T": 31.4,
+     "deadline": 39.2,
+     "settle_s": null,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 5.7,
+      "h": 89.6,
+      "psi": 1.8
+     },
+     "touchdown_vs": -7.33
+    }
+   ],
+   "liftoff_s": 1.3499999999999999,
+   "max_drift": 5.678179317767048,
+   "max_roll": 4.807317234628812,
+   "max_pitch": 3.3256855319400787,
+   "max_climb": 19.006123383115565,
+   "max_sink": 27.80865935238465,
+   "touchdown_vs": -7.33125953251242,
+   "ctrl_max": [
+    0.5579999999999999,
+    0.32185258128134814,
+    0.4084549844852968,
+    0.5900000000000001
+   ],
+   "ctrl_rms": [
+    0.12227184115277027,
+    0.043690852452282006,
+    0.07758426722566607,
+    0.09235313130966853
+   ],
+   "coll_pedal_corr": 0.7348274820959045,
+   "duration": 70.64999999999999
+  },
+  {
+   "id": "agir_inis_300",
+   "group": "ağırlık",
+   "title": "Tam yakıt (10280 lbs): 300 ft hover'dan iniş",
+   "level": "K8",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "n_ok": 1,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 1.3,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 1.9,
+      "h": 3.7,
+      "psi": 0.8
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "land",
+     "success": false,
+     "T": 71.5,
+     "deadline": 89.3,
+     "settle_s": null,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 6.6,
+      "h": 290.1,
+      "psi": 2.5
+     },
+     "touchdown_vs": -6.29
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 6.577782828381907,
+   "max_roll": 4.494837794416696,
+   "max_pitch": 1.786620895647678,
+   "max_climb": 0.9878115195905741,
+   "max_sink": 27.908122893705574,
+   "touchdown_vs": -6.293771086399413,
+   "ctrl_max": [
+    0.5154654418109373,
+    0.210959837774635,
+    0.1645680284269626,
+    0.5807450047937588
+   ],
+   "ctrl_rms": [
+    0.067669868979462,
+    0.027224292385923353,
+    0.07858655970481462,
+    0.07359977578341627
+   ],
+   "coll_pedal_corr": null,
+   "duration": 105.14999999999999
+  },
+  {
+   "id": "cg_on",
+   "group": "ağırlık",
+   "title": "CG önde (tank0 dolu): kalkış 100 ft, 40 ft ileri, iniş",
+   "level": "K8",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "n_ok": 2,
+   "n": 3,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 13.4,
+     "deadline": 16.8,
+     "settle_s": 7.6,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 3.2,
+      "h": 94.0,
+      "psi": 1.5
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "move",
+     "success": true,
+     "T": 11.0,
+     "deadline": 13.8,
+     "settle_s": 8.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 40.0,
+      "h": 4.2,
+      "psi": 3.0
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "land",
+     "success": false,
+     "T": 31.7,
+     "deadline": 39.6,
+     "settle_s": null,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 4.3,
+      "h": 91.2,
+      "psi": 1.1
+     },
+     "touchdown_vs": -5.02
+    }
+   ],
+   "liftoff_s": 1.275,
+   "max_drift": 40.02791782243611,
+   "max_roll": 5.676274441790908,
+   "max_pitch": 11.663540297073917,
+   "max_climb": 20.002933044216,
+   "max_sink": 26.02794767120267,
+   "touchdown_vs": -5.016015593594301,
+   "ctrl_max": [
+    0.5579999999999999,
+    0.9983093159753902,
+    0.4097422010231231,
+    0.42049887989477014
+   ],
+   "ctrl_rms": [
+    0.09560945749922128,
+    0.1390633691969196,
+    0.060622324195231454,
+    0.058686881476278215
+   ],
+   "coll_pedal_corr": 0.6608365023513708,
+   "duration": 76.2
+  },
+  {
+   "id": "cg_arka",
+   "group": "ağırlık",
+   "title": "CG arkada (tank1 dolu): kalkış 100 ft, 40 ft geri, iniş",
+   "level": "K8",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "n_ok": 2,
+   "n": 3,
+   "windows": [
+    {
+     "kind": "takeoff",
+     "success": true,
+     "T": 13.4,
+     "deadline": 16.8,
+     "settle_s": 7.6,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 3.6,
+      "h": 94.0,
+      "psi": 1.4
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "move",
+     "success": true,
+     "T": 11.0,
+     "deadline": 13.8,
+     "settle_s": 7.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 40.0,
+      "h": 3.3,
+      "psi": 3.0
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "land",
+     "success": false,
+     "T": 31.6,
+     "deadline": 39.5,
+     "settle_s": null,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 4.6,
+      "h": 91.0,
+      "psi": 1.2
+     },
+     "touchdown_vs": -4.86
+    }
+   ],
+   "liftoff_s": 1.275,
+   "max_drift": 39.99603237142566,
+   "max_roll": 6.241531584739876,
+   "max_pitch": 10.062643118372753,
+   "max_climb": 20.08510481578945,
+   "max_sink": 26.20974966945431,
+   "touchdown_vs": -4.86468481918273,
+   "ctrl_max": [
+    0.5579999999999999,
+    0.849,
+    0.39886974609006526,
+    0.45342397406270324
+   ],
+   "ctrl_rms": [
+    0.09636457557198194,
+    0.13028809140700356,
+    0.05613884414362121,
+    0.06629871666974847
+   ],
+   "coll_pedal_corr": 0.6895635919338768,
+   "duration": 75.14999999999999
+  },
+  {
+   "id": "bozucu_lat",
+   "group": "bozucu",
+   "title": "100 ft hover: lateral cyclic +0.3 darbesi (0.8 s)",
+   "level": "K8",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 0.4,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "recover",
+     "success": true,
+     "T": 10.0,
+     "deadline": 12.5,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 4.0,
+      "h": 0.7,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 4.025726629405611,
+   "max_roll": 4.525234209443123,
+   "max_pitch": 1.1449422717776967,
+   "max_climb": 0.1537067060303709,
+   "max_sink": 0.06254209686954719,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.015203005449709872,
+    0.09062706795799898,
+    0.4802458790268227,
+    0.019609964058646623
+   ],
+   "ctrl_rms": [
+    0.009292867666203871,
+    0.028612149098590303,
+    0.07460053186086148,
+    0.008823510478910447
+   ],
+   "coll_pedal_corr": null,
+   "duration": 16.65
+  },
+  {
+   "id": "bozucu_pedal",
+   "group": "bozucu",
+   "title": "100 ft hover: pedal −0.35 darbesi (0.8 s)",
+   "level": "K8",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 0.4,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "recover",
+     "success": true,
+     "T": 10.0,
+     "deadline": 12.5,
+     "settle_s": 1.2,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 3.0,
+      "h": 0.9,
+      "psi": 4.4
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 3.0350849294833466,
+   "max_roll": 3.4582606284686452,
+   "max_pitch": 0.8253030393014557,
+   "max_climb": 0.5805473946467693,
+   "max_sink": 0.1701836203636578,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.034079750195759484,
+    0.05767535650638128,
+    0.03829128772518409,
+    0.5900000000000001
+   ],
+   "ctrl_rms": [
+    0.01003700945353596,
+    0.021136164337769728,
+    0.015272856299659342,
+    0.07933838834081645
+   ],
+   "coll_pedal_corr": null,
+   "duration": 17.775
+  },
+  {
+   "id": "bozucu_itki",
+   "group": "bozucu",
+   "title": "100 ft hover: 10 ft/s yana itki",
+   "level": "K8",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 0.4,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "recover",
+     "success": true,
+     "T": 10.0,
+     "deadline": 12.5,
+     "settle_s": 7.4,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 14.1,
+      "h": 1.2,
+      "psi": 0.9
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 14.097177210945903,
+   "max_roll": 20.962182851166773,
+   "max_pitch": 0.9192985747779908,
+   "max_climb": 0.9483462149243362,
+   "max_sink": 0.3255564005271487,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.02093518478913925,
+    0.09795689406842739,
+    0.9984250609854306,
+    0.07165945064248802
+   ],
+   "ctrl_rms": [
+    0.009033356432648694,
+    0.02393237254528669,
+    0.24152811401022442,
+    0.012825249113594712
+   ],
+   "coll_pedal_corr": null,
+   "duration": 24.0
+  },
+  {
+   "id": "bozucu_yatis",
+   "group": "bozucu",
+   "title": "100 ft hover: +10° yatış bozucusu",
+   "level": "K8",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 0.4,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "recover",
+     "success": true,
+     "T": 10.0,
+     "deadline": 12.5,
+     "settle_s": 1.3,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 5.7,
+      "h": 0.8,
+      "psi": 0.4
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 5.746456629352727,
+   "max_roll": 9.279605698680376,
+   "max_pitch": 0.8937251640901154,
+   "max_climb": 0.30236021863327783,
+   "max_sink": 0.12363936401434564,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.017980391815295316,
+    0.151973850525532,
+    0.996851884128299,
+    0.026591089108815136
+   ],
+   "ctrl_rms": [
+    0.00953209212752972,
+    0.03919756487766889,
+    0.20563278156326778,
+    0.009612106351904156
+   ],
+   "coll_pedal_corr": null,
+   "duration": 17.849999999999998
+  },
+  {
+   "id": "bozucu_burun",
+   "group": "bozucu",
+   "title": "100 ft hover: 8° burun yukarı bozucusu",
+   "level": "K8",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "windows": [
+    {
+     "kind": "hold",
+     "success": true,
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 2.4,
+      "h": 0.4,
+      "psi": 0.2
+     },
+     "touchdown_vs": null
+    },
+    {
+     "kind": "recover",
+     "success": true,
+     "T": 10.0,
+     "deadline": 12.5,
+     "settle_s": 1.3,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_err": {
+      "xy": 4.4,
+      "h": 0.6,
+      "psi": 0.9
+     },
+     "touchdown_vs": null
+    }
+   ],
+   "liftoff_s": null,
+   "max_drift": 4.433181066395806,
+   "max_roll": 4.93552852954408,
+   "max_pitch": 7.895199657336759,
+   "max_climb": 0.25183989303755755,
+   "max_sink": 0.06636446848564012,
+   "touchdown_vs": null,
+   "ctrl_max": [
+    0.02519356768340475,
+    0.9983847194950914,
+    0.17158065038117848,
+    0.06281876892650023
+   ],
+   "ctrl_rms": [
+    0.009597087922728556,
+    0.20229394667413528,
+    0.045046840139955954,
+    0.015277937961337282
+   ],
+   "coll_pedal_corr": null,
+   "duration": 17.849999999999998
+  }
+ ],
+ "summary": {
+  "kalkış": {
+   "safe": [
+    5,
+    5
+   ],
+   "episode_ok": [
+    5,
+    5
+   ],
+   "tasks_ok": [
+    5,
+    5
+   ]
+  },
+  "manevra": {
+   "safe": [
+    7,
+    7
+   ],
+   "episode_ok": [
+    7,
+    7
+   ],
+   "tasks_ok": [
+    20,
+    20
+   ]
+  },
+  "hedef": {
+   "safe": [
+    3,
+    3
+   ],
+   "episode_ok": [
+    3,
+    3
+   ],
+   "tasks_ok": [
+    6,
+    6
+   ]
+  },
+  "iniş": {
+   "safe": [
+    1,
+    3
+   ],
+   "episode_ok": [
+    0,
+    3
+   ],
+   "tasks_ok": [
+    4,
+    7
+   ]
+  },
+  "ağırlık": {
+   "safe": [
+    5,
+    5
+   ],
+   "episode_ok": [
+    1,
+    5
+   ],
+   "tasks_ok": [
+    7,
+    12
+   ]
+  },
+  "bozucu": {
+   "safe": [
+    5,
+    5
+   ],
+   "episode_ok": [
+    5,
+    5
+   ],
+   "tasks_ok": [
+    10,
+    10
+   ]
+  },
+  "toplam": {
+   "safe": [
+    26,
+    28
+   ],
+   "episode_ok": [
+    21,
+    28
+   ],
+   "tasks_ok": [
+    52,
+    60
+   ]
+  },
+  "kumanda_rms": {
+   "collective": 0.085,
+   "long. cyclic": 0.066,
+   "lat. cyclic": 0.084,
+   "pedal": 0.111
+  },
+  "kumanda_max": {
+   "collective": 0.6,
+   "long. cyclic": 0.998,
+   "lat. cyclic": 0.998,
+   "pedal": 1.0
+  },
+  "kalkis_coll_pedal_corr": 0.5490723698252591
+ }
+}

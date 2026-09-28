@@ -1019,7 +1019,7 @@ Kumanda yumuşaklığı ve kuplaj (300 ft / 15 ft/s, tek komut):
 
 Tek uçuşta 6 ardışık komut (+90°, +8 ft/s, +100 ft, −45° & −60 ft, −10 ft/s, +180°): v2 6/6 (grafik: `docs/command_curriculum/fig_mission_v2.png`; v1 için `fig_mission_v1.png`).
 
-**Bu koşulardan öğrenilenler (mentor için):**
+**Bu koşulardan öğrenilenler :**
 
 1. **Asıl öğrenme H1'de oluyor.** Yalnızca ±5° ile eğitilen H1 modeli (2.3 dk) büyük dönüş, hız ve irtifa komutlarının çoğunu zaten yapıyor (v2 kriteriyle 11/12). Observation'da mutlak değer değil yalnızca hata olduğu için ajan genel bir "hatayı sıfırla" davranışı öğreniyor.
 2. **Başarı kriteri gevşekse curriculum bir şey öğretmiyor, kalite bozulabiliyor.** v1'de (yalnızca son 10 s) tüm seviyeler ilk denemede geçti; ama uzun eğitim son modelde kumanda titreşimi ve dönüşte büyük hız / irtifa kaçırması üretti.

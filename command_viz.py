@@ -301,8 +301,10 @@ class LiveFlight:
         obs_dim, self.env_overrides = None, {}
         if policy is None:
             policy, obs_dim, self.env_overrides = load_policy(self.policy_path, with_obs_dim=True)
-        # görev modelin observation boyutundan anlaşılır (komut 19, manevra 24, kalkış 29)
-        self.task = task or {OBS_DIM_M: "maneuver", OBS_DIM_T: "takeoff"}.get(obs_dim, "command")
+        # görev modelin observation boyutundan anlaşılır (komut 19, manevra 24, kalkış 29; kalkışa 2026-09-28'de
+        # tork (+1) ve hareketli hedef hızı (+2) eklendi → 30 / 31 / 32)
+        takeoff_dims = {OBS_DIM_T, OBS_DIM_T + 1, OBS_DIM_T + 2, OBS_DIM_T + 3}
+        self.task = task or ("takeoff" if obs_dim in takeoff_dims else {OBS_DIM_M: "maneuver"}.get(obs_dim, "command"))
         if self.task == "takeoff":
             cfg = TakeoffEnvConfig(**self.env_overrides)
             self.env = HelicopterEnvTakeoff(level=level or "K9", config=cfg)

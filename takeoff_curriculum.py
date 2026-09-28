@@ -65,6 +65,17 @@ class TakeoffLevel:
     n_target_changes: tuple = (1, 2)
     change_frac: tuple = (0.25, 0.75)      # önceki süre hedefinin bu kesrinde
     p_land: float = 0.0                    # son görev iniş
+    # ileri kalkış (departure, 2026-09-28): yerden kalkıp ileri uçuşa geç — pist boyunca hareket eden hedef noktası
+    # (0'dan v'ye sabit ivme), irtifa hedefi h. Ağır helikopterde (güç tavanıyla) yer etkisi + ETL gerektirir.
+    p_depart: float = 0.0                  # yerden başlayan episode'un yalnızca "depart" görevi olma olasılığı
+    depart_alt_ft: tuple = (100.0, 300.0)  # CG AGL
+    depart_kt: tuple = (40.0, 60.0)        # son yer hızı
+    depart_accel: tuple = (2.0, 3.5)       # ft/s² (referans noktasının ivmesi)
+    depart_climb_fps: float = 8.0          # süre hedefi için ileri uçuşta tırmanış
+    # reverse curriculum: havada başlangıçta helikopter bu yer hızıyla (kt, burun yönünde) ileri gidiyor; depart_from_speed
+    # ise görev "depart" olur ve referans bu hızdan başlar (önce ileri uçuşta hız takibi öğrenilsin, sonra kalkış)
+    start_speed_kt: tuple = (0.0, 0.0)
+    depart_from_speed: bool = False
     # --- çeviklik (süre hedefi) ----------------------------------------------------
     climb_fps: float = 8.0
     descent_fps: float = 6.0
@@ -132,6 +143,9 @@ class TakeoffLevel:
     def sample_schedule(self, rng, start: str) -> list[dict]:
         if start in ("touch", "low"):                               # iniş son aşaması: yalnızca otur
             return [dict(kind="land")]
+        if start == "ground" and self.p_depart > 0.0 and rng.random() < self.p_depart:
+            return [dict(kind="depart", h=float(rng.uniform(*self.depart_alt_ft)), v_kt=float(rng.uniform(*self.depart_kt)),
+                         accel=float(rng.uniform(*self.depart_accel)))]
         tasks: list[dict] = []
         if start == "ground":
             h1 = float(rng.uniform(*self.takeoff_alt_ft))
@@ -204,6 +218,11 @@ def land_profile_time(hs: float, descent_fps: float) -> float:
     return t + hs / v_min
 
 
+def depart_time_target(h_climb: float, v_fps: float, accel: float, lv: TakeoffLevel, v0_fps: float = 0.0) -> float:
+    """İleri kalkış: referans hızına ulaşma (|v − v0| / a) + oturma + tırmanış (ileri uçuşta depart_climb_fps)."""
+    return lv.lag_s + abs(v_fps - v0_fps) / max(0.3, accel) + 3.0 + abs(h_climb) / lv.depart_climb_fps
+
+
 def deadline_of(T: float) -> float:
     return max(1.25 * T, T + 2.0)
 
@@ -270,6 +289,34 @@ DEFAULT_TAKEOFF_LEVELS: list[TakeoffLevel] = [
         p_target_change=0.3, p_land=0.5, fuel_lbs=(0.0, 600.0), n_disturb=(0, 2), climb_fps=10.0,
         descent_fps=5.0, lag_s=4.0, promote_threshold=0.65, rehearse=("K5", "K6", "K7"), p_rehearse=0.08,
         p_touch_start=0.05, p_low_hover_start=0.05),
+    # 2026-09-28: ileri kalkış (departure) — ağır / güç sınırlı kalkış. Yer başlangıçlarının hepsi "depart"; havada
+    # başlayanlar (%30) ağır helikopterle iniş (güç tavanında yavaş alçalma, yer etkisiyle yastıklama); %30 K10 tekrarı.
+    TakeoffLevel(
+        name="K11r", description="İleri uçuşta hız takibi (reverse curriculum): 12–60 ft'te 8–30 kt ile ilerlerken "
+                                 "referans hız ±, irtifa 30–150 ft; 8500–9100 lbs",
+        p_hover_start=1.0, hover_start_alt_ft=(12.0, 60.0), start_speed_kt=(8.0, 30.0), depart_from_speed=True,
+        depart_alt_ft=(30.0, 150.0), depart_kt=(8.0, 35.0), depart_accel=(0.5, 1.5), fuel_lbs=(0.0, 300.0),
+        lag_s=4.0, climb_fps=10.0, descent_fps=5.0, promote_threshold=0.7, rehearse=("K10",), p_rehearse=0.2),
+    TakeoffLevel(
+        name="K11a", description="İleri kalkışa giriş: %50 alçak hover'dan (0–10 kt), %50 yerden; 40–120 ft / 8–20 kt, "
+                                 "yavaş ivme (0.8–1.5 ft/s²), 8500–9100 lbs",
+        p_hover_start=0.5, hover_start_alt_ft=(10.0, 20.0), start_speed_kt=(0.0, 10.0), depart_from_speed=True,
+        p_depart=1.0, depart_alt_ft=(40.0, 120.0), depart_kt=(8.0, 20.0), depart_accel=(0.8, 1.5),
+        fuel_lbs=(0.0, 300.0), lag_s=4.0, climb_fps=10.0, descent_fps=5.0, promote_threshold=0.7,
+        rehearse=("K10", "K11r"), p_rehearse=0.25),
+    TakeoffLevel(
+        name="K11b", description="İleri kalkış: yerden 60–200 ft / 20–40 kt (1.5–2.5 ft/s²), 8500–9700 lbs",
+        p_depart=1.0, depart_alt_ft=(60.0, 200.0), depart_kt=(20.0, 40.0), depart_accel=(1.5, 2.5),
+        fuel_lbs=(0.0, 600.0), lag_s=4.0, climb_fps=10.0, descent_fps=5.0, promote_threshold=0.7,
+        rehearse=("K10", "K11r", "K11a"), p_rehearse=0.3),
+    TakeoffLevel(
+        name="K11", description="İleri kalkış (departure): yerden 100–300 ft / 40–60 kt ileri uçuşa, 8500–10280 lbs, "
+                                "güç tavanı %100 tork — ağırken yer etkisi + ETL (hover OGE sınırın üstünde); "
+                                "%30 havada başlayıp ağır iniş",
+        p_depart=1.0, depart_alt_ft=(100.0, 300.0), depart_kt=(40.0, 60.0), depart_accel=(2.0, 3.5),
+        p_hover_start=0.3, hover_start_alt_ft=(40.0, 300.0), p_land=1.0,
+        fuel_lbs=(0.0, TANK_CAPACITY_LBS), lag_s=4.0, climb_fps=10.0, descent_fps=4.0, promote_threshold=0.65,
+        rehearse=("K10", "K11b"), p_rehearse=0.3),
 ]
 
 
@@ -286,5 +333,6 @@ def find_takeoff_level(level, levels=None) -> int:
 
 
 __all__ = ["TakeoffLevel", "DEFAULT_TAKEOFF_LEVELS", "find_takeoff_level", "task_time_target", "deadline_of",
+           "depart_time_target",
            "land_profile_time", "GROUND_H_FT", "MIN_HOVER_H_FT", "MAX_HOVER_H_FT", "TANK_CAPACITY_LBS",
            "LAND_PROFILE_K", "LAND_PROFILE_MIN_FPS", "LAND_SETTLE_S"]

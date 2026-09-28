@@ -94,7 +94,18 @@ SCENARIOS = [
     ("bozucu_burun", "bozucu", "100 ft hover: 8° burun yukarı bozucusu", "K8", "hover",
      [HOLD, dict(kind="recover", dist="tilt", dphi=0.0, dtheta=8.0)], (0, 0)),
 ]
-GROUPS = ("kalkış", "manevra", "hedef", "iniş", "ağırlık", "bozucu")
+# ileri kalkış (departure, 2026-09-28; --depart ile): yerden ileri uçuşa geç — hareketli hedef noktası + irtifa hedefi.
+# Güç tavanıyla (%100 tork) 10280 lbs'de OGE hover sınırın üstünde → ağır helikopter yer etkisi + ETL kullanmalı.
+DEP = lambda h, v, a=2.5: dict(kind="depart", h=float(h), v_kt=float(v), accel=float(a))   # noqa: E731
+SCENARIOS_DEPART = [
+    ("ileri_hafif", "ileri kalkış", "8500 lbs: yerden 200 ft / 50 kt ileri uçuşa", "K11", "ground", [DEP(200, 50)], (0, 0)),
+    ("ileri_orta", "ileri kalkış", "9400 lbs: yerden 150 ft / 45 kt ileri uçuşa", "K11", "ground", [DEP(150, 45)], (450, 450)),
+    ("ileri_agir", "ileri kalkış", "10280 lbs (tam yakıt): yerden 200 ft / 50 kt ileri uçuşa", "K11", "ground",
+     [DEP(200, 50)], (890, 890)),
+    ("ileri_agir_yavas", "ileri kalkış", "10280 lbs: yerden 100 ft / 40 kt, yavaş ivme (1.5 ft/s²)", "K11", "ground",
+     [DEP(100, 40, 1.5)], (890, 890)),
+]
+GROUPS = ("kalkış", "manevra", "hedef", "iniş", "ağırlık", "bozucu", "ileri kalkış")
 CH = ("collective", "long. cyclic", "lat. cyclic", "pedal")
 
 
@@ -143,6 +154,10 @@ def run_one(env, policy, sc, seed=0):
             corr = float(np.corrcoef(a[k, 9], a[k, 12])[0, 1])
     td = [c["touchdown_vs"] for c in res if c["kind"] == "land" and c["touchdown_vs"] is not None]
     q, rpm = a[:, 13], a[:, 14]
+    # ileri kalkış tekniği: yer hızı ETL'e (20 kt) ulaştığında kızak yüksekliği — dikey tırmanıp sonra hızlanan ajanda
+    # yüksek, yer etkisinde hızlanıp sonra tırmananda alçak
+    etl = np.flatnonzero(a[:, 7] >= 20.0 * 1.68781)
+    hs_at_etl = float(a[etl[0], 1] - 6.3) if etl.size else None
     over, run_, longest = q > 56.0, 0, 0
     for o in over:
         run_ = run_ + 1 if o else 0
@@ -162,7 +177,8 @@ def run_one(env, policy, sc, seed=0):
         ctrl_max=[float(x) for x in np.abs(ctrl).max(axis=0)], ctrl_rms=[float(x) for x in np.sqrt((ctrl ** 2).mean(axis=0))],
         coll_pedal_corr=corr, duration=float(a[-1, 0]),
         torque_max=float(q.max()), torque_p95=float(np.percentile(q, 95)), t_over50_s=float((q > 50.0).sum() * 0.075),
-        t_over56_s=float(over.sum() * 0.075), longest_over56_s=float(longest * 0.075), rpm_min=float(rpm.min()))
+        t_over56_s=float(over.sum() * 0.075), longest_over56_s=float(longest * 0.075), rpm_min=float(rpm.min()),
+        hs_at_20kt=hs_at_etl)
 
 
 def summarize(results):
@@ -196,7 +212,8 @@ def fmt(r):
     return (f"{r['id']:18s} {tick(r['safe']):>3s} {tick(r['episode_ok']):>3s} {r['n_ok']:>2d}/{r['n']:<2d} {lift:>5s} "
             f"{r['max_drift']:5.1f} {r['max_roll']:4.0f}° {r['max_pitch']:3.0f}° {r['max_climb']:5.1f} {td:>5s}  "
             f"{' '.join(f'{x:.2f}' for x in r['ctrl_max'])}  {r['torque_max']:5.1f} {r['t_over56_s']:5.1f} {r['rpm_min']:4.0f}  "
-            f"{tasks}  {'' if r['safe'] else r['termination']}")
+            f"{tasks}  {'' if r['safe'] else r['termination']}"
+            + (f"  [20 kt'ta kızak {r['hs_at_20kt']:.0f} ft]" if r.get("hs_at_20kt") is not None and r["group"] == "ileri kalkış" else ""))
 
 
 HEADER = (f"{'senaryo':18s} {'güv':>3s} {'tüm':>3s} {'görev':>5s} {'kalk':>5s} {'drift':>5s} {'maxφ':>5s} {'maxθ':>4s} "
@@ -204,13 +221,13 @@ HEADER = (f"{'senaryo':18s} {'güv':>3s} {'tüm':>3s} {'görev':>5s} {'kalk':>5s
           f"görevler (oturma/son sınır s)")
 
 
-def evaluate(model_path, only=None, verbose=True, env_overrides=None):
+def evaluate(model_path, only=None, verbose=True, env_overrides=None, depart=False):
     env, pol, ov = make_env(model_path, env_overrides)
     results = []
     if verbose:
         print(f"\nKALKIŞ / HOVER / İNİŞ — model {Path(model_path).name}  env {ov or 'varsayılan (stok JSBSim ah1s)'}")
         print(HEADER)
-    for sc in SCENARIOS:
+    for sc in SCENARIOS + (SCENARIOS_DEPART if depart else []):
         if only and sc[0] not in only:
             continue
         r = run_one(env, pol, sc)
@@ -266,12 +283,13 @@ def main(argv=None):
     ap.add_argument("--no-scenarios", action="store_true")
     ap.add_argument("--json", default=None)
     ap.add_argument("--env", default=None, help="env ayarları (JSON), modelin taşıdıklarının üstüne yazılır")
+    ap.add_argument("--depart", action="store_true", help="ileri kalkış senaryolarını da koş (4)")
     args = ap.parse_args(argv)
     env_ov = json.loads(args.env) if args.env else None
     t0 = time.time()
     out = dict(model=str(args.model))
     if not args.no_scenarios:
-        res, summ = evaluate(args.model, args.only, env_overrides=env_ov)
+        res, summ = evaluate(args.model, args.only, env_overrides=env_ov, depart=args.depart)
         out.update(results=res, summary=summ)
     if args.levels:
         print()

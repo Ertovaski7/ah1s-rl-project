@@ -1,0 +1,5 @@
+model /home/claude/runs/rob_v5/m5_coll045.zip coll_scale 0.45
+M5: episode success 84% (100)  term {'time_limit': 100}  altitude=100%(34) combined=89%(158) heading=100%(58) speed=100%(50)
+S1: episode success 81% (100)  term {'time_limit': 100}  altitude=100%(23) combined=92%(59) heading=100%(28) interrupt=86%(107) interrupted=100%(222) speed=100%(24)
+S2: episode success 81% (100)  term {'time_limit': 100}  altitude=100%(44) combined=88%(77) heading=100%(35) interrupt=87%(90) interrupted=100%(139) speed=100%(70)
+S3: episode success 69% (100)  term {'time_limit': 100}  altitude=100%(19) combined=91%(53) heading=100%(15) interrupt=79%(136) interrupted=99%(345) speed=100%(28)

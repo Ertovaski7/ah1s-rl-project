@@ -1,0 +1,43 @@
+
+KALKIŞ / HOVER / İNİŞ — model level_05_K6.zip
+senaryo            güv tüm görev  kalk drift  maxφ maxθ  tırm temas  kumanda max |Δ| (coll lon lat ped)  görevler (oturma/son sınır s)
+kalkis_15            ✓   ✓  1/1    1.2   3.4    3°   1°   5.3     —  0.56 0.04 0.39 0.06  take✓3/10  
+kalkis_50            ✓   ✓  1/1    1.2   3.0    4°   1°  21.1     —  0.56 0.07 0.43 0.39  take✓5/13  
+kalkis_150           ✓   ✓  1/1    1.2   2.4    5°   1°  21.6     —  0.56 0.05 0.38 0.41  take✓10/29  
+kalkis_500           ✓   ✓  1/1    1.2   2.9    6°   1°  23.7     —  0.56 0.07 0.26 0.42  take✓24/58  
+kalkis_1000          ✓   ✓  1/1    1.2   2.4    5°   1°  25.8     —  0.56 0.06 0.30 0.39  take✓44/110  
+donus_90             ✓   ✓  2/2      —   2.7    4°   1°   1.4     —  0.14 0.29 0.20 1.00  hold✓0/10 turn✓4/12  
+donus_180            ✓   ✓  2/2      —   7.4    5°   3°   3.3     —  0.13 0.34 0.81 0.59  hold✓0/10 turn✓10/20  
+donus_360            ✓   ✓  2/2      —   8.8    4°   6°   2.2     —  0.13 0.85 0.25 1.00  hold✓0/10 turn✓10/35  
+kayma_ileri_geri     ✓   ✓  3/3      —  50.1    6°  11°   0.8     —  0.03 1.00 0.27 0.11  hold✓0/10 move✓9/15 move✓8/15  
+kayma_yan            ✓   ✓  3/3      —  40.2   11°   1°   0.3     —  0.02 0.10 0.90 0.04  hold✓0/10 move✓10/14 move✓12/14  
+bob_up_down          ✓   ✓  3/3      —   3.6    6°   2°  21.4     —  0.57 0.45 0.61 0.52  hold✓0/10 bob✓4/11 bob✓5/13  
+kombine              ✓   ✓  5/5    1.2  30.0    5°   3°  21.2     —  0.56 0.33 0.81 1.00  take✓6/16 turn✓4/12 move✓7/12 bob✓3/10 turn✓10/20  
+hedef_800_300        ✓   ✓  2/2    1.2   4.0    5°   2°  25.2     —  0.60 0.20 0.38 0.40  take✓ clim✓17/72  
+hedef_200_600        ✓   ✓  2/2    1.2   2.8    5°   1°  24.0     —  0.56 0.07 0.35 0.44  take✓ clim✓20/56  
+hedef_500_20         ✓   ✓  2/2    1.2   4.2    5°   2°  23.7     —  0.60 0.21 0.34 0.42  take✓ clim✓25/106  
+inis_50              ✗   ✗  1/2    1.2   4.4    6°   1°  21.1     —  0.56 0.07 0.43 0.40  take✓5/12 land✗  hard_landing
+inis_300             ✓   ✗  1/2      —   5.1    4°   2°   1.5  -2.4  0.56 0.14 0.19 0.13  hold✓0/10 land✗  
+inis_kayma           ✗   ✗  2/3    1.2  30.2   12°   1°  20.0     —  0.56 0.10 0.94 0.37  take✓4/10 move✓10/12 land✗  hard_landing
+agir_kalkis          ✓   ✓  2/2    1.3   6.2    5°   5°  21.7     —  0.56 0.70 0.27 1.00  take✓26/67 turn✓7/20  
+agir_inis            ✓   ✗  0/2    1.3   5.7    5°   3°  19.0  -7.3  0.56 0.32 0.41 0.59  take✗ land✗  
+agir_inis_300        ✓   ✗  1/2      —   6.6    4°   2°   1.0  -6.3  0.52 0.21 0.16 0.58  hold✓1/10 land✗  
+cg_on                ✓   ✗  2/3    1.3  40.0    6°  12°  20.0  -5.0  0.56 1.00 0.41 0.42  take✓8/17 move✓8/14 land✗  
+cg_arka              ✓   ✗  2/3    1.3  40.0    6°  10°  20.1  -4.9  0.56 0.85 0.40 0.45  take✓8/17 move✓7/14 land✗  
+bozucu_lat           ✓   ✓  2/2      —   4.0    5°   1°   0.2     —  0.02 0.09 0.48 0.02  hold✓0/10 reco✓0/12  
+bozucu_pedal         ✓   ✓  2/2      —   3.0    3°   1°   0.6     —  0.03 0.06 0.04 0.59  hold✓0/10 reco✓1/12  
+bozucu_itki          ✓   ✓  2/2      —  14.1   21°   1°   0.9     —  0.02 0.10 1.00 0.07  hold✓0/10 reco✓7/12  
+bozucu_yatis         ✓   ✓  2/2      —   5.7    9°   1°   0.3     —  0.02 0.15 1.00 0.03  hold✓0/10 reco✓1/12  
+bozucu_burun         ✓   ✓  2/2      —   4.4    5°   8°   0.3     —  0.03 1.00 0.17 0.06  hold✓0/10 reco✓1/12  
+  kalkış   güvenli 5/5   tüm görevler 5/5   görev 5/5
+  manevra  güvenli 7/7   tüm görevler 7/7   görev 20/20
+  hedef    güvenli 3/3   tüm görevler 3/3   görev 6/6
+  iniş     güvenli 1/3   tüm görevler 0/3   görev 4/7
+  ağırlık  güvenli 5/5   tüm görevler 1/5   görev 7/12
+  bozucu   güvenli 5/5   tüm görevler 5/5   görev 10/10
+  toplam   güvenli 26/28   tüm görevler 21/28   görev 52/60
+  kumanda kullanımı (trimden sapma, RMS / en büyük): collective 0.085/0.60  long. cyclic 0.066/1.00  lat. cyclic 0.084/1.00  pedal 0.111/1.00
+  kalkışta collective–pedal korelasyonu (tork telafisi): +0.55
+
+(173 s)
+kaydedildi: docs/takeoff/senaryolar_K6.json

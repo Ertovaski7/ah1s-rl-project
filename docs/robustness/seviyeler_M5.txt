@@ -1,0 +1,5 @@
+model models_maneuver/maneuver_M5_final.zip coll_scale 0.25
+M5: episode success 74% (100)  term {'time_limit': 100}  altitude=100%(34) combined=81%(158) heading=100%(58) speed=100%(50)
+S1: episode success 81% (100)  term {'time_limit': 100}  altitude=100%(23) combined=92%(59) heading=100%(28) interrupt=86%(107) interrupted=100%(222) speed=100%(24)
+S2: episode success 77% (100)  term {'time_limit': 100}  altitude=100%(44) combined=86%(77) heading=100%(35) interrupt=83%(90) interrupted=100%(139) speed=100%(70)
+S3: episode success 62% (100)  term {'time_limit': 100}  altitude=100%(19) combined=81%(53) heading=100%(15) interrupt=76%(136) interrupted=100%(345) speed=100%(28)

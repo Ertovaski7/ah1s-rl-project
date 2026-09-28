@@ -1,0 +1,4505 @@
+{
+ "model": "/home/claude/runs/rob_v5/m5_coll045.zip",
+ "results": [
+  {
+   "id": "slalom_ters_60kt",
+   "group": "kesilen",
+   "title": "Slalom, her 2.5 s'de ters yön (60 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "final_ok": false,
+   "n_cmd": 5,
+   "n_interrupted": 4,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 0.9,
+      "altitude": 0.8
+     }
+    },
+    {
+     "t": 5.55,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 6.6,
+     "deadline": 8.25,
+     "allow_s": 1.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 98.6,
+      "speed": 2.2,
+      "altitude": 5.3
+     }
+    },
+    {
+     "t": 8.025,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 89.8,
+      "speed": 1.8,
+      "altitude": 3.3
+     }
+    },
+    {
+     "t": 10.5,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 6.13,
+     "deadline": 7.66,
+     "allow_s": 0.53,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 92.6,
+      "speed": 2.1,
+      "altitude": 1.3
+     }
+    },
+    {
+     "t": 13.049999999999999,
+     "cmd": {
+      "heading": 45.0
+     },
+     "T": 3.8,
+     "deadline": 4.8,
+     "allow_s": 0.0,
+     "settle_s": 4.88,
+     "on_time": false,
+     "success": false,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 45.1,
+      "speed": 1.9,
+      "altitude": 3.8
+     }
+    }
+   ],
+   "late_s": 0.08,
+   "reaction_s": [
+    0.38,
+    0.0,
+    0.3,
+    0.23
+   ],
+   "max_roll": 44.25242169786498,
+   "max_pitch": 5.67761058071877,
+   "max_r": 20.153278911781733,
+   "max_vs": 4.418176847076332,
+   "min_alt": 796.5807086422806,
+   "sat_frac": 0.0936768149882904,
+   "act_rate": 0.022417296297758592
+  },
+  {
+   "id": "slalom_ters_60kt~ayna",
+   "group": "kesilen",
+   "title": "Slalom, her 2.5 s'de ters yön (60 kt) (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 5,
+   "n_interrupted": 4,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 1.8,
+      "altitude": 3.4
+     }
+    },
+    {
+     "t": 5.55,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 6.73,
+     "deadline": 8.42,
+     "allow_s": 1.13,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 102.6,
+      "speed": 2.3,
+      "altitude": 3.1
+     }
+    },
+    {
+     "t": 8.025,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 89.7,
+      "speed": 2.3,
+      "altitude": 4.6
+     }
+    },
+    {
+     "t": 10.5,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 6.64,
+     "deadline": 8.3,
+     "allow_s": 1.04,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 98.5,
+      "speed": 2.3,
+      "altitude": 4.5
+     }
+    },
+    {
+     "t": 13.049999999999999,
+     "cmd": {
+      "heading": -45.0
+     },
+     "T": 3.8,
+     "deadline": 4.8,
+     "allow_s": 0.0,
+     "settle_s": 3.9,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 44.8,
+      "speed": 2.2,
+      "altitude": 5.3
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.38,
+    0.0,
+    0.38,
+    0.0
+   ],
+   "max_roll": 47.89835669077548,
+   "max_pitch": 5.310002064054026,
+   "max_r": 19.89106334324032,
+   "max_vs": 2.879912881859398,
+   "min_alt": 801.8020168325943,
+   "sat_frac": 0.06030444964871194,
+   "act_rate": 0.022606164914120794
+  },
+  {
+   "id": "slalom_ters_hover",
+   "group": "kesilen",
+   "title": "Hover'da pedal dönüşü, 3 s sonra ters (5 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 3,
+   "n_interrupted": 2,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 4.4,
+      "altitude": 1.5
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 13.08,
+     "deadline": 16.35,
+     "allow_s": 3.88,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 190.3,
+      "speed": 6.7,
+      "altitude": 4.7
+     }
+    },
+    {
+     "t": 9.0,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 9.41,
+     "deadline": 11.77,
+     "allow_s": 3.81,
+     "settle_s": 6.52,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 103.9,
+      "speed": 11.1,
+      "altitude": 10.6
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.67,
+    0.9
+   ],
+   "max_roll": 31.732594990284067,
+   "max_pitch": 16.14034600624296,
+   "max_r": 31.14525648442126,
+   "max_vs": 6.6584475713016005,
+   "min_alt": 790.0735366554441,
+   "sat_frac": 0.060625,
+   "act_rate": 0.02090585389189693
+  },
+  {
+   "id": "slalom_ters_hover~ayna",
+   "group": "kesilen",
+   "title": "Hover'da pedal dönüşü, 3 s sonra ters (5 kt) (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 3,
+   "n_interrupted": 2,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 5.2,
+      "altitude": 1.9
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 12.5,
+     "deadline": 15.63,
+     "allow_s": 3.3,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 188.6,
+      "speed": 6.6,
+      "altitude": 3.3
+     }
+    },
+    {
+     "t": 9.0,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 9.71,
+     "deadline": 12.14,
+     "allow_s": 4.11,
+     "settle_s": 5.85,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 100.5,
+      "speed": 10.6,
+      "altitude": 7.9
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.6,
+    0.67
+   ],
+   "max_roll": 34.778529918372364,
+   "max_pitch": 14.34461555467849,
+   "max_r": 30.638312902482557,
+   "max_vs": 5.1171339652865155,
+   "min_alt": 792.605824406739,
+   "sat_frac": 0.0525,
+   "act_rate": 0.01921936274750653
+  },
+  {
+   "id": "donus_ani_tirmanis",
+   "group": "kesilen",
+   "title": "180° dönüşün ortasında +150 ft (60 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 0.8,
+      "altitude": 3.9
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "altitude": 150.0
+     },
+     "T": 9.91,
+     "deadline": 12.39,
+     "allow_s": 0.41,
+     "settle_s": 8.47,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 129.1,
+      "speed": 5.6,
+      "altitude": 151.2
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 46.96572190162764,
+   "max_pitch": 5.2347202992060655,
+   "max_r": 15.615907458309435,
+   "max_vs": 23.798321357375762,
+   "min_alt": 792.9057860269481,
+   "sat_frac": 0.06638115631691649,
+   "act_rate": 0.00840454862294159
+  },
+  {
+   "id": "donus_ani_tirmanis~ayna",
+   "group": "kesilen",
+   "title": "180° dönüşün ortasında +150 ft (60 kt) (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 2.4,
+      "altitude": 2.2
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "altitude": 150.0
+     },
+     "T": 9.73,
+     "deadline": 12.16,
+     "allow_s": 0.23,
+     "settle_s": 10.35,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 126.6,
+      "speed": 3.2,
+      "altitude": 150.4
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 47.96488866850186,
+   "max_pitch": 5.342566756327913,
+   "max_r": 15.554400671332665,
+   "max_vs": 25.622631049841516,
+   "min_alt": 799.4733457418033,
+   "sat_frac": 0.034796573875803,
+   "act_rate": 0.008555581182882974
+  },
+  {
+   "id": "donus_ani_alcalma_fren",
+   "group": "kesilen",
+   "title": "−120° dönüşte −100 ft ve −30 ft/s (80 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -120.0
+     },
+     "T": 8.17,
+     "deadline": 10.21,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 120.0,
+      "speed": 2.1,
+      "altitude": 4.6
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "speed": -30.0,
+      "altitude": -100.0
+     },
+     "T": 7.32,
+     "deadline": 9.15,
+     "allow_s": 0.32,
+     "settle_s": 6.75,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 95.2,
+      "speed": 30.5,
+      "altitude": 99.8
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 51.1652691694539,
+   "max_pitch": 8.856148581410626,
+   "max_r": 14.93801080509833,
+   "max_vs": 16.484284308048807,
+   "min_alt": 805.6326316796121,
+   "sat_frac": 0.03907922912205567,
+   "act_rate": 0.008050018907504659
+  },
+  {
+   "id": "donus_ani_alcalma_fren~ayna",
+   "group": "kesilen",
+   "title": "−120° dönüşte −100 ft ve −30 ft/s (80 kt) (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 120.0
+     },
+     "T": 8.17,
+     "deadline": 10.21,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 120.0,
+      "speed": 0.8,
+      "altitude": 2.3
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "speed": -30.0,
+      "altitude": -100.0
+     },
+     "T": 7.0,
+     "deadline": 8.75,
+     "allow_s": 0.0,
+     "settle_s": 8.03,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 96.1,
+      "speed": 30.0,
+      "altitude": 99.7
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 49.32921632296455,
+   "max_pitch": 5.4415865810445965,
+   "max_r": 16.457986196724402,
+   "max_vs": 17.74800435073349,
+   "min_alt": 801.4246245381091,
+   "sat_frac": 0.05299785867237687,
+   "act_rate": 0.0079367554882969
+  },
+  {
+   "id": "hizlan_ani_fren",
+   "group": "kesilen",
+   "title": "+40 ft/s hızlanırken −60 ft/s fren (30 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "speed": 40.0
+     },
+     "T": 8.67,
+     "deadline": 10.83,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.8,
+      "speed": 40.0,
+      "altitude": 6.4
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "speed": -60.0
+     },
+     "T": 15.44,
+     "deadline": 19.3,
+     "allow_s": 3.44,
+     "settle_s": 9.6,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.4,
+      "speed": 65.3,
+      "altitude": 11.7
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    1.05
+   ],
+   "max_roll": 6.952018939427894,
+   "max_pitch": 14.78220582149928,
+   "max_r": 1.8453112217733771,
+   "max_vs": 8.44263615802721,
+   "min_alt": 787.8502018006943,
+   "sat_frac": 0.017665952890792293,
+   "act_rate": 0.006969057532405089
+  },
+  {
+   "id": "tirman_ani_dalis",
+   "group": "kesilen",
+   "title": "+150 ft tırmanırken −200 ft dalış (60 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "altitude": 150.0
+     },
+     "T": 9.5,
+     "deadline": 11.88,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.4,
+      "speed": 3.8,
+      "altitude": 150.0
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "altitude": -200.0
+     },
+     "T": 15.96,
+     "deadline": 19.96,
+     "allow_s": 3.96,
+     "settle_s": 12.22,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 5.8,
+      "speed": 4.1,
+      "altitude": 212.1
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.97
+   ],
+   "max_roll": 24.374057203719474,
+   "max_pitch": 13.73743673660665,
+   "max_r": 7.008041484350174,
+   "max_vs": 25.25271942631796,
+   "min_alt": 658.3461563129499,
+   "sat_frac": 0.017665952890792293,
+   "act_rate": 0.011196434231776776
+  },
+  {
+   "id": "bobup_ters_hover",
+   "group": "kesilen",
+   "title": "Bob-up +100 ft, 2 s sonra −150 ft (5 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "altitude": 100.0
+     },
+     "T": 7.0,
+     "deadline": 8.75,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.9,
+      "speed": 4.7,
+      "altitude": 100.0
+     }
+    },
+    {
+     "t": 5.0249999999999995,
+     "cmd": {
+      "altitude": -150.0
+     },
+     "T": 14.07,
+     "deadline": 17.59,
+     "allow_s": 4.57,
+     "settle_s": 7.13,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 2.8,
+      "speed": 5.3,
+      "altitude": 168.9
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    1.28
+   ],
+   "max_roll": 17.626873318795642,
+   "max_pitch": 15.687855246512232,
+   "max_r": 4.874143884979164,
+   "max_vs": 34.345878098980315,
+   "min_alt": 681.5860108189954,
+   "sat_frac": 0.025,
+   "act_rate": 0.01216243064313436
+  },
+  {
+   "id": "ardisik_hizli",
+   "group": "kesilen",
+   "title": "6 komut, 2 s arayla (60 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 6,
+   "n_interrupted": 5,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 45.0
+     },
+     "T": 3.8,
+     "deadline": 4.8,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 45.0,
+      "speed": 1.0,
+      "altitude": 0.9
+     }
+    },
+    {
+     "t": 5.0249999999999995,
+     "cmd": {
+      "altitude": 80.0
+     },
+     "T": 6.0,
+     "deadline": 7.5,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 29.0,
+      "speed": 1.3,
+      "altitude": 80.4
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 4.2,
+      "altitude": 58.3
+     }
+    },
+    {
+     "t": 9.0,
+     "cmd": {
+      "speed": -30.0
+     },
+     "T": 7.0,
+     "deadline": 8.75,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 88.4,
+      "speed": 31.2,
+      "altitude": 14.1
+     }
+    },
+    {
+     "t": 11.025,
+     "cmd": {
+      "heading": 90.0,
+      "altitude": -60.0
+     },
+     "T": 6.87,
+     "deadline": 8.59,
+     "allow_s": 0.87,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 92.9,
+      "speed": 23.3,
+      "altitude": 60.3
+     }
+    },
+    {
+     "t": 13.049999999999999,
+     "cmd": {
+      "speed": 30.0
+     },
+     "T": 8.68,
+     "deadline": 10.85,
+     "allow_s": 1.68,
+     "settle_s": 5.78,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 70.5,
+      "speed": 30.3,
+      "altitude": 48.3
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 42.54473947616155,
+   "max_pitch": 19.084582264064508,
+   "max_r": 19.895531569983614,
+   "max_vs": 25.304186054144157,
+   "min_alt": 797.9056636258865,
+   "sat_frac": 0.08395872420262664,
+   "act_rate": 0.01753003569691848
+  },
+  {
+   "id": "ardisik_hizli~ayna",
+   "group": "kesilen",
+   "title": "6 komut, 2 s arayla (60 kt) (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 6,
+   "n_interrupted": 5,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -45.0
+     },
+     "T": 3.8,
+     "deadline": 4.8,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 45.0,
+      "speed": 1.5,
+      "altitude": 4.0
+     }
+    },
+    {
+     "t": 5.0249999999999995,
+     "cmd": {
+      "altitude": 80.0
+     },
+     "T": 6.0,
+     "deadline": 7.5,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 28.2,
+      "speed": 1.7,
+      "altitude": 79.9
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 5.79,
+     "deadline": 7.24,
+     "allow_s": 0.19,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.2,
+      "speed": 5.1,
+      "altitude": 52.7
+     }
+    },
+    {
+     "t": 9.0,
+     "cmd": {
+      "speed": -30.0
+     },
+     "T": 7.97,
+     "deadline": 9.96,
+     "allow_s": 0.97,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 81.0,
+      "speed": 33.2,
+      "altitude": 13.1
+     }
+    },
+    {
+     "t": 11.025,
+     "cmd": {
+      "heading": -90.0,
+      "altitude": -60.0
+     },
+     "T": 6.66,
+     "deadline": 8.33,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 94.8,
+      "speed": 27.5,
+      "altitude": 59.7
+     }
+    },
+    {
+     "t": 13.049999999999999,
+     "cmd": {
+      "speed": 30.0
+     },
+     "T": 11.24,
+     "deadline": 14.05,
+     "allow_s": 4.24,
+     "settle_s": 6.97,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 86.3,
+      "speed": 31.7,
+      "altitude": 45.7
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 43.61112563336033,
+   "max_pitch": 17.037707232122813,
+   "max_r": 17.458965517821103,
+   "max_vs": 23.92562071613314,
+   "min_alt": 801.7252307203175,
+   "sat_frac": 0.08208255159474671,
+   "act_rate": 0.01527862258616982
+  },
+  {
+   "id": "birlesik_ters",
+   "group": "kesilen",
+   "title": "Birleşik komut, 3 s sonra tam tersi (60 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 90.0,
+      "speed": 20.0,
+      "altitude": 100.0
+     },
+     "T": 7.0,
+     "deadline": 8.75,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 20.0,
+      "altitude": 100.0
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "heading": -90.0,
+      "speed": -20.0,
+      "altitude": -100.0
+     },
+     "T": 10.23,
+     "deadline": 12.79,
+     "allow_s": 3.23,
+     "settle_s": 10.27,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 104.9,
+      "speed": 27.8,
+      "altitude": 101.2
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.38
+   ],
+   "max_roll": 51.29999377291061,
+   "max_pitch": 14.958710055554825,
+   "max_r": 19.42313112324187,
+   "max_vs": 23.29246585642985,
+   "min_alt": 725.9345372581597,
+   "sat_frac": 0.12366167023554604,
+   "act_rate": 0.012304154326369818
+  },
+  {
+   "id": "birlesik_ters~ayna",
+   "group": "kesilen",
+   "title": "Birleşik komut, 3 s sonra tam tersi (60 kt) (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -90.0,
+      "speed": 20.0,
+      "altitude": 100.0
+     },
+     "T": 7.0,
+     "deadline": 8.75,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 21.6,
+      "altitude": 100.0
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "heading": 90.0,
+      "speed": -20.0,
+      "altitude": -100.0
+     },
+     "T": 9.46,
+     "deadline": 11.82,
+     "allow_s": 2.46,
+     "settle_s": 9.67,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 95.1,
+      "speed": 24.5,
+      "altitude": 106.7
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.3
+   ],
+   "max_roll": 47.18665976386997,
+   "max_pitch": 8.266324161476433,
+   "max_r": 17.199955356103445,
+   "max_vs": 22.65879908654923,
+   "min_alt": 748.8488875421904,
+   "sat_frac": 0.08458244111349036,
+   "act_rate": 0.011559856734778173
+  },
+  {
+   "id": "cift_kesme",
+   "group": "kesilen",
+   "title": "+90°, 2 s sonra +90° daha, 2 s sonra −180° (60 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "final_ok": false,
+   "n_cmd": 3,
+   "n_interrupted": 2,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 1.0,
+      "altitude": 0.8
+     }
+    },
+    {
+     "t": 5.0249999999999995,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 89.4,
+      "speed": 1.3,
+      "altitude": 4.0
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 10.49,
+     "deadline": 13.11,
+     "allow_s": 1.29,
+     "settle_s": 14.4,
+     "on_time": false,
+     "success": false,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 184.8,
+      "speed": 2.9,
+      "altitude": 5.0
+     }
+    }
+   ],
+   "late_s": 1.29,
+   "reaction_s": [
+    0.38
+   ],
+   "max_roll": 47.45554989609665,
+   "max_pitch": 5.654485979093993,
+   "max_r": 13.024433281012405,
+   "max_vs": 3.8268568815206865,
+   "min_alt": 796.8158437822867,
+   "sat_frac": 0.05444964871194379,
+   "act_rate": 0.010945354606639243
+  },
+  {
+   "id": "cift_kesme~ayna",
+   "group": "kesilen",
+   "title": "+90°, 2 s sonra +90° daha, 2 s sonra −180° (60 kt) (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "final_ok": false,
+   "n_cmd": 3,
+   "n_interrupted": 2,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 1.8,
+      "altitude": 3.3
+     }
+    },
+    {
+     "t": 5.0249999999999995,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 89.2,
+      "speed": 1.8,
+      "altitude": 3.4
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 10.3,
+     "deadline": 12.88,
+     "allow_s": 1.1,
+     "settle_s": 13.42,
+     "on_time": false,
+     "success": false,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 182.5,
+      "speed": 4.7,
+      "altitude": 13.1
+     }
+    }
+   ],
+   "late_s": 0.55,
+   "reaction_s": [
+    0.3
+   ],
+   "max_roll": 46.921713957262575,
+   "max_pitch": 5.545901841393484,
+   "max_r": 15.160372527456408,
+   "max_vs": 6.029253780441227,
+   "min_alt": 788.7935381228958,
+   "sat_frac": 0.08489461358313817,
+   "act_rate": 0.013425199156178888
+  },
+  {
+   "id": "slalom_sert_60kt",
+   "group": "kesilen",
+   "title": "Slalom, her 1.5 s'de ters yön (60 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 6,
+   "n_interrupted": 5,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 1.0,
+      "altitude": 0.8
+     }
+    },
+    {
+     "t": 4.5,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 6.16,
+     "deadline": 7.71,
+     "allow_s": 0.56,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 91.0,
+      "speed": 1.9,
+      "altitude": 0.8
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 1.9,
+      "altitude": 0.9
+     }
+    },
+    {
+     "t": 7.5,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 6.15,
+     "deadline": 7.69,
+     "allow_s": 0.55,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.6,
+      "speed": 1.5,
+      "altitude": 1.6
+     }
+    },
+    {
+     "t": 9.0,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 5.78,
+     "deadline": 7.22,
+     "allow_s": 0.18,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.1,
+      "speed": 1.6,
+      "altitude": 1.9
+     }
+    },
+    {
+     "t": 10.5,
+     "cmd": {
+      "heading": -45.0
+     },
+     "T": 4.17,
+     "deadline": 5.21,
+     "allow_s": 0.37,
+     "settle_s": 4.35,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 45.3,
+      "speed": 1.8,
+      "altitude": 4.7
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.22,
+    0.15,
+    0.22,
+    0.15,
+    0.22
+   ],
+   "max_roll": 42.35714834638884,
+   "max_pitch": 5.2685184876864835,
+   "max_r": 22.746327806230685,
+   "max_vs": 2.0345931191295916,
+   "min_alt": 801.7567414943805,
+   "sat_frac": 0.065,
+   "act_rate": 0.027174666054479144
+  },
+  {
+   "id": "slalom_sert_60kt~ayna",
+   "group": "kesilen",
+   "title": "Slalom, her 1.5 s'de ters yön (60 kt) (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 6,
+   "n_interrupted": 5,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 1.6,
+      "altitude": 2.6
+     }
+    },
+    {
+     "t": 4.5,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 6.32,
+     "deadline": 7.9,
+     "allow_s": 0.72,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 91.1,
+      "speed": 1.9,
+      "altitude": 3.2
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 89.7,
+      "speed": 1.9,
+      "altitude": 2.9
+     }
+    },
+    {
+     "t": 7.5,
+     "cmd": {
+      "heading": 90.0
+     },
+     "T": 6.17,
+     "deadline": 7.71,
+     "allow_s": 0.57,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.6,
+      "speed": 1.8,
+      "altitude": 3.6
+     }
+    },
+    {
+     "t": 9.0,
+     "cmd": {
+      "heading": -90.0
+     },
+     "T": 5.6,
+     "deadline": 7.0,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 1.6,
+      "altitude": 3.0
+     }
+    },
+    {
+     "t": 10.5,
+     "cmd": {
+      "heading": 45.0
+     },
+     "T": 4.28,
+     "deadline": 5.35,
+     "allow_s": 0.48,
+     "settle_s": 4.95,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 45.6,
+      "speed": 1.9,
+      "altitude": 3.5
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.3,
+    0.0,
+    0.22,
+    0.15,
+    0.22
+   ],
+   "max_roll": 39.09283724643689,
+   "max_pitch": 5.321026989856252,
+   "max_r": 24.51733502125736,
+   "max_vs": 3.3699115012992644,
+   "min_alt": 798.3565909893173,
+   "sat_frac": 0.07,
+   "act_rate": 0.02908241682607718
+  },
+  {
+   "id": "testere_180",
+   "group": "kesilen",
+   "title": "+180°, 3 s sonra −180°, 3 s sonra +180° (60 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "final_ok": false,
+   "n_cmd": 3,
+   "n_interrupted": 2,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 0.9,
+      "altitude": 2.2
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 10.51,
+     "deadline": 13.13,
+     "allow_s": 1.31,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 190.3,
+      "speed": 2.3,
+      "altitude": 6.7
+     }
+    },
+    {
+     "t": 9.0,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": 12.0,
+     "on_time": false,
+     "success": false,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.1,
+      "speed": 3.6,
+      "altitude": 12.6
+     }
+    }
+   ],
+   "late_s": 0.5,
+   "reaction_s": [
+    0.38,
+    0.22
+   ],
+   "max_roll": 46.82605260418612,
+   "max_pitch": 7.722277610241894,
+   "max_r": 17.749504062032397,
+   "max_vs": 5.4446232162843184,
+   "min_alt": 789.1975534298767,
+   "sat_frac": 0.08234714003944774,
+   "act_rate": 0.014183365028276083
+  },
+  {
+   "id": "testere_180~ayna",
+   "group": "kesilen",
+   "title": "+180°, 3 s sonra −180°, 3 s sonra +180° (60 kt) (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "final_ok": false,
+   "n_cmd": 3,
+   "n_interrupted": 2,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 2.4,
+      "altitude": 2.2
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 10.53,
+     "deadline": 13.16,
+     "allow_s": 1.33,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 192.3,
+      "speed": 2.8,
+      "altitude": 3.6
+     }
+    },
+    {
+     "t": 9.0,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": 12.0,
+     "on_time": false,
+     "success": false,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.4,
+      "speed": 2.6,
+      "altitude": 4.7
+     }
+    }
+   ],
+   "late_s": 0.5,
+   "reaction_s": [
+    0.38,
+    0.22
+   ],
+   "max_roll": 47.92936271716362,
+   "max_pitch": 5.96622234891895,
+   "max_r": 18.620394800040632,
+   "max_vs": 3.203332330007544,
+   "min_alt": 798.2623880674323,
+   "sat_frac": 0.05029585798816568,
+   "act_rate": 0.01388517848198512
+  },
+  {
+   "id": "ardisik_100kt",
+   "group": "kesilen",
+   "title": "5 komut, 2 s arayla (98 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 5,
+   "n_interrupted": 4,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 60.0
+     },
+     "T": 5.78,
+     "deadline": 7.23,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 60.0,
+      "speed": 0.7,
+      "altitude": 2.5
+     }
+    },
+    {
+     "t": 5.0249999999999995,
+     "cmd": {
+      "altitude": 100.0
+     },
+     "T": 7.23,
+     "deadline": 9.04,
+     "allow_s": 0.23,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 50.7,
+      "speed": 2.1,
+      "altitude": 100.5
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "heading": -120.0
+     },
+     "T": 10.44,
+     "deadline": 13.05,
+     "allow_s": 0.99,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 127.8,
+      "speed": 3.7,
+      "altitude": 79.8
+     }
+    },
+    {
+     "t": 9.0,
+     "cmd": {
+      "speed": -40.0
+     },
+     "T": 10.7,
+     "deadline": 13.38,
+     "allow_s": 0.78,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 130.6,
+      "speed": 40.9,
+      "altitude": 42.1
+     }
+    },
+    {
+     "t": 11.025,
+     "cmd": {
+      "heading": 90.0,
+      "altitude": -80.0
+     },
+     "T": 9.14,
+     "deadline": 11.43,
+     "allow_s": 1.96,
+     "settle_s": 9.67,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 91.1,
+      "speed": 27.7,
+      "altitude": 94.9
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 47.66023536779802,
+   "max_pitch": 12.472660788910941,
+   "max_r": 16.717766680562022,
+   "max_vs": 23.332494047209327,
+   "min_alt": 898.8576230881026,
+   "sat_frac": 0.10714285714285714,
+   "act_rate": 0.01423170296987602
+  },
+  {
+   "id": "ardisik_100kt~ayna",
+   "group": "kesilen",
+   "title": "5 komut, 2 s arayla (98 kt) (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 5,
+   "n_interrupted": 4,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -60.0
+     },
+     "T": 5.78,
+     "deadline": 7.23,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 60.0,
+      "speed": 1.9,
+      "altitude": 6.5
+     }
+    },
+    {
+     "t": 5.0249999999999995,
+     "cmd": {
+      "altitude": 100.0
+     },
+     "T": 7.0,
+     "deadline": 8.75,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 50.9,
+      "speed": 4.5,
+      "altitude": 99.9
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "heading": 120.0
+     },
+     "T": 9.97,
+     "deadline": 12.46,
+     "allow_s": 0.63,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 122.9,
+      "speed": 7.6,
+      "altitude": 71.6
+     }
+    },
+    {
+     "t": 9.0,
+     "cmd": {
+      "speed": -40.0
+     },
+     "T": 10.91,
+     "deadline": 13.64,
+     "allow_s": 1.37,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 124.5,
+      "speed": 45.9,
+      "altitude": 32.8
+     }
+    },
+    {
+     "t": 11.025,
+     "cmd": {
+      "heading": -90.0,
+      "altitude": -80.0
+     },
+     "T": 8.17,
+     "deadline": 10.21,
+     "allow_s": 0.05,
+     "settle_s": 10.12,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 91.5,
+      "speed": 36.1,
+      "altitude": 111.8
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 58.18887131968968,
+   "max_pitch": 19.33718120496355,
+   "max_r": 17.419902330938942,
+   "max_vs": 35.25040291184793,
+   "min_alt": 898.8752776037882,
+   "sat_frac": 0.11428571428571428,
+   "act_rate": 0.01725582520195078
+  },
+  {
+   "id": "dikey_testere",
+   "group": "kesilen",
+   "title": "−100 / +150 / −100 ft, 2 s arayla (380 ft, 30 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 3,
+   "n_interrupted": 2,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "altitude": -100.0
+     },
+     "T": 7.0,
+     "deadline": 8.75,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.2,
+      "speed": 1.8,
+      "altitude": 100.0
+     }
+    },
+    {
+     "t": 5.0249999999999995,
+     "cmd": {
+      "altitude": 150.0
+     },
+     "T": 12.73,
+     "deadline": 15.91,
+     "allow_s": 3.23,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 2.5,
+      "speed": 5.6,
+      "altitude": 161.0
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "altitude": -100.0
+     },
+     "T": 10.83,
+     "deadline": 13.53,
+     "allow_s": 3.83,
+     "settle_s": 6.75,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 3.9,
+      "speed": 7.0,
+      "altitude": 115.6
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.98,
+    1.2
+   ],
+   "max_roll": 19.91383963186921,
+   "max_pitch": 17.49800335512016,
+   "max_r": 7.938696225673239,
+   "max_vs": 24.769717387417018,
+   "min_alt": 260.83440968736477,
+   "sat_frac": 0.03693790149892934,
+   "act_rate": 0.0143329880013962
+  },
+  {
+   "id": "hiz_testere_hover",
+   "group": "kesilen",
+   "title": "+40 / −40 / +40 ft/s, 2 s arayla (5 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 3,
+   "n_interrupted": 2,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "speed": 40.0
+     },
+     "T": 8.67,
+     "deadline": 10.83,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.2,
+      "speed": 40.0,
+      "altitude": 8.8
+     }
+    },
+    {
+     "t": 5.0249999999999995,
+     "cmd": {
+      "speed": 40.0
+     },
+     "T": 8.67,
+     "deadline": 10.83,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.5,
+      "speed": 39.4,
+      "altitude": 12.9
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "speed": 40.0
+     },
+     "T": 8.67,
+     "deadline": 10.83,
+     "allow_s": 0.0,
+     "settle_s": 5.48,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.3,
+      "speed": 39.4,
+      "altitude": 12.8
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 5.924093395046762,
+   "max_pitch": 15.45498177857342,
+   "max_r": 2.6959225970675678,
+   "max_vs": 6.660876073143718,
+   "min_alt": 800.2562302041447,
+   "sat_frac": 0.004098360655737705,
+   "act_rate": 0.004326444235903609
+  },
+  {
+   "id": "birlesik_ters_100kt",
+   "group": "kesilen",
+   "title": "98 kt: +90° −30 ft/s +100 ft, 3 s sonra −90° −100 ft",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 90.0,
+      "speed": -30.0,
+      "altitude": 100.0
+     },
+     "T": 7.64,
+     "deadline": 9.55,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.1,
+      "speed": 30.0,
+      "altitude": 100.0
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "heading": -90.0,
+      "altitude": -100.0
+     },
+     "T": 11.07,
+     "deadline": 13.84,
+     "allow_s": 4.07,
+     "settle_s": 10.05,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 91.8,
+      "speed": 6.4,
+      "altitude": 116.1
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.38
+   ],
+   "max_roll": 54.009045975701795,
+   "max_pitch": 13.877914910023662,
+   "max_r": 16.436743789011445,
+   "max_vs": 35.809612261183055,
+   "min_alt": 878.412376785097,
+   "sat_frac": 0.07739212007504691,
+   "act_rate": 0.010126589400487203
+  },
+  {
+   "id": "birlesik_ters_100kt~ayna",
+   "group": "kesilen",
+   "title": "98 kt: +90° −30 ft/s +100 ft, 3 s sonra −90° −100 ft (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -90.0,
+      "speed": -30.0,
+      "altitude": 100.0
+     },
+     "T": 7.67,
+     "deadline": 9.59,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 30.0,
+      "altitude": 100.0
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "heading": 90.0,
+      "altitude": -100.0
+     },
+     "T": 11.92,
+     "deadline": 14.9,
+     "allow_s": 4.92,
+     "settle_s": 10.2,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 89.9,
+      "speed": 7.5,
+      "altitude": 117.4
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.22
+   ],
+   "max_roll": 46.58665970813734,
+   "max_pitch": 14.334249130234811,
+   "max_r": 15.740410469306514,
+   "max_vs": 38.50599427558574,
+   "min_alt": 878.496612021851,
+   "sat_frac": 0.05956848030018762,
+   "act_rate": 0.010893116222608737
+  },
+  {
+   "id": "hover_sinir",
+   "group": "sınır",
+   "title": "0 kt: 180° pedal, +150 ft, +50 ft/s, tekrar 0 kt",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 4,
+   "n_interrupted": 0,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": 7.8,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 6.1,
+      "altitude": 8.7
+     }
+    },
+    {
+     "t": 16.05,
+     "cmd": {
+      "altitude": 150.0
+     },
+     "T": 9.5,
+     "deadline": 11.88,
+     "allow_s": 0.0,
+     "settle_s": 6.15,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 2.0,
+      "speed": 5.0,
+      "altitude": 150.0
+     }
+    },
+    {
+     "t": 30.0,
+     "cmd": {
+      "speed": 50.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": 7.27,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.1,
+      "speed": 50.0,
+      "altitude": 14.6
+     }
+    },
+    {
+     "t": 45.0,
+     "cmd": {
+      "speed": 50.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": 7.73,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.9,
+      "speed": 50.0,
+      "altitude": 8.2
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 15.886502461140003,
+   "max_pitch": 15.905053627540708,
+   "max_r": 31.214111828036167,
+   "max_vs": 31.933576368168602,
+   "min_alt": 791.6297290423931,
+   "sat_frac": 0.010227272727272727,
+   "act_rate": 0.011805531455058737
+  },
+  {
+   "id": "hover_sinir~ayna",
+   "group": "sınır",
+   "title": "0 kt: 180° pedal, +150 ft, +50 ft/s, tekrar 0 kt (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 4,
+   "n_interrupted": 0,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": 7.88,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 6.0,
+      "altitude": 6.8
+     }
+    },
+    {
+     "t": 16.05,
+     "cmd": {
+      "altitude": 150.0
+     },
+     "T": 9.5,
+     "deadline": 11.88,
+     "allow_s": 0.0,
+     "settle_s": 6.15,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 2.0,
+      "speed": 4.9,
+      "altitude": 150.0
+     }
+    },
+    {
+     "t": 30.0,
+     "cmd": {
+      "speed": 50.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": 7.27,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.1,
+      "speed": 50.0,
+      "altitude": 14.6
+     }
+    },
+    {
+     "t": 45.0,
+     "cmd": {
+      "speed": 50.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": 7.73,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.9,
+      "speed": 50.0,
+      "altitude": 8.1
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 21.712800390579456,
+   "max_pitch": 15.902741134190485,
+   "max_r": 28.66022393344806,
+   "max_vs": 31.90530575233012,
+   "min_alt": 793.5678349083105,
+   "sat_frac": 0.007102272727272727,
+   "act_rate": 0.011804780135470505
+  },
+  {
+   "id": "hiz_sinir_95kt",
+   "group": "sınır",
+   "title": "95 kt: 100 kt'a çık, 180° dönüş, +150 ft, −50 ft/s",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 4,
+   "n_interrupted": 0,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "speed": -10.0
+     },
+     "T": 3.67,
+     "deadline": 4.67,
+     "allow_s": 0.0,
+     "settle_s": 2.25,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.4,
+      "speed": 10.0,
+      "altitude": 5.9
+     }
+    },
+    {
+     "t": 18.0,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 12.3,
+     "deadline": 15.38,
+     "allow_s": 0.0,
+     "settle_s": 13.57,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 1.4,
+      "altitude": 8.6
+     }
+    },
+    {
+     "t": 40.05,
+     "cmd": {
+      "altitude": 150.0
+     },
+     "T": 9.5,
+     "deadline": 11.88,
+     "allow_s": 0.0,
+     "settle_s": 6.83,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.0,
+      "speed": 4.3,
+      "altitude": 150.0
+     }
+    },
+    {
+     "t": 58.05,
+     "cmd": {
+      "speed": -50.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": 9.45,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.4,
+      "speed": 50.0,
+      "altitude": 18.2
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 51.68810243987236,
+   "max_pitch": 9.266599980091852,
+   "max_r": 11.912398995968644,
+   "max_vs": 27.756033845392132,
+   "min_alt": 890.225687032133,
+   "sat_frac": 0.013221153846153846,
+   "act_rate": 0.008702325580652384
+  },
+  {
+   "id": "hiz_sinir_95kt~ayna",
+   "group": "sınır",
+   "title": "95 kt: 100 kt'a çık, 180° dönüş, +150 ft, −50 ft/s (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 4,
+   "n_interrupted": 0,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "speed": -10.0
+     },
+     "T": 3.67,
+     "deadline": 4.67,
+     "allow_s": 0.0,
+     "settle_s": 2.25,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.4,
+      "speed": 10.0,
+      "altitude": 5.9
+     }
+    },
+    {
+     "t": 18.0,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 12.3,
+     "deadline": 15.38,
+     "allow_s": 0.0,
+     "settle_s": 14.48,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 2.7,
+      "altitude": 4.6
+     }
+    },
+    {
+     "t": 40.05,
+     "cmd": {
+      "altitude": 150.0
+     },
+     "T": 9.5,
+     "deadline": 11.88,
+     "allow_s": 0.0,
+     "settle_s": 6.83,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.1,
+      "speed": 4.4,
+      "altitude": 150.0
+     }
+    },
+    {
+     "t": 58.05,
+     "cmd": {
+      "speed": -50.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": 9.45,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.4,
+      "speed": 50.0,
+      "altitude": 18.1
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 51.93246703097073,
+   "max_pitch": 9.239691315880664,
+   "max_r": 10.790761460357013,
+   "max_vs": 27.794863638300868,
+   "min_alt": 896.8239195192814,
+   "sat_frac": 0.011057692307692308,
+   "act_rate": 0.008551205683874255
+  },
+  {
+   "id": "alcak_irtifa",
+   "group": "sınır",
+   "title": "350 ft: 250 ft'e in, orada 180° dönüş, +150, −150 ft (60 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 4,
+   "n_interrupted": 0,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "altitude": -100.0
+     },
+     "T": 7.0,
+     "deadline": 8.75,
+     "allow_s": 0.0,
+     "settle_s": 6.22,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.5,
+      "speed": 1.9,
+      "altitude": 100.0
+     }
+    },
+    {
+     "t": 18.0,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": 10.8,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 4.5,
+      "altitude": 13.1
+     }
+    },
+    {
+     "t": 40.05,
+     "cmd": {
+      "altitude": 150.0
+     },
+     "T": 9.5,
+     "deadline": 11.88,
+     "allow_s": 0.0,
+     "settle_s": 6.9,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.2,
+      "speed": 3.6,
+      "altitude": 150.0
+     }
+    },
+    {
+     "t": 58.05,
+     "cmd": {
+      "altitude": -150.0
+     },
+     "T": 9.5,
+     "deadline": 11.88,
+     "allow_s": 0.0,
+     "settle_s": 8.62,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.6,
+      "speed": 1.9,
+      "altitude": 150.0
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 46.896105183688995,
+   "max_pitch": 6.759587302698314,
+   "max_r": 15.242072353389023,
+   "max_vs": 26.694982942591825,
+   "min_alt": 239.05983983740225,
+   "sat_frac": 0.02912142152023692,
+   "act_rate": 0.010697383918682584
+  },
+  {
+   "id": "alcak_irtifa~ayna",
+   "group": "sınır",
+   "title": "350 ft: 250 ft'e in, orada 180° dönüş, +150, −150 ft (60 kt) (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "final_ok": true,
+   "n_cmd": 4,
+   "n_interrupted": 0,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "altitude": -100.0
+     },
+     "T": 7.0,
+     "deadline": 8.75,
+     "allow_s": 0.0,
+     "settle_s": 6.22,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.5,
+      "speed": 1.9,
+      "altitude": 100.0
+     }
+    },
+    {
+     "t": 18.0,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 9.2,
+     "deadline": 11.5,
+     "allow_s": 0.0,
+     "settle_s": 11.7,
+     "on_time": false,
+     "success": false,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 2.5,
+      "altitude": 3.0
+     }
+    },
+    {
+     "t": 40.05,
+     "cmd": {
+      "altitude": 150.0
+     },
+     "T": 9.5,
+     "deadline": 11.88,
+     "allow_s": 0.0,
+     "settle_s": 6.9,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.2,
+      "speed": 3.6,
+      "altitude": 150.0
+     }
+    },
+    {
+     "t": 58.05,
+     "cmd": {
+      "altitude": -150.0
+     },
+     "T": 9.5,
+     "deadline": 11.88,
+     "allow_s": 0.0,
+     "settle_s": 8.62,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.6,
+      "speed": 1.9,
+      "altitude": 150.0
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 47.84057490469364,
+   "max_pitch": 6.7598396764253925,
+   "max_r": 12.950261924324076,
+   "max_vs": 26.687345158347377,
+   "min_alt": 249.1595834050695,
+   "sat_frac": 0.0096248766041461,
+   "act_rate": 0.01005984509072502
+  },
+  {
+   "id": "hiz_sinir_ters",
+   "group": "sınır",
+   "title": "100 kt'ta 180° dönüş, 4 s sonra ters",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "final_ok": false,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 13.55,
+     "deadline": 16.94,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 0.6,
+      "altitude": 4.1
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 14.44,
+     "deadline": 18.04,
+     "allow_s": 0.95,
+     "settle_s": 19.65,
+     "on_time": false,
+     "success": false,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 193.8,
+      "speed": 3.3,
+      "altitude": 7.9
+     }
+    }
+   ],
+   "late_s": 1.61,
+   "reaction_s": [
+    0.3
+   ],
+   "max_roll": 52.767624815771306,
+   "max_pitch": 5.6807304641690575,
+   "max_r": 10.903546907054729,
+   "max_vs": 6.851907391106214,
+   "min_alt": 890.9312272288162,
+   "sat_frac": 0.04783037475345168,
+   "act_rate": 0.009362090867898049
+  },
+  {
+   "id": "hiz_sinir_ters~ayna",
+   "group": "sınır",
+   "title": "100 kt'ta 180° dönüş, 4 s sonra ters (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -180.0
+     },
+     "T": 13.55,
+     "deadline": 16.93,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 180.0,
+      "speed": 2.8,
+      "altitude": 5.6
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "heading": 180.0
+     },
+     "T": 14.33,
+     "deadline": 17.92,
+     "allow_s": 0.94,
+     "settle_s": 17.77,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 189.3,
+      "speed": 3.0,
+      "altitude": 8.8
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.3
+   ],
+   "max_roll": 52.87394150599862,
+   "max_pitch": 5.894762984609368,
+   "max_r": 11.461566049132864,
+   "max_vs": 6.719800552858333,
+   "min_alt": 890.0648400859118,
+   "sat_frac": 0.04585798816568047,
+   "act_rate": 0.011574731535773371
+  },
+  {
+   "id": "hover_hizlan_fren",
+   "group": "sınır",
+   "title": "5 kt: +50 ft/s, 4 s sonra dur (0 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "speed": 50.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.0,
+      "speed": 50.0,
+      "altitude": 14.0
+     }
+    },
+    {
+     "t": 7.05,
+     "cmd": {
+      "speed": 55.0
+     },
+     "T": 11.17,
+     "deadline": 13.96,
+     "allow_s": 0.0,
+     "settle_s": 7.65,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.4,
+      "speed": 54.4,
+      "altitude": 13.7
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 6.171818638530383,
+   "max_pitch": 15.740523334994093,
+   "max_r": 2.655928451090305,
+   "max_vs": 7.325344292810395,
+   "min_alt": 800.2411543927578,
+   "sat_frac": 0.003747323340471092,
+   "act_rate": 0.004247702773342653
+  },
+  {
+   "id": "alcak_ani_dalis",
+   "group": "sınır",
+   "title": "400 ft: +100 ft, 3 s sonra −180 ft (30 kt)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 2,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "altitude": 100.0
+     },
+     "T": 7.0,
+     "deadline": 8.75,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 2.0,
+      "speed": 4.2,
+      "altitude": 100.0
+     }
+    },
+    {
+     "t": 6.0,
+     "cmd": {
+      "altitude": -180.0
+     },
+     "T": 15.32,
+     "deadline": 19.15,
+     "allow_s": 4.32,
+     "settle_s": 10.27,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 3.5,
+      "speed": 4.5,
+      "altitude": 194.5
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    1.12
+   ],
+   "max_roll": 23.103699340015446,
+   "max_pitch": 13.418355720930785,
+   "max_r": 5.583709443060079,
+   "max_vs": 26.713696777094274,
+   "min_alt": 277.55529391098344,
+   "sat_frac": 0.019320843091334895,
+   "act_rate": 0.011131478283071164
+  },
+  {
+   "id": "max_performans",
+   "group": "sınır",
+   "title": "98 kt: +90°, +150 ft, −50 ft/s birlikte",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 1,
+   "n_interrupted": 0,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": 90.0,
+      "speed": -50.0,
+      "altitude": 150.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": 8.7,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.1,
+      "speed": 50.0,
+      "altitude": 150.0
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 46.86515107447631,
+   "max_pitch": 11.788294077583666,
+   "max_r": 11.156728752355392,
+   "max_vs": 35.73732483702955,
+   "min_alt": 898.8448949885028,
+   "sat_frac": 0.04221388367729831,
+   "act_rate": 0.006418881269348645
+  },
+  {
+   "id": "max_performans~ayna",
+   "group": "sınır",
+   "title": "98 kt: +90°, +150 ft, −50 ft/s birlikte (ayna)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 1,
+   "n_interrupted": 0,
+   "windows": [
+    {
+     "t": 3.0,
+     "cmd": {
+      "heading": -90.0,
+      "speed": -50.0,
+      "altitude": 150.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": 9.6,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 90.0,
+      "speed": 50.0,
+      "altitude": 150.0
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 43.487101362785964,
+   "max_pitch": 14.467756284705416,
+   "max_r": 15.518411617702615,
+   "max_vs": 38.1055696341374,
+   "min_alt": 898.8654216903856,
+   "sat_frac": 0.010318949343339587,
+   "act_rate": 0.007182888838740878
+  },
+  {
+   "id": "rastgele_S1_7001",
+   "group": "rastgele",
+   "title": "S1 seviyesinden rastgele episode (seed 7001)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 6,
+   "n_interrupted": 4,
+   "windows": [
+    {
+     "t": 2.25,
+     "cmd": {
+      "heading": -28.9
+     },
+     "T": 3.37,
+     "deadline": 4.37,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 28.9,
+      "speed": 1.5,
+      "altitude": 5.4
+     }
+    },
+    {
+     "t": 4.2,
+     "cmd": {
+      "heading": 143.7
+     },
+     "T": 9.42,
+     "deadline": 11.78,
+     "allow_s": 0.71,
+     "settle_s": 11.7,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 145.0,
+      "speed": 2.3,
+      "altitude": 10.5
+     }
+    },
+    {
+     "t": 24.0,
+     "cmd": {
+      "heading": -174.6,
+      "speed": -27.8,
+      "altitude": -63.3
+     },
+     "T": 10.24,
+     "deadline": 12.79,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 174.6,
+      "speed": 27.8,
+      "altitude": 63.3
+     }
+    },
+    {
+     "t": 28.425,
+     "cmd": {
+      "heading": 174.0
+     },
+     "T": 11.1,
+     "deadline": 13.88,
+     "allow_s": 2.14,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 184.1,
+      "speed": 2.5,
+      "altitude": 31.5
+     }
+    },
+    {
+     "t": 31.724999999999998,
+     "cmd": {
+      "heading": -68.3,
+      "speed": 19.3,
+      "altitude": -73.7
+     },
+     "T": 5.69,
+     "deadline": 7.11,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 68.7,
+      "speed": 19.5,
+      "altitude": 73.9
+     }
+    },
+    {
+     "t": 35.025,
+     "cmd": {
+      "altitude": 122.1
+     },
+     "T": 10.43,
+     "deadline": 13.03,
+     "allow_s": 2.32,
+     "settle_s": 6.98,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 32.7,
+      "speed": 9.4,
+      "altitude": 132.3
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.3,
+    0.45,
+    0.3,
+    1.12
+   ],
+   "max_roll": 50.999297010664364,
+   "max_pitch": 15.204376587925841,
+   "max_r": 18.831245574885685,
+   "max_vs": 26.501828950722132,
+   "min_alt": 1174.6490283627409,
+   "sat_frac": 0.06651069518716578,
+   "act_rate": 0.01832221226998601
+  },
+  {
+   "id": "rastgele_S1_7002",
+   "group": "rastgele",
+   "title": "S1 seviyesinden rastgele episode (seed 7002)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 4,
+   "n_interrupted": 2,
+   "windows": [
+    {
+     "t": 2.3249999999999997,
+     "cmd": {
+      "speed": -32.1
+     },
+     "T": 7.35,
+     "deadline": 9.19,
+     "allow_s": 0.0,
+     "settle_s": 5.47,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.3,
+      "speed": 32.1,
+      "altitude": 4.9
+     }
+    },
+    {
+     "t": 19.575,
+     "cmd": {
+      "heading": 122.1
+     },
+     "T": 6.88,
+     "deadline": 8.6,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 122.1,
+      "speed": 0.9,
+      "altitude": 1.7
+     }
+    },
+    {
+     "t": 22.125,
+     "cmd": {
+      "heading": -154.4
+     },
+     "T": 9.24,
+     "deadline": 11.56,
+     "allow_s": 1.07,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 161.8,
+      "speed": 2.3,
+      "altitude": 4.5
+     }
+    },
+    {
+     "t": 26.325,
+     "cmd": {
+      "altitude": 96.9
+     },
+     "T": 8.11,
+     "deadline": 10.14,
+     "allow_s": 0.0,
+     "settle_s": 10.05,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 151.6,
+      "speed": 4.7,
+      "altitude": 97.0
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.38
+   ],
+   "max_roll": 45.15531721760933,
+   "max_pitch": 10.91631038155043,
+   "max_r": 15.453671264949609,
+   "max_vs": 25.545718301246325,
+   "min_alt": 1059.8086861639094,
+   "sat_frac": 0.06745362563237774,
+   "act_rate": 0.012868215244600072
+  },
+  {
+   "id": "rastgele_S1_7003",
+   "group": "rastgele",
+   "title": "S1 seviyesinden rastgele episode (seed 7003)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 3,
+   "n_interrupted": 0,
+   "windows": [
+    {
+     "t": 3.9749999999999996,
+     "cmd": {
+      "heading": 125.8,
+      "speed": 43.9,
+      "altitude": 76.5
+     },
+     "T": 9.32,
+     "deadline": 11.66,
+     "allow_s": 0.0,
+     "settle_s": 7.88,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 125.8,
+      "speed": 43.9,
+      "altitude": 76.5
+     }
+    },
+    {
+     "t": 23.7,
+     "cmd": {
+      "heading": -138.2
+     },
+     "T": 7.53,
+     "deadline": 9.41,
+     "allow_s": 0.0,
+     "settle_s": 8.25,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 138.2,
+      "speed": 2.2,
+      "altitude": 2.5
+     }
+    },
+    {
+     "t": 41.175,
+     "cmd": {
+      "heading": -58.8
+     },
+     "T": 4.35,
+     "deadline": 5.44,
+     "allow_s": 0.0,
+     "settle_s": 4.05,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 58.8,
+      "speed": 1.1,
+      "altitude": 3.8
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 43.48382952900162,
+   "max_pitch": 17.155623959695056,
+   "max_r": 25.6640351358676,
+   "max_vs": 22.829892548176563,
+   "min_alt": 1061.5430201694735,
+   "sat_frac": 0.019890260631001373,
+   "act_rate": 0.010666710508963001
+  },
+  {
+   "id": "rastgele_S1_7004",
+   "group": "rastgele",
+   "title": "S1 seviyesinden rastgele episode (seed 7004)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 3,
+   "n_interrupted": 0,
+   "windows": [
+    {
+     "t": 2.55,
+     "cmd": {
+      "altitude": -59.2
+     },
+     "T": 4.96,
+     "deadline": 6.2,
+     "allow_s": 0.0,
+     "settle_s": 3.75,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.2,
+      "speed": 1.6,
+      "altitude": 59.2
+     }
+    },
+    {
+     "t": 16.8,
+     "cmd": {
+      "heading": -10.2
+     },
+     "T": 2.41,
+     "deadline": 3.41,
+     "allow_s": 0.0,
+     "settle_s": 1.05,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 10.2,
+      "speed": 0.4,
+      "altitude": 1.3
+     }
+    },
+    {
+     "t": 28.275,
+     "cmd": {
+      "heading": 59.3,
+      "speed": -39.1,
+      "altitude": 50.8
+     },
+     "T": 8.52,
+     "deadline": 10.65,
+     "allow_s": 0.0,
+     "settle_s": 5.17,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 59.3,
+      "speed": 39.1,
+      "altitude": 50.8
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 35.80610938603084,
+   "max_pitch": 14.810207355776818,
+   "max_r": 22.457373836612792,
+   "max_vs": 18.72918537434299,
+   "min_alt": 1174.1766188580314,
+   "sat_frac": 0.01757188498402556,
+   "act_rate": 0.011626888800598681
+  },
+  {
+   "id": "rastgele_S1_7005",
+   "group": "rastgele",
+   "title": "S1 seviyesinden rastgele episode (seed 7005)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 6,
+   "n_interrupted": 3,
+   "windows": [
+    {
+     "t": 2.4,
+     "cmd": {
+      "heading": -44.3,
+      "speed": -26.4,
+      "altitude": -94.6
+     },
+     "T": 6.73,
+     "deadline": 8.41,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 44.3,
+      "speed": 26.4,
+      "altitude": 94.7
+     }
+    },
+    {
+     "t": 4.125,
+     "cmd": {
+      "altitude": 105.3
+     },
+     "T": 7.26,
+     "deadline": 9.08,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 27.9,
+      "speed": 15.5,
+      "altitude": 105.2
+     }
+    },
+    {
+     "t": 8.1,
+     "cmd": {
+      "altitude": -112.4
+     },
+     "T": 9.91,
+     "deadline": 12.38,
+     "allow_s": 2.29,
+     "settle_s": 7.88,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 4.0,
+      "speed": 3.2,
+      "altitude": 118.3
+     }
+    },
+    {
+     "t": 28.5,
+     "cmd": {
+      "heading": 40.8,
+      "speed": 7.5,
+      "altitude": 53.5
+     },
+     "T": 4.67,
+     "deadline": 5.84,
+     "allow_s": 0.0,
+     "settle_s": 4.8,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 40.8,
+      "speed": 7.7,
+      "altitude": 53.5
+     }
+    },
+    {
+     "t": 42.375,
+     "cmd": {
+      "heading": 25.3,
+      "speed": -7.9,
+      "altitude": 44.7
+     },
+     "T": 4.24,
+     "deadline": 5.3,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 25.4,
+      "speed": 7.9,
+      "altitude": 44.7
+     }
+    },
+    {
+     "t": 44.699999999999996,
+     "cmd": {
+      "altitude": -119.7
+     },
+     "T": 9.31,
+     "deadline": 11.64,
+     "allow_s": 1.33,
+     "settle_s": 6.9,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 13.5,
+      "speed": 4.0,
+      "altitude": 122.0
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.22,
+    0.75,
+    0.45
+   ],
+   "max_roll": 48.53998950292503,
+   "max_pitch": 17.30534790224872,
+   "max_r": 22.687365564378442,
+   "max_vs": 28.20609161572436,
+   "min_alt": 704.2310394174665,
+   "sat_frac": 0.04108391608391608,
+   "act_rate": 0.016488052765097655
+  },
+  {
+   "id": "rastgele_S2_8001",
+   "group": "rastgele",
+   "title": "S2 seviyesinden rastgele episode (seed 8001)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 6,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 2.1,
+     "cmd": {
+      "heading": 21.8,
+      "speed": -48.5,
+      "altitude": 56.3
+     },
+     "T": 10.08,
+     "deadline": 12.6,
+     "allow_s": 0.0,
+     "settle_s": 6.75,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 21.8,
+      "speed": 48.5,
+      "altitude": 56.3
+     }
+    },
+    {
+     "t": 22.724999999999998,
+     "cmd": {
+      "speed": 50.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": 7.5,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.0,
+      "speed": 50.0,
+      "altitude": 10.5
+     }
+    },
+    {
+     "t": 43.65,
+     "cmd": {
+      "heading": 24.0,
+      "speed": -35.7,
+      "altitude": -66.4
+     },
+     "T": 7.96,
+     "deadline": 9.95,
+     "allow_s": 0.0,
+     "settle_s": 5.77,
+     "on_time": true,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 24.0,
+      "speed": 35.7,
+      "altitude": 66.4
+     }
+    },
+    {
+     "t": 49.5,
+     "cmd": {
+      "speed": 48.8
+     },
+     "T": 11.09,
+     "deadline": 13.86,
+     "allow_s": 0.96,
+     "settle_s": 7.95,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.2,
+      "speed": 49.1,
+      "altitude": 8.8
+     }
+    },
+    {
+     "t": 71.39999999999999,
+     "cmd": {
+      "altitude": -150.0
+     },
+     "T": 9.5,
+     "deadline": 11.88,
+     "allow_s": 0.0,
+     "settle_s": 8.48,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.6,
+      "speed": 2.0,
+      "altitude": 150.0
+     }
+    },
+    {
+     "t": 91.27499999999999,
+     "cmd": {
+      "speed": -50.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": 7.2,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.5,
+      "speed": 50.0,
+      "altitude": 4.9
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.23
+   ],
+   "max_roll": 22.350691457712003,
+   "max_pitch": 15.16629457796557,
+   "max_r": 20.135645422035964,
+   "max_vs": 20.979881598581056,
+   "min_alt": 939.5955424793451,
+   "sat_frac": 0.014705882352941176,
+   "act_rate": 0.008036772762098191
+  },
+  {
+   "id": "rastgele_S2_8002",
+   "group": "rastgele",
+   "title": "S2 seviyesinden rastgele episode (seed 8002)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 4,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.8249999999999997,
+     "cmd": {
+      "heading": -63.6,
+      "speed": 39.2,
+      "altitude": -55.9
+     },
+     "T": 8.54,
+     "deadline": 10.68,
+     "allow_s": 0.0,
+     "settle_s": 5.7,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 63.6,
+      "speed": 39.2,
+      "altitude": 55.9
+     }
+    },
+    {
+     "t": 22.575,
+     "cmd": {
+      "heading": 170.4,
+      "speed": -43.0,
+      "altitude": -91.1
+     },
+     "T": 9.17,
+     "deadline": 11.47,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 170.4,
+      "speed": 43.0,
+      "altitude": 91.1
+     }
+    },
+    {
+     "t": 25.575,
+     "cmd": {
+      "heading": -120.3
+     },
+     "T": 8.73,
+     "deadline": 10.91,
+     "allow_s": 1.83,
+     "settle_s": 6.53,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 125.7,
+      "speed": 28.7,
+      "altitude": 44.0
+     }
+    },
+    {
+     "t": 44.55,
+     "cmd": {
+      "speed": 50.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": 7.2,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.1,
+      "speed": 50.0,
+      "altitude": 14.2
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.38
+   ],
+   "max_roll": 26.028330229497058,
+   "max_pitch": 18.818348373895923,
+   "max_r": 29.72644544663506,
+   "max_vs": 27.231033459939436,
+   "min_alt": 441.6780897169383,
+   "sat_frac": 0.02434135166093929,
+   "act_rate": 0.011769496221784203
+  },
+  {
+   "id": "rastgele_S2_8003",
+   "group": "rastgele",
+   "title": "S2 seviyesinden rastgele episode (seed 8003)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 5,
+   "n_interrupted": 3,
+   "windows": [
+    {
+     "t": 2.6999999999999997,
+     "cmd": {
+      "heading": -91.7
+     },
+     "T": 5.67,
+     "deadline": 7.08,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 91.7,
+      "speed": 2.8,
+      "altitude": 1.5
+     }
+    },
+    {
+     "t": 6.375,
+     "cmd": {
+      "heading": 118.7
+     },
+     "T": 8.98,
+     "deadline": 11.22,
+     "allow_s": 2.23,
+     "settle_s": 6.67,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 124.2,
+      "speed": 4.0,
+      "altitude": 5.4
+     }
+    },
+    {
+     "t": 25.65,
+     "cmd": {
+      "heading": 57.0,
+      "speed": 34.7,
+      "altitude": -77.1
+     },
+     "T": 7.79,
+     "deadline": 9.73,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 57.0,
+      "speed": 34.7,
+      "altitude": 77.1
+     }
+    },
+    {
+     "t": 29.025,
+     "cmd": {
+      "heading": -115.3
+     },
+     "T": 8.18,
+     "deadline": 10.22,
+     "allow_s": 1.56,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 119.0,
+      "speed": 10.2,
+      "altitude": 21.2
+     }
+    },
+    {
+     "t": 35.025,
+     "cmd": {
+      "altitude": 77.5
+     },
+     "T": 5.87,
+     "deadline": 7.34,
+     "allow_s": 0.0,
+     "settle_s": 3.98,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 18.8,
+      "speed": 2.8,
+      "altitude": 77.4
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [
+    0.52,
+    0.38
+   ],
+   "max_roll": 38.08613869681837,
+   "max_pitch": 20.10373952485614,
+   "max_r": 24.877445187551345,
+   "max_vs": 24.508487635044354,
+   "min_alt": 1158.7980479515663,
+   "sat_frac": 0.0390625,
+   "act_rate": 0.01746202567446527
+  },
+  {
+   "id": "rastgele_S2_8004",
+   "group": "rastgele",
+   "title": "S2 seviyesinden rastgele episode (seed 8004)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 3,
+   "n_interrupted": 0,
+   "windows": [
+    {
+     "t": 3.5999999999999996,
+     "cmd": {
+      "speed": -6.5
+     },
+     "T": 3.09,
+     "deadline": 4.09,
+     "allow_s": 0.0,
+     "settle_s": 1.42,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.3,
+      "speed": 6.5,
+      "altitude": 1.0
+     }
+    },
+    {
+     "t": 15.75,
+     "cmd": {
+      "heading": 119.7,
+      "speed": 6.7,
+      "altitude": -113.4
+     },
+     "T": 7.67,
+     "deadline": 9.59,
+     "allow_s": 0.0,
+     "settle_s": 7.35,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 119.7,
+      "speed": 6.7,
+      "altitude": 113.4
+     }
+    },
+    {
+     "t": 33.375,
+     "cmd": {
+      "heading": -118.8,
+      "speed": -17.0,
+      "altitude": -39.6
+     },
+     "T": 6.75,
+     "deadline": 8.44,
+     "allow_s": 0.0,
+     "settle_s": 6.45,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 118.8,
+      "speed": 17.0,
+      "altitude": 39.6
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 33.6840447171835,
+   "max_pitch": 14.817541100644519,
+   "max_r": 21.65333846242291,
+   "max_vs": 25.626785476627802,
+   "min_alt": 727.5276958280724,
+   "sat_frac": 0.014285714285714285,
+   "act_rate": 0.01120284625559804
+  },
+  {
+   "id": "rastgele_S2_8005",
+   "group": "rastgele",
+   "title": "S2 seviyesinden rastgele episode (seed 8005)",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "final_ok": true,
+   "n_cmd": 6,
+   "n_interrupted": 1,
+   "windows": [
+    {
+     "t": 3.5999999999999996,
+     "cmd": {
+      "heading": -52.3
+     },
+     "T": 5.33,
+     "deadline": 6.67,
+     "allow_s": 0.0,
+     "settle_s": 6.15,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 52.3,
+      "speed": 1.9,
+      "altitude": 6.7
+     }
+    },
+    {
+     "t": 18.3,
+     "cmd": {
+      "altitude": -150.0
+     },
+     "T": 9.5,
+     "deadline": 11.88,
+     "allow_s": 0.0,
+     "settle_s": 8.55,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.5,
+      "speed": 1.8,
+      "altitude": 150.0
+     }
+    },
+    {
+     "t": 38.175,
+     "cmd": {
+      "heading": -171.0,
+      "speed": -36.6,
+      "altitude": -140.6
+     },
+     "T": 12.88,
+     "deadline": 16.09,
+     "allow_s": 0.0,
+     "settle_s": 11.18,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 171.0,
+      "speed": 36.6,
+      "altitude": 142.4
+     }
+    },
+    {
+     "t": 62.324999999999996,
+     "cmd": {
+      "speed": -50.0
+     },
+     "T": 10.33,
+     "deadline": 12.92,
+     "allow_s": 0.0,
+     "settle_s": null,
+     "on_time": false,
+     "success": true,
+     "interrupted": true,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.4,
+      "speed": 50.0,
+      "altitude": 6.9
+     }
+    },
+    {
+     "t": 69.825,
+     "cmd": {
+      "altitude": 129.0
+     },
+     "T": 8.69,
+     "deadline": 10.87,
+     "allow_s": 0.24,
+     "settle_s": 6.0,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 1.4,
+      "speed": 3.8,
+      "altitude": 129.4
+     }
+    },
+    {
+     "t": 88.725,
+     "cmd": {
+      "altitude": -29.1
+     },
+     "T": 3.46,
+     "deadline": 4.46,
+     "allow_s": 0.0,
+     "settle_s": 2.25,
+     "on_time": true,
+     "success": true,
+     "interrupted": false,
+     "coupling_ok": true,
+     "max_abs_err": {
+      "heading": 0.7,
+      "speed": 0.8,
+      "altitude": 29.1
+     }
+    }
+   ],
+   "late_s": null,
+   "reaction_s": [],
+   "max_roll": 57.58328480397471,
+   "max_pitch": 19.039522158792725,
+   "max_r": 15.103798148183067,
+   "max_vs": 32.37002259014113,
+   "min_alt": 1139.549742824218,
+   "sat_frac": 0.03166666666666667,
+   "act_rate": 0.011822262221827877
+  }
+ ],
+ "summary": {
+  "toplam": {
+   "safe": [
+    49,
+    49
+   ],
+   "final_ok": [
+    43,
+    49
+   ],
+   "episode_ok": [
+    42,
+    49
+   ]
+  },
+  "kesilen": {
+   "safe": [
+    27,
+    27
+   ],
+   "final_ok": [
+    22,
+    27
+   ],
+   "episode_ok": [
+    22,
+    27
+   ]
+  },
+  "sınır": {
+   "safe": [
+    12,
+    12
+   ],
+   "final_ok": [
+    11,
+    12
+   ],
+   "episode_ok": [
+    10,
+    12
+   ]
+  },
+  "rastgele": {
+   "safe": [
+    10,
+    10
+   ],
+   "final_ok": [
+    10,
+    10
+   ],
+   "episode_ok": [
+    10,
+    10
+   ]
+  },
+  "tepki_ort_s": 0.4269230769230769
+ }
+}

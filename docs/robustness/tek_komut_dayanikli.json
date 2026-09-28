@@ -1,0 +1,404 @@
+[
+ {
+  "model": "maneuver",
+  "regime": "hover-ish 5 kt",
+  "u0": 8.439,
+  "cmd": {
+   "heading": 90.0
+  },
+  "max_roll": 16.857490465615907,
+  "max_pitch": 6.901239443448436,
+  "max_r": 28.7325037153297,
+  "max_q": 9.168659023852374,
+  "max_vs": 2.555191382554395,
+  "max_acc": 1.6407768378286463,
+  "settle_s": 4.05,
+  "success": true,
+  "on_time": true,
+  "T": 5.6,
+  "deadline": 7.0,
+  "coupling": {
+   "heading": 89.9981824564311,
+   "speed": 1.4664931652705189,
+   "altitude": 2.689667434430703
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "hover-ish 5 kt",
+  "u0": 8.439,
+  "cmd": {
+   "heading": 180.0
+  },
+  "max_roll": 17.09141728171614,
+  "max_pitch": 6.910865791578574,
+  "max_r": 30.520480794773306,
+  "max_q": 10.019651986237886,
+  "max_vs": 2.1194802771983814,
+  "max_acc": 1.6630312597139323,
+  "settle_s": 7.275,
+  "success": true,
+  "on_time": true,
+  "T": 9.2,
+  "deadline": 11.5,
+  "coupling": {
+   "heading": 179.9984211980087,
+   "speed": 1.6783527834047023,
+   "altitude": 3.26271394413061
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "hover-ish 5 kt",
+  "u0": 8.439,
+  "cmd": {
+   "altitude": 100.0
+  },
+  "max_roll": 5.545625324063033,
+  "max_pitch": 7.91728619691842,
+  "max_r": 4.607526526621738,
+  "max_q": 14.625553049576972,
+  "max_vs": 25.248999256455722,
+  "max_acc": 5.701296892734106,
+  "settle_s": 4.875,
+  "success": true,
+  "on_time": true,
+  "T": 7.0,
+  "deadline": 8.75,
+  "coupling": {
+   "heading": 1.8934135397645946,
+   "speed": 3.8679799962796206,
+   "altitude": 99.99784769127427
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "hover-ish 5 kt",
+  "u0": 8.439,
+  "cmd": {
+   "altitude": -100.0
+  },
+  "max_roll": 3.6048994990700645,
+  "max_pitch": 3.5951574531469044,
+  "max_r": 1.7211309059769566,
+  "max_q": 10.241036455635655,
+  "max_vs": 25.81263980210499,
+  "max_acc": 2.247414158389148,
+  "settle_s": 4.8,
+  "success": true,
+  "on_time": true,
+  "T": 7.0,
+  "deadline": 8.75,
+  "coupling": {
+   "heading": 1.2039457010097294,
+   "speed": 1.0820033062841894,
+   "altitude": 100.00207594811445
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "hover-ish 5 kt",
+  "u0": 8.439,
+  "cmd": {
+   "speed": 40.0
+  },
+  "max_roll": 4.444661613313528,
+  "max_pitch": 16.258327518934585,
+  "max_r": 2.8902825052461925,
+  "max_q": 14.675904022339147,
+  "max_vs": 5.587899657462296,
+  "max_acc": 9.059210049020095,
+  "settle_s": 5.475,
+  "success": true,
+  "on_time": true,
+  "T": 8.666666666666668,
+  "deadline": 10.833333333333336,
+  "coupling": {
+   "heading": 1.2319290431066747,
+   "speed": 40.000813358697144,
+   "altitude": 11.421709783679944
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "30 kt",
+  "u0": 50.634,
+  "cmd": {
+   "heading": 90.0
+  },
+  "max_roll": 34.45487894481157,
+  "max_pitch": 2.669672907944168,
+  "max_r": 20.685593041733817,
+  "max_q": 4.52917632029157,
+  "max_vs": 2.7546395382355193,
+  "max_acc": 1.1010308054774782,
+  "settle_s": 5.324999999999999,
+  "success": true,
+  "on_time": true,
+  "T": 5.6,
+  "deadline": 7.0,
+  "coupling": {
+   "heading": 90.00054326079231,
+   "speed": 1.2170972689957154,
+   "altitude": 4.22964664656547
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "30 kt",
+  "u0": 50.634,
+  "cmd": {
+   "speed": -40.0
+  },
+  "max_roll": 4.642459358590049,
+  "max_pitch": 17.396766340584495,
+  "max_r": 1.6941024010735002,
+  "max_q": 14.583279076940357,
+  "max_vs": 4.863728024281296,
+  "max_acc": 9.551956957286762,
+  "settle_s": 5.1,
+  "success": true,
+  "on_time": true,
+  "T": 8.666666666666668,
+  "deadline": 10.833333333333336,
+  "coupling": {
+   "heading": 1.3487178813379046,
+   "speed": 40.00017877627738,
+   "altitude": 10.932148846576183
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "30 kt",
+  "u0": 50.634,
+  "cmd": {
+   "speed": 40.0
+  },
+  "max_roll": 5.606335136469411,
+  "max_pitch": 15.149577033551903,
+  "max_r": 1.8762102947383104,
+  "max_q": 13.870062513100509,
+  "max_vs": 3.604229802193249,
+  "max_acc": 8.800263424762534,
+  "settle_s": 5.775,
+  "success": true,
+  "on_time": true,
+  "T": 8.666666666666668,
+  "deadline": 10.833333333333336,
+  "coupling": {
+   "heading": 0.7407414097978062,
+   "speed": 39.99985922422853,
+   "altitude": 6.061982938104393
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "60 kt",
+  "u0": 101.268,
+  "cmd": {
+   "heading": 90.0
+  },
+  "max_roll": 48.430809459053236,
+  "max_pitch": 3.2728202847259604,
+  "max_r": 14.431956928706324,
+  "max_q": 6.470923042875695,
+  "max_vs": 5.279593566692274,
+  "max_acc": 2.0471153137204965,
+  "settle_s": 6.375,
+  "success": true,
+  "on_time": true,
+  "T": 5.6,
+  "deadline": 7.0,
+  "coupling": {
+   "heading": 89.99680787391168,
+   "speed": 1.3600649987272533,
+   "altitude": 8.972068147812024
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "60 kt",
+  "u0": 101.268,
+  "cmd": {
+   "heading": -180.0
+  },
+  "max_roll": 48.43573380700013,
+  "max_pitch": 4.366435552643027,
+  "max_r": 14.465190786269526,
+  "max_q": 6.002035490796157,
+  "max_vs": 3.868207533670501,
+  "max_acc": 2.4204234602111683,
+  "settle_s": 11.25,
+  "success": true,
+  "on_time": true,
+  "T": 9.2,
+  "deadline": 11.5,
+  "coupling": {
+   "heading": 180.0030373124884,
+   "speed": 2.87749956298137,
+   "altitude": 5.932643352620289
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "60 kt",
+  "u0": 101.268,
+  "cmd": {
+   "altitude": 150.0
+  },
+  "max_roll": 6.6733737609582695,
+  "max_pitch": 5.779355651726113,
+  "max_r": 3.121846368184132,
+  "max_q": 12.610070377686114,
+  "max_vs": 22.969981091111627,
+  "max_acc": 3.960012476236784,
+  "settle_s": 8.025,
+  "success": true,
+  "on_time": true,
+  "T": 9.5,
+  "deadline": 11.875,
+  "coupling": {
+   "heading": 0.9050432374825164,
+   "speed": 3.11839975430793,
+   "altitude": 149.99253493430797
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "60 kt",
+  "u0": 101.268,
+  "cmd": {
+   "speed": -50.0
+  },
+  "max_roll": 4.874110801942461,
+  "max_pitch": 15.80426395236514,
+  "max_r": 1.6320216057372983,
+  "max_q": 13.500233242911177,
+  "max_vs": 3.3097844658370956,
+  "max_acc": 9.800692358113224,
+  "settle_s": 6.6,
+  "success": true,
+  "on_time": true,
+  "T": 10.333333333333334,
+  "deadline": 12.916666666666668,
+  "coupling": {
+   "heading": 0.3838484072269921,
+   "speed": 49.996707832020405,
+   "altitude": 3.3782465807094013
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "60 kt",
+  "u0": 101.268,
+  "cmd": {
+   "heading": 60.0,
+   "speed": 15.0,
+   "altitude": 80.0
+  },
+  "max_roll": 50.728104922278604,
+  "max_pitch": 12.025467820613565,
+  "max_r": 13.567292228561413,
+  "max_q": 14.446126861956312,
+  "max_vs": 23.09848192317208,
+  "max_acc": 10.169393274661616,
+  "settle_s": 6.0,
+  "success": true,
+  "on_time": true,
+  "T": 6.0,
+  "deadline": 7.5,
+  "coupling": {
+   "heading": 59.997835958554674,
+   "speed": 15.002700221233738,
+   "altitude": 79.99445106069925
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "90 kt",
+  "u0": 151.902,
+  "cmd": {
+   "heading": 90.0
+  },
+  "max_roll": 54.204562428453634,
+  "max_pitch": 2.623604347683233,
+  "max_r": 11.122644900789409,
+  "max_q": 6.721306113109044,
+  "max_vs": 4.542383049023734,
+  "max_acc": 2.4496756582948365,
+  "settle_s": 8.325,
+  "success": true,
+  "on_time": true,
+  "T": 7.191227540450569,
+  "deadline": 8.989034425563212,
+  "coupling": {
+   "heading": 90.00593073866168,
+   "speed": 1.3131995705738007,
+   "altitude": 8.947285596949769
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "90 kt",
+  "u0": 151.902,
+  "cmd": {
+   "speed": -50.0
+  },
+  "max_roll": 6.515212738606535,
+  "max_pitch": 13.398924619038208,
+  "max_r": 1.9149405397188999,
+  "max_q": 12.99812571187063,
+  "max_vs": 8.946144718364481,
+  "max_acc": 9.516589092755794,
+  "settle_s": 9.9,
+  "success": true,
+  "on_time": true,
+  "T": 10.333333333333334,
+  "deadline": 12.916666666666668,
+  "coupling": {
+   "heading": 0.5326257342728127,
+   "speed": 50.00461628447749,
+   "altitude": 26.326452057068764
+  },
+  "termination": "time_limit"
+ },
+ {
+  "model": "maneuver",
+  "regime": "90 kt",
+  "u0": 151.902,
+  "cmd": {
+   "altitude": -120.0
+  },
+  "max_roll": 5.952484263737958,
+  "max_pitch": 5.005424669487612,
+  "max_r": 4.008390709672451,
+  "max_q": 12.3213318853469,
+  "max_vs": 18.685756644634754,
+  "max_acc": 2.7292456763983637,
+  "settle_s": 7.65,
+  "success": true,
+  "on_time": true,
+  "T": 8.0,
+  "deadline": 10.0,
+  "coupling": {
+   "heading": 0.6545173816009822,
+   "speed": 1.457262525698809,
+   "altitude": 119.99596986859115
+  },
+  "termination": "time_limit"
+ }
+]

@@ -1,0 +1,10 @@
+# Kök neden probu (README 29.5): 900 ft, +180° dönüş, yatış komutu 55° (hata < 15° olunca 0),
+# collective ← 0.06·e_h − 0.10·ḣ (±1 → trim ± coll_scale), yunuslama ← 0.04·e_u, pedal 0. Policy yok.
+# "doygun": collective komutunun |a0| > 0.98 olduğu zaman oranı (t ≥ 1 s). 60 kt'ta basit hız döngüsü hızı
+# tutamadı (speed_deviation), irtifa karşılaştırması yine de: 64 ft → 30 ft.
+ 60 kt  coll ±0.25:  en büyük irtifa kaybı   63.8 ft   collective ort 0.577 en büyük 0.666   doygun %  54   en düşük rpm 318.5   180°'ye —   bitiş speed_deviation
+ 60 kt  coll ±0.45:  en büyük irtifa kaybı   29.8 ft   collective ort 0.689 en büyük 0.866   doygun %  48   en düşük rpm 315.1   180°'ye —   bitiş speed_deviation
+ 80 kt  coll ±0.25:  en büyük irtifa kaybı  127.2 ft   collective ort 0.562 en büyük 0.691   doygun %  48   en düşük rpm 319.0   180°'ye 12.8 s   bitiş time_limit
+ 80 kt  coll ±0.45:  en büyük irtifa kaybı   28.5 ft   collective ort 0.537 en büyük 0.894   doygun %  22   en düşük rpm 315.6   180°'ye 12.6 s   bitiş time_limit
+100 kt  coll ±0.25:  en büyük irtifa kaybı  124.7 ft   collective ort 0.625 en büyük 0.736   doygun %  54   en düşük rpm 318.8   180°'ye 14.7 s   bitiş time_limit
+100 kt  coll ±0.45:  en büyük irtifa kaybı   33.6 ft   collective ort 0.596 en büyük 0.942   doygun %  19   en düşük rpm 315.5   180°'ye 14.5 s   bitiş time_limit

@@ -1,0 +1,60 @@
+
+DAYANIKLILIK — model best_1000k.zip (49 koşu, süre hedefi M5 çevikliği, collective yetkisi ±0.45)
+senaryo                         güv   son   tüm     kes oturma/son sınır   maxφ  maxθ max r  min h doyg.  tepki (s)
+slalom_ters_60kt                  ✓     ✓     ✓   4/5      4.7/4.8      44°    6°   23    796    9% 0.4/0.0/0.3/0.0  
+slalom_ters_60kt~ayna             ✓     ✓     ✓   4/5      4.1/4.8      50°    6°   21    795    8% 0.4/0.0/0.3/0.0  
+slalom_ters_hover                 ✓     ✓     ✓   2/3      5.0/12.0     27°   13°   33    792    5%    0.5/0.8  
+slalom_ters_hover~ayna            ✓     ✓     ✓   2/3      5.3/12.3     29°   13°   32    796    6%    0.7/0.7  
+donus_ani_tirmanis                ✓     ✓     ✓   1/2      8.8/12.2     47°    5°   15    791    4%          —  
+donus_ani_tirmanis~ayna           ✓     ✓     ✓   1/2      9.3/12.4     51°    6°   16    802    5%          —  
+donus_ani_alcalma_fren            ✓     ✓     ✓   1/2      6.8/8.8      54°    7°   13    808    4%          —  
+donus_ani_alcalma_fren~ayna       ✓     ✓     ✓   1/2      7.5/8.8      49°    6°   17    797    5%          —  
+hizlan_ani_fren                   ✓     ✓     ✓   1/2      9.1/19.6      5°   17°    2    788    2%        1.1  
+tirman_ani_dalis                  ✓     ✓     ✓   1/2     13.0/18.9      9°   10°    3    650    2%        0.9  
+bobup_ters_hover                  ✓     ✓     ✓   1/2      7.7/16.6      5°   14°    5    679    3%        1.1  
+ardisik_hizli                     ✓     ✓     ✓   5/6      6.8/11.9     46°   21°   18    795   11%          —  
+ardisik_hizli~ayna                ✓     ✓     ✓   5/6      6.9/12.1     45°   18°   15    802    6%          —  
+birlesik_ters                     ✓     ✓     ✓   1/2      9.0/11.6     52°   12°   18    726    7%        0.5  
+birlesik_ters~ayna                ✓     ✓     ✓   1/2     11.1/11.3     57°    8°   17    741   13%        0.3  
+cift_kesme                        ✓     ✗     ✗   2/3     13.9/12.9     50°    7°   15    796    9%        0.3  
+cift_kesme~ayna                   ✓     ✗     ✗   2/3     13.3/12.9     47°    6°   15    789    9%        0.3  
+slalom_sert_60kt                  ✓     ✓     ✓   5/6      4.4/5.1      42°    7°   27    800    7% 0.2/0.0/0.2/0.1/0.1  
+slalom_sert_60kt~ayna             ✓     ✓     ✓   5/6      4.5/4.8      37°    5°   27    797    6% 0.2/0.0/0.2/0.1/0.1  
+testere_180                       ✓     ✗     ✗   2/3     11.8/11.5     48°    7°   20    789    9%    0.4/0.2  
+testere_180~ayna                  ✓     ✓     ✓   2/3     11.5/11.8     51°    6°   23    795    8%    0.4/0.2  
+ardisik_100kt                     ✓     ✓     ✓   4/5      9.3/10.7     53°   11°   17    897   13%          —  
+ardisik_100kt~ayna                ✓     ✓     ✓   4/5      9.3/11.1     59°   12°   16    899   11%          —  
+dikey_testere                     ✓     ✓     ✓   2/3      7.3/13.1     12°   16°    6    264    4%    0.9/1.1  
+hiz_testere_hover                 ✓     ✓     ✓   2/3      5.0/10.8      5°   16°    3    801    1%          —  
+birlesik_ters_100kt               ✓     ✓     ✓   1/2     10.4/14.6     48°   14°   12    876    5%        0.3  
+birlesik_ters_100kt~ayna          ✓     ✓     ✓   1/2     10.8/15.0     54°   15°   16    878    8%        0.3  
+hover_sinir                       ✓     ✓     ✓   0/4      7.2/12.9     16°   17°   32    795    1%          —  
+hover_sinir~ayna                  ✓     ✓     ✓   0/4      7.2/12.9     18°   17°   30    798    2%          —  
+hiz_sinir_95kt                    ✓     ✓     ✓   0/4      9.8/12.9     53°   11°   14    889    2%          —  
+hiz_sinir_95kt~ayna               ✓     ✓     ✓   0/4      9.8/12.9     56°   11°   12    898    2%          —  
+alcak_irtifa                      ✓     ✓     ✓   0/4      9.1/11.9     47°    6°   16    241    3%          —  
+alcak_irtifa~ayna                 ✓     ✓     ✓   0/4      9.1/11.9     51°    6°   14    249    3%          —  
+hiz_sinir_ters                    ✓     ✗     ✗   1/2     18.3/18.1     56°    6°   12    890    5%        0.3  
+hiz_sinir_ters~ayna               ✓     ✓     ✓   1/2     17.9/18.0     57°    6°   14    888    5%        0.3  
+hover_hizlan_fren                 ✓     ✓     ✓   1/2      7.0/14.0      5°   17°    3    801    1%          —  
+alcak_ani_dalis                   ✓     ✓     ✓   1/2     11.3/18.1      9°    7°    5    270    2%        1.1  
+max_performans                    ✓     ✓     ✓   0/1      9.8/12.9     44°   14°   13    899    2%          —  
+max_performans~ayna               ✓     ✓     ✓   0/1      8.8/12.9     52°   15°   13    899    4%          —  
+rastgele_S1_7001                  ✓     ✓     ✗   4/6      8.0/13.0     52°   17°   18   1167    8% 0.2/0.4/0.3/1.2  
+rastgele_S1_7002                  ✓     ✓     ✓   2/4      9.5/10.2     47°   13°   17   1059    8%        0.4  
+rastgele_S1_7003                  ✓     ✓     ✓   0/3      4.1/5.4      47°   15°   23   1062    3%          —  
+rastgele_S1_7004                  ✓     ✓     ✓   0/3      4.8/10.7     30°   17°   22   1175    2%          —  
+rastgele_S1_7005                  ✓     ✓     ✓   3/6      7.3/11.5     45°   17°   21    688    4% 0.1/0.9/0.5  
+rastgele_S2_8001                  ✓     ✓     ✓   1/6      6.6/12.9     20°   17°   18    939    2%        0.1  
+rastgele_S2_8002                  ✓     ✓     ✓   1/4      6.7/12.9     28°   19°   29    449    3%        0.5  
+rastgele_S2_8003                  ✓     ✓     ✓   3/5      4.6/7.3      38°   22°   26   1161    3%    0.6/0.4  
+rastgele_S2_8004                  ✓     ✓     ✓   0/3      6.8/8.4      34°   15°   20    726    2%          —  
+rastgele_S2_8005                  ✓     ✓     ✓   1/6      2.4/4.5      61°   12°   13   1149    2%          —  
+  kesilen  güvenli 27/27   son komut 24/27   tüm komutlar 24/27
+  sınır    güvenli 12/12   son komut 11/12   tüm komutlar 11/12
+  rastgele güvenli 10/10   son komut 10/10   tüm komutlar 9/10
+  toplam   güvenli 49/49   son komut 45/49   tüm komutlar 44/49
+  kesen komuta tepki (ters eksen) ortalama 0.40 s
+
+(236 s)
+kaydedildi: /tmp/claude-0/-home-claude/62d0df90-954e-50f2-9202-0585c0539a1e/scratchpad/robust/eval_v5_best1000k/rob.json

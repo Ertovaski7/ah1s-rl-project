@@ -1,0 +1,207 @@
+{
+  "level_index": 8,
+  "level": "K8",
+  "timesteps": 250000,
+  "history": [
+    {
+      "level": "K8",
+      "level_index": 8,
+      "success_rate": 0.73,
+      "episodes": 257,
+      "axis_success": {
+        "land": 0.52,
+        "takeoff": 1.0,
+        "recover": 1.0,
+        "move": 0.85,
+        "bob": 1.0,
+        "interrupted": 1.0,
+        "climb_to": 0.975609756097561,
+        "turn": 0.85,
+        "hold": 1.0
+      },
+      "steps_at_level": 250000,
+      "total_steps": 250000,
+      "wall_min_at_level": 10.20371109644572
+    }
+  ],
+  "args": {
+    "task": "takeoff",
+    "out": "/home/claude/runs/to_v15",
+    "total_steps": 30000000,
+    "level": "K8",
+    "stop_after": "K8",
+    "promote": true,
+    "window": 100,
+    "min_episodes": 100,
+    "threshold": 0.8,
+    "axis_gate": true,
+    "axis_min_commands": 30,
+    "resume": false,
+    "init_model": "/home/claude/runs/to_v9/models/best.zip",
+    "n_envs": 2,
+    "vec": "subproc",
+    "env_config": "v2",
+    "coll_scale": null,
+    "seed": 42,
+    "lr": 0.0003,
+    "n_steps": 2048,
+    "batch_size": 256,
+    "n_epochs": 10,
+    "gamma": 0.995,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.0,
+    "target_kl": null,
+    "log_std_init": -1.0,
+    "fine_from": "K5",
+    "fine_lr": 0.0001,
+    "fine_kl": 0.02,
+    "promote_on_eval": true,
+    "net": "128,128",
+    "save_freq": 50000,
+    "snapshot_freq": 500000,
+    "eval_freq": 250000,
+    "eval_levels": "K5,K6,K7,K8,K9",
+    "eval_episodes": 20,
+    "smoke": false,
+    "env_overrides": {}
+  },
+  "env_config": {
+    "hover_trim": [
+      0.603,
+      -0.151,
+      0.192,
+      0.41
+    ],
+    "ctrl_range": [
+      0.6,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "expo": 0.8,
+    "action_filter_alpha": 0.5,
+    "rate_limit": [
+      0.6,
+      3.0,
+      3.0,
+      3.0
+    ],
+    "tol_h": [
+      3.0,
+      0.01,
+      10.0
+    ],
+    "tol_xy": [
+      6.0,
+      0.007,
+      12.0
+    ],
+    "tol_psi_deg": 3.0,
+    "tol_v_fps": 2.0,
+    "tol_vs_fps": 2.0,
+    "land_tol_xy_ft": 8.0,
+    "land_tol_psi_deg": 5.0,
+    "land_weight_frac": 0.7,
+    "land_hold_s": 3.0,
+    "touchdown_ok_fps": 4.0,
+    "coupling_limits": [
+      20.0,
+      15.0,
+      10.0
+    ],
+    "gap_s": [
+      0.5,
+      1.5
+    ],
+    "end_margin_s": 1.0,
+    "max_episode_s": 420.0,
+    "w_xy": 1.0,
+    "w_h": 1.0,
+    "w_psi": 0.7,
+    "w_v": 0.5,
+    "w_vs": 0.5,
+    "w_r": 0.3,
+    "kernel_xy": [
+      3.0,
+      25.0
+    ],
+    "kernel_h": [
+      3.0,
+      30.0
+    ],
+    "kernel_psi": [
+      2.0,
+      15.0
+    ],
+    "kernel_v": [
+      1.5,
+      6.0
+    ],
+    "kernel_vs": [
+      1.5,
+      6.0
+    ],
+    "kernel_r": [
+      3.0,
+      15.0
+    ],
+    "guide_k_xy": 0.25,
+    "guide_k_h": 0.3,
+    "guide_k_psi": 0.6,
+    "hold_v_max": 3.0,
+    "progress_weight": 10.0,
+    "progress_min_scale": [
+      10.0,
+      10.0,
+      10.0
+    ],
+    "pen_sched": 1.0,
+    "sched_scale": [
+      20.0,
+      20.0,
+      20.0
+    ],
+    "pen_late": 0.5,
+    "pen_att": 1.0,
+    "pen_rate": 0.05,
+    "pen_dctrl": 2.0,
+    "pen_sat": 0.5,
+    "sat_threshold": 0.95,
+    "pen_couple": 3.0,
+    "couple_soft_frac": 0.25,
+    "pen_touchdown": 25.0,
+    "touchdown_free_fps": 2.0,
+    "w_task_success": 30.0,
+    "pen_sink": 3.0,
+    "sink_base_fps": 1.5,
+    "sink_slope": 0.2,
+    "pen_land_sink": 3.0,
+    "pen_land_xy": 0.5,
+    "w_land": 2.5,
+    "soft_full_fps": 3.0,
+    "soft_zero_fps": 5.0,
+    "w_coll_down": 1.5,
+    "coll_flat": 0.05,
+    "pen_slide": 0.2,
+    "fail_penalty": 50.0,
+    "reward_scale": 0.1,
+    "max_roll_deg": 45.0,
+    "max_pitch_deg": 40.0,
+    "max_rate_dps": 100.0,
+    "max_yaw_rate_dps": 90.0,
+    "ground_max_att_deg": 15.0,
+    "crash_vs_fps": 10.0,
+    "flyaway_ft": 150.0,
+    "alt_over_ft": 200.0,
+    "max_speed_fps": 60.0,
+    "rpm_limits": [
+      280.0,
+      380.0
+    ],
+    "settle_max_s": 60.0,
+    "settle_hold_s": 2.0,
+    "ground_settle_s": 1.0
+  },
+  "saved_at": "2026-09-24 17:18:17"
+}

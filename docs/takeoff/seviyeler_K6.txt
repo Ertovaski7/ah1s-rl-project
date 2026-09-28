@@ -1,0 +1,6 @@
+Model: level_05_K6.zip (to_v1; iniş eğitiminden önce). Deterministik, seviye başına 40 episode, seed 70000+.
+KALKIŞ / HOVER / İNİŞ — model level_05_K6.zip
+K5: episode başarısı 100% (40)  bitiş {'time_limit': 40}  bob=100%(41) hold=100%(20) move=100%(49) takeoff=100%(20) turn=100%(34)
+K7: episode başarısı 0% (40)  bitiş {'time_limit': 33, 'hard_landing': 7}  bob=100%(15) hold=100%(20) land=0%(40) move=100%(16) takeoff=100%(20) turn=100%(13)
+K8: episode başarısı 45% (40)  bitiş {'time_limit': 40}  bob=100%(19) climb_to=100%(8) hold=92%(12) interrupted=100%(7) land=0%(22) move=96%(25) recover=100%(40) takeoff=100%(11) turn=100%(9)
+K9: episode başarısı 48% (40)  bitiş {'time_limit': 40}  bob=100%(14) climb_to=100%(8) hold=86%(14) interrupted=100%(6) land=0%(20) move=87%(23) recover=100%(41) takeoff=100%(14) turn=100%(10)

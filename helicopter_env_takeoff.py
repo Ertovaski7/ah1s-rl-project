@@ -46,6 +46,7 @@ uzayında) ödülleri; yerdeyken konum çekimi yok. Tasarımın nasıl bulunduğ
 
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 import gymnasium as gym
 import numpy as np
@@ -55,8 +56,24 @@ from helicopter_env_command import CONTROL_DT, AfcsMode, HelicopterEnvCommand, w
 from takeoff_curriculum import (DEFAULT_TAKEOFF_LEVELS, GROUND_H_FT, LAND_PROFILE_K, LAND_PROFILE_MIN_FPS, MAX_HOVER_H_FT,
                                 MIN_HOVER_H_FT, TakeoffLevel, deadline_of, find_takeoff_level)
 
-OBS_DIM_T = 29
+OBS_DIM_T = 29                                    # + 1 (tork göstergesi) TakeoffEnvConfig.torque_obs ile
 R_EARTH_FT = 20_902_231.0
+# Repo'daki uçak kopyası (2026-09-28): kalibre yer etkisi (Systems/ground_effect.xml) + güç tavanı (Systems/rpm_governor.xml).
+REPO_AIRCRAFT_DIR = str(Path(__file__).resolve().parent / "aircraft")
+GE_MODELS = {"calibrated": 1.0, "stock": 0.0}     # "off": ge/enable = 0
+ELECTRIC_HP = 1500.0                              # Engines/electric_1500hp.xml (T53 yerine)
+NOMINAL_RPM = 324.0
+
+
+def torque_psi(q_lbsft):
+    """Modelin kendi tork göstergesi (ah1s.xml 'bell instruments'): el kitabı sürekli 50 psi, %100 (30 dk) 56 psi."""
+    return 0.00416 * q_lbsft - 7.33
+
+
+def psi_to_throttle(psi: float) -> float:
+    """Bu tork (nominal devirde) kadar güç → governor gaz tavanı (elektrik motoru: güç = gaz · 1500 hp)."""
+    q = (psi + 7.33) / 0.00416
+    return q * (NOMINAL_RPM * 2.0 * math.pi / 60.0) / 550.0 / ELECTRIC_HP
 HOVER_TRIM = (0.603, -0.151, 0.192, 0.410)       # OGE hover, 8500 lbs, SAS (probe 2026-09-24)
 CTRL_LO = np.array([0.0, -1.0, -1.0, -1.0])
 CTRL_HI = np.array([1.0, 1.0, 1.0, 1.0])
@@ -180,6 +197,23 @@ class TakeoffEnvConfig:
     settle_max_s: float = 60.0
     settle_hold_s: float = 2.0
     ground_settle_s: float = 1.0
+    # --- uçak / fizik (2026-09-28) --------------------------------------------------------------------
+    # "stock": JSBSim paketindeki ah1s (eski modellerin eğitildiği fizik, birebir). "repo": aircraft/ah1s kopyası.
+    aircraft: str = "stock"
+    ground_effect: str = "calibrated"             # yalnızca "repo": "calibrated" (Hayden + C-B) | "stock" | "off"
+    power_cap_psi: float = 0.0                    # yalnızca "repo": motor gücü tavanı, bu torkun nominal devirdeki
+                                                  # gücü (0 → tavan yok = 1500 hp). Aşılmak istenirse rotor devri düşer.
+    # --- tork (modelin kendi göstergesi) --------------------------------------------------------------
+    torque_obs: bool = False                      # obs'un sonuna (psi − 50) / 10 → OBS_DIM_T + 1
+    torque_cont_psi: float = 50.0                 # el kitabı: sürekli
+    torque_max_psi: float = 56.0                  # el kitabı: %100 (30 dk / kalkış gücü)
+    pen_torque_cont: float = 0.0                  # 50–56 psi: · ((psi − 50) / 6)²   (kalkış gücü bölgesi, hafif)
+    pen_torque_over: float = 0.0                  # 56 psi üstü: · min(((psi − 56) / 3)², 9)
+    rpm_low_warn: float = 314.0                   # %97: güç tavanında collective fazla çekilirse rotor devri düşer
+    pen_rpm_low: float = 0.0                      # · ((314 − rpm) / 10)²
+    # tırmanış süre hedefi ve yönlendirmesi ağırlığa göre (güç payı): v_max ≈ 0.8 · (56 − psi_hover(W)) / 0.62 ft/s,
+    # psi_hover(W) = 44.6 + 7.5 · (W − 8500) / 1000 (OGE hover, ölçüldü 2026-09-28; +0.62 psi / (ft/s) tırmanış)
+    torque_aware_climb: bool = False
 
 
 class HelicopterEnvTakeoff(HelicopterEnvCommand):
@@ -194,7 +228,14 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         # tekrar (rehearsal): eğitimde seviyenin p_rehearse kadarı eski seviyelerden — unutmayı önler
         # (to_v1 / to_v2: yalnızca iniş seviyesinde eğitince K5 %100 → %65, 300 ft kalkış yavaşladı)
         self.rehearsal = bool(rehearsal)
-        self.observation_space = spaces.Box(-5.0, 5.0, shape=(OBS_DIM_T,), dtype=np.float32)
+        if self.cfg.aircraft not in ("stock", "repo"):
+            raise ValueError(f"aircraft: 'stock' ya da 'repo' ({self.cfg.aircraft})")
+        if self.cfg.aircraft == "repo" and self.cfg.ground_effect not in (*GE_MODELS, "off"):
+            raise ValueError(f"ground_effect: {sorted(GE_MODELS)} ya da 'off' ({self.cfg.ground_effect})")
+        if self.cfg.aircraft == "stock" and self.cfg.power_cap_psi > 0.0:
+            raise ValueError("power_cap_psi yalnızca aircraft='repo' ile (governor gaz tavanı repo kopyasında)")
+        self.obs_dim = OBS_DIM_T + int(bool(self.cfg.torque_obs))
+        self.observation_space = spaces.Box(-5.0, 5.0, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
         self.fdm = None
         self._fdm_needs_refresh = True
@@ -246,9 +287,38 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         """Episode'un başladığı seviye (görevler ve süre hedefleri bununla)."""
         return self.levels[self._ep_level]
 
+    def climb_fps(self, lv: TakeoffLevel | None = None) -> float:
+        """Tırmanış hızı (süre hedefi / yönlendirme): seviyeninki; torque_aware_climb ile ağırlığın güç payına göre."""
+        lv = lv or self.ep_level
+        if not self.cfg.torque_aware_climb:
+            return lv.climb_fps
+        w = float(self.setup_info.get("weight", 8500.0)) if self.setup_info else 8500.0
+        psi_hover = 44.6 + 7.5 * (w - 8500.0) / 1000.0
+        return float(np.clip(0.8 * (self.cfg.torque_max_psi - psi_hover) / 0.62, 1.5, lv.climb_fps))
+
     # =================================================================
     # JSBSim yardımcıları
     # =================================================================
+
+    def _aircraft_dir(self) -> str | None:
+        return REPO_AIRCRAFT_DIR if self.cfg.aircraft == "repo" else None
+
+    def _configure_aircraft(self, fdm):
+        cfg = self.cfg
+        if cfg.aircraft != "repo":
+            return
+        fdm["ge/model"] = GE_MODELS.get(cfg.ground_effect, 1.0)
+        fdm["ge/enable"] = 0.0 if cfg.ground_effect == "off" else 1.0
+        fdm["fcs/throttle-max-norm"] = float(np.clip(psi_to_throttle(cfg.power_cap_psi), 0.05, 1.0)) \
+            if cfg.power_cap_psi > 0.0 else 1.0
+
+    def _ige_coll_offset(self) -> float:
+        """Yere çok yakın (kızak 1–2 ft) hover triminin stok fiziğe göre farkı: kalibre yer etkisi daha güçlü →
+        aynı ağırlık için ~0.04 daha az collective (ölçüldü 2026-09-28, 8500 ve 10280 lbs). 'touch' başlangıcının
+        collective'i ve iniş ödülündeki IGE trimi buna göre kaydırılır."""
+        if self.cfg.aircraft != "repo":
+            return 0.0
+        return {"calibrated": -0.04, "stock": 0.0, "off": 0.045}.get(self.cfg.ground_effect, 0.0)
 
     def _set_sas(self, psi_deg: float):
         """AFCS: roll / pitch yalnızca oran sönümleme, yaw sönümleme; attitude ve heading hold kapalı."""
@@ -283,6 +353,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         s["weight"] = w
         s["wfrac"] = float(np.clip(-float(f["forces/fbz-gear-lbs"]) / w, 0.0, 1.5))
         s["hs"] = s["h"] - GROUND_H_FT
+        s["torque_psi"] = float(torque_psi(float(f["propulsion/engine/torque-lbsft"])))
         return s
 
     def _controls_now(self) -> np.ndarray:
@@ -420,7 +491,8 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         fuel = tuple(options["fuel"]) if options.get("fuel") is not None else lv.sample_fuel(rng)
         c_touch = None
         if start == "touch":                                    # yerde kısmen kalkık collective (ağırlığa göre)
-            c_touch = float(options.get("touch_coll", rng.uniform(*lv.touch_coll))) + 0.057 * sum(fuel) / 1000.0
+            c_touch = (float(options.get("touch_coll", rng.uniform(*lv.touch_coll))) + 0.057 * sum(fuel) / 1000.0
+                       + self._ige_coll_offset())
         errors, info = [], {}
         for attempt in range(3):
             try:
@@ -553,7 +625,12 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
                 amount = 0.0
             else:
                 raise ValueError(f"bilinmeyen görev: {kind}")
-            T = float(d["T"]) if d.get("T") else lv.time_target(kind, amount) + allow
+            if d.get("T"):
+                T = float(d["T"])
+            elif kind in ("takeoff", "climb_to", "bob") and amount > 0.0 and cfg.torque_aware_climb:
+                T = lv.lag_s + amount / self.climb_fps(lv) + allow
+            else:
+                T = lv.time_target(kind, amount) + allow
             first = not self.windows
             hold = cfg.land_hold_s if kind == "land" else (lv.hold_first_s if first else lv.hold_s)
             e = self._errors(s)
@@ -704,6 +781,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             s["phi"] / 0.5, s["theta"] / 0.5, s["p"] / 1.0, s["q"] / 1.0, s["r"] / 1.0,
             math.log1p(max(0.0, s["hs"]) / 5.0) / 3.0, (s["rpm"] - 320.0) / 30.0, s["wfrac"], land,
             *self.filt,
+            *([(s["torque_psi"] - self.cfg.torque_cont_psi) / 10.0] if self.cfg.torque_obs else []),
         ], dtype=np.float64)
         o = np.nan_to_num(o, nan=0.0, posinf=5.0, neginf=-5.0)
         o[[0, 2, 4, 6]] = np.clip(o[[0, 2, 4, 6]], -3.0, 3.0)
@@ -784,7 +862,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             info["command_results"] = [self._result(w) for w in self.windows]
             info["termination"] = self.failure or "time_limit"
         self.prev_action = a
-        obs = self._obs(s, e) if finite else np.zeros(OBS_DIM_T, dtype=np.float32)
+        obs = self._obs(s, e) if finite else np.zeros(self.obs_dim, dtype=np.float32)
         return obs, float(reward), bool(terminated), bool(truncated), info
 
     def _result(self, w: dict) -> dict:
@@ -825,7 +903,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             vs_des = 0.0 if s["wow"] > 0 else -float(np.clip(LAND_PROFILE_K * max(0.0, s["hs"]), LAND_PROFILE_MIN_FPS,
                                                              lv.descent_fps))
         else:
-            up = lv.climb_fps * 1.25 if kind in ("takeoff", "climb_to", "bob") else 3.0
+            up = self.climb_fps(lv) * 1.25 if kind in ("takeoff", "climb_to", "bob") else 3.0
             dn = lv.descent_fps * 1.25 if kind in ("climb_to", "bob") else 3.0
             vs_des = float(np.clip(cfg.guide_k_h * e["h"], -dn, up))
         r_max = lv.yaw_rate_dps * 1.25 if kind == "turn" else 5.0
@@ -890,13 +968,24 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             ground -= soft * cfg.w_land * (0.3 * float(s["wow"] == 4) + 0.4 * min(1.0, s["wfrac"]) + 0.3 * inside)
         cdown = 0.0
         if kind == "land" and s["wow"] > 0 and e["xy"] <= 10.0:
-            c_ige = self.trim[0] - 0.04 + 0.057 * (s["weight"] - 8500.0) / 1000.0   # IGE hover trimi (probe)
+            c_ige = (self.trim[0] - 0.04 + 0.057 * (s["weight"] - 8500.0) / 1000.0     # IGE hover trimi (probe)
+                     + self._ige_coll_offset())
             a_ige, a_set = expo_inv(np.clip((np.array([c_ige, cfg.coll_flat]) - self.trim[0]) / self.rng_ctrl[0],
                                             -1.0, 1.0), cfg.expo)
             cdown = soft * cfg.w_coll_down * float(np.clip((a_ige - self.filt[0]) / max(1e-3, a_ige - a_set), 0.0, 1.0))
-        r = track + guide + progress - sched - late - att - rate - smooth - couple - ground - sink + cdown
+        # tork (modelin kendi göstergesi): 50–56 psi kalkış gücü bölgesi hafif, 56 psi (%100) üstü güçlü ceza
+        torque = 0.0
+        if cfg.pen_torque_cont > 0.0 or cfg.pen_torque_over > 0.0:
+            q = s["torque_psi"]
+            span = max(1e-6, cfg.torque_max_psi - cfg.torque_cont_psi)
+            torque = (cfg.pen_torque_cont * min(1.0, max(0.0, q - cfg.torque_cont_psi) / span) ** 2
+                      + cfg.pen_torque_over * min(9.0, (max(0.0, q - cfg.torque_max_psi) / 3.0) ** 2))
+        if cfg.pen_rpm_low > 0.0 and s["rpm"] < cfg.rpm_low_warn:
+            torque += cfg.pen_rpm_low * ((cfg.rpm_low_warn - s["rpm"]) / 10.0) ** 2
+        r = track + guide + progress - sched - late - att - rate - smooth - couple - ground - sink + cdown - torque
         return float(r), dict(track=track, guide=guide, progress=progress, schedule=sched, late=late, attitude=att,
-                              rate=rate, smooth=smooth, coupling=couple, ground=-ground, sink=-sink, coll_down=cdown)
+                              rate=rate, smooth=smooth, coupling=couple, ground=-ground, sink=-sink, coll_down=cdown,
+                              torque=-torque)
 
     def _kernel2(self, err: float, widths) -> float:
         a, b = widths
@@ -941,6 +1030,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
                     roll_deg=math.degrees(s["phi"]), pitch_deg=math.degrees(s["theta"]),
                     yaw_rate_dps=math.degrees(s["r"]), heading_deg=s["psi_deg"], heading_unwrapped=self.psi_unwrap,
                     rotor_rpm=s["rpm"], wow=s["wow"], weight_on_skids=s["wfrac"], weight_lbs=s["weight"],
+                    torque_psi=s["torque_psi"],
                     target=dict(self.target), err_fwd=e["fwd"], err_right=e["right"], err_xy=e["xy"],
                     err_altitude=e["h"], err_heading=e["psi"], filt=[float(x) for x in self.filt])
 

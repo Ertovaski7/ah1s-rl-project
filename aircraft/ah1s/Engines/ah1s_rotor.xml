@@ -19,8 +19,15 @@
   <!--
         According to the operator's manual, the groundeffect yields to approx. 20% less
         torque required when hovering near ground, and vanishes around 50ft h-agl.
+
+        ah1s-rl-project (2026-09-28): stock values were 0.19 / 10 ft. With them the effect is
+        ~12% at the ground but has vanished by ~20 ft skid height (the note above says ~50 ft).
+        Here the height term is switched off (exp(-2e-5*h) ~ 1, the smallest exponent FGRotor
+        still accepts) and the whole ground-effect shape is supplied through the documented
+        property propulsion/engine/groundeffect-scale-norm by Systems/ground_effect.xml
+        (Hayden 1976 for height, Cheeseman-Bennett 1955 for airspeed / wind).
       -->
-  <groundeffectexp>                     0.19 </groundeffectexp>
-  <groundeffectshift unit="FT">           10 </groundeffectshift>
+  <groundeffectexp>                     2e-5 </groundeffectexp>
+  <groundeffectshift unit="FT">            0 </groundeffectshift>
 
 </rotor>

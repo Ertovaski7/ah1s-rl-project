@@ -260,6 +260,16 @@ DEFAULT_TAKEOFF_LEVELS: list[TakeoffLevel] = [
         p_target_change=0.3, p_land=0.5, fuel_lbs=(0.0, TANK_CAPACITY_LBS), n_disturb=(0, 2), climb_fps=10.0,
         descent_fps=5.0, lag_s=4.0, promote_threshold=0.65, rehearse=("K5", "K6", "K7"), p_rehearse=0.08,
         p_touch_start=0.05, p_low_hover_start=0.05),
+    # 2026-09-28: güç tavanı / tork sınırıyla ince ayar (env: aircraft="repo", power_cap_psi=56, torque_obs, tork cezası,
+    # torque_aware_climb). 9700 lbs'ye kadar (OGE hover ≤ 53.5 psi): daha ağırı OGE hover'ı %100 torkun üstüne taşır →
+    # ağır kalkış ayrı görev (yer etkisi + ETL ile ileri kalkış).
+    TakeoffLevel(
+        name="K10", description="Tork sınırlı karma: K9 görevleri, güç tavanı %100 tork (56 psi), 8500–9700 lbs, "
+                                "kalkış ≤ 600 ft, tırmanış hızı ağırlığın güç payına göre",
+        p_hover_start=0.3, hover_start_alt_ft=(15.0, 400.0), takeoff_alt_ft=(10.0, 600.0), n_tasks=(0, 3),
+        p_target_change=0.3, p_land=0.5, fuel_lbs=(0.0, 600.0), n_disturb=(0, 2), climb_fps=10.0,
+        descent_fps=5.0, lag_s=4.0, promote_threshold=0.65, rehearse=("K5", "K6", "K7"), p_rehearse=0.08,
+        p_touch_start=0.05, p_low_hover_start=0.05),
 ]
 
 

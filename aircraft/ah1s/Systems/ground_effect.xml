@@ -1,0 +1,341 @@
+<?xml version="1.0"?>
+<!--
+  Calibrated rotor ground effect for the ah1s model (ah1s-rl-project, 2026-09-28).
+
+  Why
+    The stock model (groundeffectexp 0.19, groundeffectshift 10 ft, speed fade exp(-0.056*vt))
+    gives ~12% less hover torque at the ground but the effect has vanished by ~20 ft skid height,
+    and it fades with speed about twice as fast as theory. The note in Engines/ah1s_rotor.xml
+    (operator's manual: ~20% less torque near the ground, vanishing around 50 ft) matches
+    Hayden's flight-test fit instead. Measurements: docs/ground_effect/.
+
+  Target (induced velocity ratio IGE/OGE at equal thrust)
+    kappa(z, V) = 1 - enable * (1 - kappa_H(z)) * F(V)
+      kappa_H(z) = 1 / (0.9926 + 0.03794 (2R/z)^2)           Hayden (1976), hover, <= 1
+      F(V)       = 1 / (1 + (V / v_h)^2)                      Cheeseman & Bennett (1955), speed fade
+      z          = hub height above ground = h-agl (CG) + 6.5 ft, lag filtered (c1 = 5 rad/s)
+      V          = horizontal AIRspeed (ground velocity minus total wind) -> the effect weakens in wind
+      v_h        = sqrt(W / (2 rho A))                        hover induced velocity
+
+  How it reaches FGRotor
+    FGRotor multiplies the lagged induced inflow by ge = 1 - scale * exp(-k h) * RPM/NominalRPM at
+    EVERY rotor step (/TA77/ eqn 10a):  nu <- ge * ((nu - c0) e + c0),  e = exp(-dt_rotor / inflowlag).
+    With k ~ 0 (Engines/ah1s_rotor.xml) the steady state is nu = r c0 with
+      r = (1 - eps) / (1 + eps A),   A = e / (1 - e),   eps = ge reduction.
+    Momentum inflow c0 = C_T / (2 sqrt(mu^2 + nu^2)) at equal thrust gives the needed r:
+      r = kappa sqrt(mu^2 + kappa^2 nu0^2) / sqrt(mu^2 + nu0^2)     (hover: r = kappa^2)
+      nu0^2 = (-mu^2 + sqrt(mu^4 + 4 nu_h^4)) / 2                    (Glauert OGE inflow)
+    and inverted:  eps = (1 - r) / (1 + r A).
+    IMPORTANT: A depends on the rotor's internal dt, which FGRotor takes from FGFDMExec at
+    load_model() time. The project envs load the model with the default dt (1/120 s) and call
+    set_dt(0.0075) afterwards, so dt_rotor = 1/120 s, inflowlag 0.09 s -> A = 10.3077.
+    (The stock model's strength depends on this too; halving dt_rotor nearly doubles it.)
+
+  Properties
+    ge/model             (RW) 1 = calibrated (default), 0 = stock-like: the stock formula
+                         exp(-0.056 vt) * exp(-0.19 (h_agl_lagged + 10 ft)) rebuilt here
+                         (1 s lag like FGRotor's own filter; close to, not bit-identical with, stock)
+    ge/enable            (RW) 1 = on, 0 = no ground effect (A/B tests)
+    ge/kappa             target induced velocity ratio (calibrated model)
+    ge/scale-norm        -> propulsion/engine/groundeffect-scale-norm
+-->
+<system name="ground effect (calibrated)">
+
+  <property value="1.0">     ge/model </property>
+  <property value="1.0">     ge/enable </property>
+  <property value="10.3077"> ge/inflow-amplification </property>   <!-- A for dt_rotor 1/120 s, lag 0.09 s -->
+  <property value="6.5">     ge/hub-above-cg-ft </property>       <!-- rotor z 153 in - CG z 75 in -->
+
+  <channel name="ground effect">
+
+    <fcs_function name="ge/hub-height-ft">
+      <function>
+        <sum>
+          <property> position/h-agl-ft </property>
+          <property> ge/hub-above-cg-ft </property>
+        </sum>
+      </function>
+    </fcs_function>
+
+    <lag_filter name="ge/hub-height-filtered-ft">
+      <input> ge/hub-height-ft </input>
+      <c1> 5.0 </c1>
+    </lag_filter>
+
+    <fcs_function name="ge/kappa-hover">
+      <description> Hayden (1976): induced power ratio IGE/OGE at equal thrust, R = 22 ft </description>
+      <function>
+        <min>
+          <value> 1.0 </value>
+          <quotient>
+            <value> 1.0 </value>
+            <sum>
+              <value> 0.9926 </value>
+              <product>
+                <value> 0.03794 </value>
+                <pow>
+                  <quotient>
+                    <value> 44.0 </value>
+                    <max>
+                      <property> ge/hub-height-filtered-ft </property>
+                      <value> 1.0 </value>
+                    </max>
+                  </quotient>
+                  <value> 2.0 </value>
+                </pow>
+              </product>
+            </sum>
+          </quotient>
+        </min>
+      </function>
+    </fcs_function>
+
+    <fcs_function name="ge/vi-hover-fps">
+      <description> v_h = sqrt(W / (2 rho A)), A = 1520.53 ft2 </description>
+      <function>
+        <sqrt>
+          <quotient>
+            <max>
+              <property> inertia/weight-lbs </property>
+              <value> 100.0 </value>
+            </max>
+            <product>
+              <value> 3041.06 </value>
+              <max>
+                <property> atmosphere/rho-slugs_ft3 </property>
+                <value> 1e-4 </value>
+              </max>
+            </product>
+          </quotient>
+        </sqrt>
+      </function>
+    </fcs_function>
+
+    <fcs_function name="ge/airspeed-horizontal-fps">
+      <function>
+        <sqrt>
+          <sum>
+            <pow>
+              <difference>
+                <property> velocities/v-north-fps </property>
+                <property> atmosphere/total-wind-north-fps </property>
+              </difference>
+              <value> 2.0 </value>
+            </pow>
+            <pow>
+              <difference>
+                <property> velocities/v-east-fps </property>
+                <property> atmosphere/total-wind-east-fps </property>
+              </difference>
+              <value> 2.0 </value>
+            </pow>
+          </sum>
+        </sqrt>
+      </function>
+    </fcs_function>
+
+    <fcs_function name="ge/speed-fade">
+      <description> Cheeseman and Bennett (1955): 1 / (1 + (V / v_h)^2) </description>
+      <function>
+        <quotient>
+          <value> 1.0 </value>
+          <sum>
+            <value> 1.0 </value>
+            <pow>
+              <quotient>
+                <property> ge/airspeed-horizontal-fps </property>
+                <property> ge/vi-hover-fps </property>
+              </quotient>
+              <value> 2.0 </value>
+            </pow>
+          </sum>
+        </quotient>
+      </function>
+    </fcs_function>
+
+    <fcs_function name="ge/kappa">
+      <function>
+        <difference>
+          <value> 1.0 </value>
+          <product>
+            <property> ge/enable </property>
+            <difference>
+              <value> 1.0 </value>
+              <property> ge/kappa-hover </property>
+            </difference>
+            <property> ge/speed-fade </property>
+          </product>
+        </difference>
+      </function>
+    </fcs_function>
+
+    <fcs_function name="ge/omega-r-fps">
+      <description> rotor tip speed, R = 22 ft (floor 100 ft/s for start-up) </description>
+      <function>
+        <max>
+          <value> 100.0 </value>
+          <product>
+            <property> propulsion/engine/rotor-rpm </property>
+            <value> 2.303835 </value>   <!-- 2 pi / 60 * 22 -->
+          </product>
+        </max>
+      </function>
+    </fcs_function>
+
+    <fcs_function name="ge/mu-sq">
+      <function>
+        <pow>
+          <quotient>
+            <property> ge/airspeed-horizontal-fps </property>
+            <property> ge/omega-r-fps </property>
+          </quotient>
+          <value> 2.0 </value>
+        </pow>
+      </function>
+    </fcs_function>
+
+    <fcs_function name="ge/nu0-sq">
+      <description> Glauert OGE inflow: nu0^2 = (-mu^2 + sqrt(mu^4 + 4 nu_h^4)) / 2 </description>
+      <function>
+        <product>
+          <value> 0.5 </value>
+          <difference>
+            <sqrt>
+              <sum>
+                <pow>
+                  <property> ge/mu-sq </property>
+                  <value> 2.0 </value>
+                </pow>
+                <product>
+                  <value> 4.0 </value>
+                  <pow>
+                    <quotient>
+                      <property> ge/vi-hover-fps </property>
+                      <property> ge/omega-r-fps </property>
+                    </quotient>
+                    <value> 4.0 </value>
+                  </pow>
+                </product>
+              </sum>
+            </sqrt>
+            <property> ge/mu-sq </property>
+          </difference>
+        </product>
+      </function>
+    </fcs_function>
+
+    <fcs_function name="ge/inflow-ratio-target">
+      <description> r = kappa sqrt(mu^2 + kappa^2 nu0^2) / sqrt(mu^2 + nu0^2) </description>
+      <function>
+        <quotient>
+          <product>
+            <property> ge/kappa </property>
+            <sqrt>
+              <sum>
+                <property> ge/mu-sq </property>
+                <product>
+                  <pow>
+                    <property> ge/kappa </property>
+                    <value> 2.0 </value>
+                  </pow>
+                  <property> ge/nu0-sq </property>
+                </product>
+              </sum>
+            </sqrt>
+          </product>
+          <sqrt>
+            <sum>
+              <property> ge/mu-sq </property>
+              <property> ge/nu0-sq </property>
+            </sum>
+          </sqrt>
+        </quotient>
+      </function>
+    </fcs_function>
+
+    <fcs_function name="ge/scale-calibrated">
+      <description>
+        eps = (1 - r) / (1 + r A), divided by RPM/NominalRPM because FGRotor multiplies by it
+      </description>
+      <function>
+        <quotient>
+          <quotient>
+            <difference>
+              <value> 1.0 </value>
+              <property> ge/inflow-ratio-target </property>
+            </difference>
+            <sum>
+              <value> 1.0 </value>
+              <product>
+                <property> ge/inflow-ratio-target </property>
+                <property> ge/inflow-amplification </property>
+              </product>
+            </sum>
+          </quotient>
+          <max>
+            <value> 0.5 </value>
+            <quotient>
+              <property> propulsion/engine/rotor-rpm </property>
+              <value> 324.0 </value>
+            </quotient>
+          </max>
+        </quotient>
+      </function>
+    </fcs_function>
+
+    <!-- stock-like model (ge/model = 0) -->
+    <lag_filter name="ge/h-agl-lagged-ft">
+      <input> position/h-agl-ft </input>
+      <c1> 1.0 </c1>
+    </lag_filter>
+
+    <fcs_function name="ge/scale-stock">
+      <function>
+        <product>
+          <exp>
+            <product>
+              <value> -0.056 </value>
+              <property> velocities/vt-fps </property>
+            </product>
+          </exp>
+          <exp>
+            <product>
+              <value> -0.19 </value>
+              <sum>
+                <max>
+                  <property> ge/h-agl-lagged-ft </property>
+                  <value> 0.0 </value>
+                </max>
+                <value> 10.0 </value>
+              </sum>
+            </product>
+          </exp>
+        </product>
+      </function>
+    </fcs_function>
+
+    <fcs_function name="ge/scale-norm">
+      <function>
+        <product>
+          <property> ge/enable </property>
+          <sum>
+            <product>
+              <property> ge/model </property>
+              <property> ge/scale-calibrated </property>
+            </product>
+            <product>
+              <difference>
+                <value> 1.0 </value>
+                <property> ge/model </property>
+              </difference>
+              <property> ge/scale-stock </property>
+            </product>
+          </sum>
+        </product>
+      </function>
+      <output> propulsion/engine/groundeffect-scale-norm </output>
+    </fcs_function>
+
+  </channel>
+
+</system>

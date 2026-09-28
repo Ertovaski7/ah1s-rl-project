@@ -249,6 +249,9 @@
 
   <system file="trim_control"/>
 
+  <!-- ah1s-rl-project: calibrated ground effect (see Systems/ground_effect.xml) -->
+  <system file="ground_effect"/>
+
   <system name="misc support">
     <channel name="climb/approach angle">
 
@@ -350,20 +353,11 @@
       </lag_filter>
     </channel>
 
-    <channel name="groundeffect-scale">
-      <fcs_function name="aero/groundeffect-scale">
-        <function>
-        <description> gives 1.0 in hover, 0.001 at 40kts (or ~70fps) </description>
-        <exp>
-          <product>
-            <value> -0.056 </value>
-            <property> velocities/vt-fps </property>
-          </product>
-        </exp>
-        </function>
-        <output> propulsion/engine/groundeffect-scale-norm </output>
-      </fcs_function>
-    </channel>
+    <!--
+      ah1s-rl-project (2026-09-28): the stock 'groundeffect-scale' channel
+      (exp(-0.056 * vt-fps) -> propulsion/engine/groundeffect-scale-norm) was removed here;
+      Systems/ground_effect.xml now writes that property (height AND airspeed dependence).
+    -->
 
   </flight_control>
 

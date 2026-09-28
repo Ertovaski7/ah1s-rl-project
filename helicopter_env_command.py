@@ -312,9 +312,22 @@ class HelicopterEnvCommand(gym.Env):
     # JSBSIM
     # =================================================================
 
+    def _aircraft_dir(self) -> str | None:
+        """None → JSBSim paketindeki stok ah1s (varsayılan, eski davranış birebir). Alt sınıflar repo'daki
+        kopyayı (`aircraft/ah1s`: kalibre yer etkisi + güç tavanı) seçebilir."""
+        return None
+
+    def _configure_aircraft(self, fdm):
+        """load_model'den sonra, run_ic'den önce çağrılır (repo uçağının ayarları için kanca)."""
+
     def _create_fdm(self):
         fdm = jsbsim.FGFDMExec(None)
         fdm.set_debug_level(0)
+        aircraft_dir = self._aircraft_dir()
+        if aircraft_dir:
+            fdm.set_aircraft_path(aircraft_dir)
+        # NOT: set_dt load_model'den SONRA → FGRotor'un iç dt'si JSBSim varsayılanı 1/120 s kalır (inflow gecikmesi
+        # ve yer etkisi gücü buna göre; aircraft/ah1s/Systems/ground_effect.xml bu dt için kalibre). Değiştirme.
         if not fdm.load_model("ah1s"):
             raise RuntimeError("AH-1S modeli yüklenemedi.")
         if not fdm.load_ic("reset00.xml", True):
@@ -333,6 +346,7 @@ class HelicopterEnvCommand(gym.Env):
         fdm["fcs/rpm-governor-active-norm"] = 0.0
         for ch in ("yaw", "pitch", "roll"):
             fdm[f"ap/afcs/{ch}-channel-active-norm"] = 0.0
+        self._configure_aircraft(fdm)
         fdm.run_ic()
         self.fdm = fdm
 

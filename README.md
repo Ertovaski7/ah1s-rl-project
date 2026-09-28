@@ -10,7 +10,7 @@ Repodaki iki görev zinciri:
 
 **İsimlendirme notu:** Dosya adlarındaki `stage3` (`legacy/models_stage3_hybrid_final/`, `legacy/validate_stage3_stop_hover.py`) *durma + hover* görevidir. Eski dokümanlarda ve canlı dashboard'un legend'ında dönüş fazı da "Stage 3 — Turn" diye geçer; bu README'de karışmaması için dönüş fazına **Turn** deniyor.
 
-**Klasörler:** Bu iki görev zincirinin (eski sistem) dosyaları `legacy/` klasöründe; komut, manevra, dayanıklılık ve kalkış aşamaları (bölüm 1.4–1.7 ve 26–30) repo kökünde; Colab defterleri `notebooks/` klasöründe.
+**Klasörler:** Bu iki görev zincirinin (eski sistem) dosyaları `legacy/` klasöründe; komut, manevra, dayanıklılık, kalkış ve yer etkisi / tork aşamaları (bölüm 1.4–1.8 ve 26–31) repo kökünde; Colab defterleri `notebooks/` klasöründe.
 
 En önemli tasarım kararı, fazlar arasında simülasyonun yeniden başlatılmamasıdır. **Aynı JSBSim FDM (Flight Dynamics Model) ve aynı helikopter state’i bir sonraki faza aktarılır.** Böylece her policy yalnızca ideal bir başlangıç durumunda değil, önceki fazın gerçek dinamik çıktısı üzerinden çalışır.
 
@@ -43,7 +43,7 @@ python validate_stage3_stop_hover.py                        # Stage 1 → 2 → 
 python visualize_final_multiturn.py 20 -30 75               # aynı görev -> ah1s_final_multiturn.gif
 ```
 
-**Eski sistemin komutları `legacy/` klasöründen çalıştırılmalıdır** (model yolları bu klasöre göredir). `legacy/training/` altındaki scriptler bunu kendileri ayarlar. Yeni aşamaların komutları (bölüm 1.4–1.7) repo kökünden çalışır.
+**Eski sistemin komutları `legacy/` klasöründen çalıştırılmalıdır** (model yolları bu klasöre göredir). `legacy/training/` altındaki scriptler bunu kendileri ayarlar. Yeni aşamaların komutları (bölüm 1.4–1.8) repo kökünden çalışır.
 
 ## 1.3. Canlı target-heading dashboard
 
@@ -114,6 +114,22 @@ python evaluate_takeoff.py --model models_takeoff/takeoff_final.zip        # 28 
 python command_viz.py --model models_takeoff/takeoff_final.zip             # canlı 3D: yerde başla, «Kalk / çık», iniş, bozucular
 ```
 
+## 1.8. Yeni: Kalibre yer etkisi, tork sınırı, ADS-33 karnesi, ileri kalkış
+
+Yer etkisi (ground effect) JSBSim'de zaten vardı ama 10–50 ft'te çok zayıftı; repo'daki `aircraft/ah1s` kopyasında
+JSBSim'in kendi `groundeffect-scale-norm` kancasıyla Hayden (yükseklik) + Cheeseman–Bennett (hava hızı / rüzgâr) olarak
+kalibre edildi. Motor gücüne %100 tork (56 psi) tavanı eklendi; ajanlar önceden modelin kendi tork göstergesinde anlık
+~100 psi'ye (≈ %180) çıkıyordu. `takeoff_torque.zip` tork gözlemi ve cezasıyla ince ayarlandı: güç zarfındaki 25
+senaryoda sınır aşımı 25 s → 6 s, en yüksek 101 → 77 psi. `evaluate_ads33.py` ajanları ABD Ordusu'nun ADS-33E-PRF
+görev öğeleriyle puanlıyor. Ağır helikopter için ileri kalkış (yer etkisi + ETL) görevi: **bölüm 31**.
+
+```bash
+python docs/ground_effect/probe_ground_effect.py && python docs/ground_effect/plot_ground_effect.py
+python evaluate_takeoff.py --model models_takeoff/takeoff_torque.zip             # env ayarları modelin içinde
+python evaluate_ads33.py --model models_takeoff/takeoff_torque.zip               # ADS-33 karnesi, ~1 dk
+python command_viz.py --model models_takeoff/takeoff_torque.zip
+```
+
 ---
 
 # 2. Repo yapısı
@@ -147,10 +163,21 @@ ah1s-rl-project/
 │
 │   Kalkış, hover ve iniş — dört kumanda doğrudan (bölüm 30)
 ├── helicopter_env_takeoff.py                Yerden / havadan başlayan görev dizisi env'i: kalkış, hover, manevralar, iniş, bozucu
-├── takeoff_curriculum.py                    Seviyeler K1 … K9 (+ K7a iniş okulu), tekrar (rehearsal), iniş profili ve süre hedefi
-├── evaluate_takeoff.py                      28 sabit senaryo + seviye istatistikleri + dört kumandanın kullanımı
-├── models_takeoff/                          takeoff_final.zip
+├── takeoff_curriculum.py                    Seviyeler K1 … K9 (+ K7a iniş okulu), K10 tork sınırlı karma, K11r / K11a / K11b / K11
+│                                            ileri kalkış (bölüm 31); tekrar (rehearsal), iniş profili ve süre hedefi
+├── evaluate_takeoff.py                      28 sabit senaryo (+ --depart 4 ileri kalkış) + seviye istatistikleri + kumanda ve tork
+├── models_takeoff/                          takeoff_final.zip (stok fizik), takeoff_torque.zip (tork gözlemi + güç tavanı, bölüm 31)
 ├── docs/takeoff/                            Probe, şekil, senaryo / seviye sonuçları, koşuların CSV'leri
+│
+│   Yer etkisi, tork sınırı, ADS-33 karnesi, ileri kalkış (bölüm 31)
+├── aircraft/ah1s/                           JSBSim ah1s kopyası: kalibre yer etkisi (Systems/ground_effect.xml) + güç tavanı
+│                                            (Systems/rpm_governor.xml); env'lerde aircraft="repo" ile, varsayılan hâlâ stok uçak
+├── evaluate_ads33.py                        ADS-33E-PRF görev öğeleri (MTE) karnesi: hover, yerinde dönüş, dikey manevra,
+│                                            pirouette, iniş — desired / adequate
+├── widen_takeoff_obs.py                     Kalkış modeline yeni gözlem girdisi ekler (sıfır ağırlıkla, davranış aynı)
+├── docs/ground_effect/                      Yer etkisi ölçümü (probe, JSON, şekil) + mevcut ajanın yeni fizikte testi
+├── docs/torque/                             Tork denetimi, ince ayar log'u, senaryo / seviye sonuçları, şekil
+├── docs/ads33/                              ADS-33 karneleri (JSON)
 │
 ├── models_sha256.txt                        Model dosyalarının SHA-256 listesi (legacy/ modelleri dahil)
 ├── requirements.txt
@@ -1656,3 +1683,143 @@ bağımsız testlerle seçilir (seviye istatistikleri seed 70000+, senaryolar).
 - **Önerilen yeni episode türleri:** hover ve inişte rüzgâr / gust (sabit + cosine-gust, JSBSim `atmosphere/gust-*`),
   hassas iniş (ADS-33: ±3 ft), eğimli zemine iniş (slope landing), dar alan / engel üstünden kalkış, maksimum ağırlıkta
   koşarak kalkış (running takeoff), rotor devri düşmesi / güç sınırı, hareketli platforma iniş.
+
+---
+
+# 31. Yer etkisi, tork sınırı, ADS-33 karnesi ve ileri kalkış (2026-09-28)
+
+**Kullanıcının soruları (rüzgârdan önce):** yer etkisi (ground effect) var mı, rüzgârla mı gelecek; yakıt ve ağırlık
+JSBSim'den mi; modeli güçlendirecek ya da mentoru etkileyecek kabiliyetler. **Kullanıcı seçimi (AskUserQuestion):**
+yer etkisini **JSBSim içinde kalibre et** (seçmeli), tork için **gözlem + ceza + fiziksel sınır**, kabiliyet olarak
+**ağır kalkış (yer etkisi + ETL)**, **ADS-33 MTE karnesi** ve **uçtan uca görev zinciri** (sunuma 1–2 hafta).
+
+## 31.1. Yer etkisi — JSBSim'de zaten vardı, ama zayıftı
+
+- **Stok model** (JSBSim 1.3.1 `aircraft/ah1s`): rotor `Engines/ah1s_rotor.xml` → `groundeffectexp 0.19`,
+  `groundeffectshift 10 ft` (FGRotor: indüklenmiş akış her adımda `1 − ölçek·exp(−0.19·(h + 10))` ile çarpılıyor) ve
+  `ah1s.xml`'deki FCS kanalı `groundeffect-scale-norm = exp(−0.056·vt)` (hava hızıyla sönüm). Hiçbir env bunu
+  kapatmamıştı; rüzgârdan bağımsız, ama hava hızına bağlı olduğu için rüzgârda hover'da zayıflar.
+- **Ölçüm** (`docs/ground_effect/probe_ground_effect.py`, yer etkisi kapalı kopyayla A/B): 8500 lbs hover torku kızak
+  1 ft'te −%11.8, 10 ft'te −%2.6, 20 ft'te −%0.4. Yere çok yakın Cheeseman–Bennett teorisine yakın, 10–50 ft arasında çok
+  zayıf; model dosyasının kendi notu ("el kitabına göre yere yakın ~%20 az tork, ~50 ft'te kaybolur") Hayden'ın uçuş
+  testi eğrisine uyuyor. Hız sönümü teoriden ~2 kat hızlı. Ayrıca yer etkisinin gücü rotorun iç zaman adımına bağlı
+  (FGRotor dt'yi `load_model` anında alıyor; env'ler `set_dt(0.0075)`'i sonra çağırıyor → rotor 1/120 s; rotor dt
+  yarıya inerse etki ~2 katına çıkıyor) — env'e dokunulmadı, kalibrasyon bu dt için.
+- **Kalibrasyon (JSBSim içinde):** repo'da `aircraft/ah1s` kopyası (değişmemiş kopya ayrı commit'te, fark tek commit'te).
+  `Systems/ground_effect.xml` FGRotor'un belgelenmiş kancası `groundeffect-scale-norm`'u sürüyor:
+  hedef indüklenmiş hız oranı `κ(z, V) = 1 − (1 − κ_H(z)) / (1 + (V / v_h)²)`,
+  `κ_H = 1 / (0.9926 + 0.03794 (2R/z)²)` (Hayden 1976), sönüm Cheeseman–Bennett (1955), `z` = göbek yüksekliği,
+  `V` = yatay HAVA hızı (yer hızı − toplam rüzgâr) → rüzgârda doğru zayıflar. FGRotor'un adım başı çarpanı ile kararlı
+  durum arasındaki ilişki (`r = (1 − ε)/(1 + εA)`, `A = e/(1 − e)`) ve Glauert OGE inflow'u ile ters çevrildi.
+  `ge/model = 0` stok formülü aynı sistemde yeniden kuruyor (hover'da stokla rakamı rakamına aynı), `ge/enable = 0`
+  yer etkisini kapatıyor.
+- **Doğrulama** (`docs/ground_effect/fig_ground_effect.png`): kızak 1 ft −%19.9 (el kitabı notu ~%20), 10 ft −%8.6,
+  20 ft −%4.2, 40 ft −%1.3 — Hayden hedefinin üstünde; hız sönümü C-B'yi birkaç yüzde içinde izliyor.
+- **Mevcut kalkış ajanı** (`takeoff_final.zip`) kalibre yer etkisiyle de 28/28 (`docs/ground_effect/eval_*.json`).
+
+## 31.2. Yakıt ve ağırlık
+
+Reset'te `propulsion/tank[0|1]/contents-lbs` yazılıyor (K8/K9: tank başına 0–890 lbs); ağırlık, CG (`inertia/cg-x-in`)
+ve atalet JSBSim'in kütle modelinden. Ancak motor `electric_1500hp` (T53 yerine) → **yakıt yanmıyor** (965 hp'de 120 s:
+tanklar aynı); episode içinde ağırlık sabit. Ajan ağırlığı gözlemde görmüyor (tork göstergesi dolaylı ipucu). Modelin
+`emptywt` 8500 lbs'i aslında işletme ağırlığı; gerçek AH-1F boş 6,598 / azami 10,000 lbs → en ağır senaryomuz (10,280)
+azaminin 280 lbs üstü.
+
+## 31.3. Tork sınırı — gösterge, güç tavanı, gözlem, ceza
+
+- **Gösterge:** `ah1s.xml` "bell instruments": `psi = 0.00416·Q − 7.33`; el kitabı sınırları sürekli **50 psi**, 30 dk
+  **56 psi** (Cobra göstergesinde 35 psi = %62.5 → 56 psi = **%100 tork**). Motor 1500 hp → önceden tek fiziksel sınır
+  ~100 psi (≈ %180).
+- **Denetim (önceki modeller):** kalkış ajanı 28 senaryonun 18'inde 56 psi'yi aştı (kalkış anında 90–100 psi; ajan
+  kalktıktan hemen sonra collective'i ~0.98'e çekip 1 s'de 17 ft/s dikey hıza "zıplıyordu"); dayanıklı manevra ajanı 49
+  koşunun 31'inde (en yüksek 101 psi). 10,280 lbs'de OGE hover 58 psi (> %100); ileri hız torku düşürüyor (20 kt −%13,
+  40 kt −%34) → güç sınırlı "IGE → ETL → tırmanış" tekniği fiziksel olarak zorunlu.
+- **Güç tavanı** (`aircraft/ah1s/Systems/rpm_governor.xml`): `fcs/throttle-max-norm` governor çıkışını sınırlar
+  (güç = gaz · 1500 hp); tavanda integratör tutulur (anti-windup). `power_cap_psi = 56` → 939 hp. Daha fazla güç
+  istenirse rotor devri düşer (10,280 lbs OGE hover: 306 rpm, gösterge 59.5 psi).
+- **Env** (`TakeoffEnvConfig`): `aircraft="repo"`, `ground_effect`, `power_cap_psi`, `torque_obs` (obs 30),
+  `pen_torque_cont` (50–56 psi, hafif), `pen_torque_over` (56 üstü), `pen_rpm_low` (< 314 rpm), `torque_aware_climb`
+  (tırmanış süre hedefi ağırlığın güç payına göre: `0.8·(56 − psi_hover(W))/0.62` ft/s; psi_hover(W) =
+  44.6 + 7.5·(W − 8500)/1000, ölçüldü). Varsayılanlar eski davranışı birebir korur. Yeni seviye **K10** (tork sınırlı
+  karma, 8500–9700 lbs). `widen_takeoff_obs.py`: modele yeni gözlem girdisi (sıfır ağırlıkla, davranış aynı).
+- **İnce ayar `tq_v1`:** `takeoff_final` → `widen_takeoff_obs.py` (obs 29 → 30, sıfır ağırlık; eski ile fark 0.0) →
+  K10'da tork cezasıyla ince ayar (lr 1e-4, KL 0.02, 2×4096, batch 512, 2.5 M adım, 52 dk). Deterministik değerlendirme
+  (K2 / K4 / K7 / K10, 30'ar episode): 0 adım 100/100/100/97 → 250 bin – 1.5 M hep ~%100 → 2.25–2.5 M'de K7 (iniş)
+  %67–73'e düştü (uzun ince ayarda dalgalanma, bölüm 30'daki gibi). **Sonuç modeli 1.5 M: `takeoff_torque.zip`**.
+- **Bağımsız testler** (`docs/torque/`, `fig_torque.png`): güç zarfındaki 25 senaryoda (≤ 9700 lbs) hepsi başarılı;
+  56 psi üstünde toplam süre eski modelde 25 s (stok fizik) / 21 s (yeni fizik) → **6 s**, en yüksek tork 101 / 98 →
+  **77 psi**, kalkış anındaki sıçrama 97 → 60 psi, en düşük rotor devri 311 / 304 → 316. Seviyeler (40'ar episode, seed
+  70000+): K2, K5, K7, K10 %100. Temas −2.0…−3.4 ft/s.
+- **Zarf dışı:** 10,280 lbs'deki üç dikey senaryo (500 ft'e dikey kalkış, iniş) güç tavanıyla ancak rotor devri
+  düşürülerek ve uzun süre 56 psi'nin üstünde yapılabiliyor (OGE hover %104 tork) → ağır helikopter ileri kalkış
+  yapmalı (31.5).
+
+## 31.4. ADS-33 karnesi — `evaluate_ads33.py`
+
+ADS-33E-PRF (ABD Ordusu askerî helikopter uçuş kalitesi standardı) görev öğelerini (MTE) "desired / adequate"
+performans sınırlarıyla tanımlar; karne aynı ölçütleri ajana uygular (performans kategorisi — pilot puanı değil;
+rüzgârsız). Hover rejimi MTE'leri: **hover** (6–10 kt'lık, burna göre 45° kayarak yaklaşmadan hedef noktada dur,
+30 s tut; desired ±3 ft konum, ±2 ft irtifa, ±5°, 5 s içinde — NASA Ames 2023 tablosu), **yerinde dönüş** (180°, iki
+yön), **dikey manevra** (15 → 40 → 15 ft, 13 s), **pirouette** (100 ft yarıçaplı çember, burun merkeze, hareketli
+hedefle; ajan eğitimde hareketli hedef görmedi), **iniş** (desired temas ±1 ft boyuna / ±0.5 ft yanal). Kaynaklar ve
+"doğrulanmalı" notları `MTE_STANDARDS`'ta; toleranslar standardın aslıyla mentorla kontrol edilmeli. Canlı / değerlendirme
+modunda son görev bitince env aynı hedefte "hover tut" penceresi açıyor (eğitimde son görevden sonra episode bittiği
+için ajan kapanmış pencereyle hiç uçmamıştı; 30 s'de ~15 ft sürükleniyordu).
+
+| MTE (8500 lbs) | takeoff_final, stok fizik | takeoff_final, yeni fizik | takeoff_torque, yeni fizik |
+|---|---|---|---|
+| hover (sağ / sol) | desired / desired | desired / desired | adequate / adequate (irtifa 2.8–3.1 ft) |
+| yerinde dönüş +180° / −180° | adequate / yetersiz | adequate / yetersiz | adequate / yetersiz (irtifa 6 ft) |
+| dikey manevra | desired (**100 psi**) | adequate (15.9 s) | adequate (71 psi) |
+| pirouette (iki yön) | yetersiz | yetersiz | yetersiz |
+| iniş | yetersiz (−3.5 / +3.0 ft) | yetersiz | yetersiz (−4.8 / −1.9 ft) |
+| **toplam** | 3 desired, 1 adequate, 4 yetersiz | 2 / 2 / 4 | 0 / 4 / 4 |
+
+Okuma: eski ajan dikey manevrada "desired" sonucu %180 torkla alıyordu; güç tavanıyla adequate. Tork sınırlı ajan
+sınırlara uyuyor ama hover'da irtifayı ±2 ft (desired) yerine ~±3 ft tutuyor. Pirouette (hareketli hedef) ve ±1 ft
+hassas iniş ajanın eğitiminde yoktu — ADS-33'e göre eğitim (dar bant, 45° kayarak yaklaşma, hareketli hedef) sıradaki
+iş.
+
+## 31.5. İleri kalkış (departure) — ağır helikopter, yer etkisi + ETL
+
+- **Neden:** güç tavanıyla 10,280 lbs'de OGE hover %104 tork; yer etkisinde (kızak ≤ ~9 ft) ve ileri hızda (ETL) güç
+  ihtiyacı düşüyor → gerçek pilot tekniği: yer etkisinde hover → ileri hızlan → tırmanış.
+- **Görev `depart`** (`helicopter_env_takeoff.py`): rota (o anki heading) boyunca hareket eden referans noktası (v0'dan
+  v'ye sabit ivme) + irtifa hedefi h. Hedef noktası helikopterin rota izdüşümünden en fazla `track_lead_ft` (60 ft)
+  önde (gözlem eğitimdeki "move" görevleri kadar hata görür); `track_obs` hedefin hızını gözleme ekler (+2 → obs 32);
+  ödülde hız rehberliği (hedef hızı + yakalama) ve profil noktasına yetişme terimi. Bant: profil noktasına ≤ 25 ft,
+  hız farkı ≤ 4 ft/s, irtifa / heading / dikey hız toleransı; güvenlik hız sınırı 130 ft/s.
+- **Seviyeler:** K11r (reverse curriculum: 12–60 ft'te 8–30 kt ile ilerlerken hız takibi), K11a (alçak hover ya da
+  yerden, 8–20 kt), K11b (yerden 20–40 kt), K11 (yerden 40–60 kt, 8500–10280 lbs, %30 ağır iniş).
+- **Değerlendirme:** `evaluate_takeoff.py --depart` (8500 / 9400 / 10280 lbs); teknik ölçüsü "20 kt'ta kızak
+  yüksekliği" (dikey tırmanıp sonra hızlanan ajanda yüksek, yer etkisinde hızlananda alçak).
+- **Durum (…):**
+
+## 31.6. Çalıştırma
+
+```bash
+python docs/ground_effect/probe_ground_effect.py && python docs/ground_effect/plot_ground_effect.py   # yer etkisi ölçümü
+python evaluate_takeoff.py --model models_takeoff/takeoff_final.zip --env '{"aircraft": "repo", "power_cap_psi": 56}'
+python evaluate_takeoff.py --model models_takeoff/takeoff_torque.zip --depart          # + 4 ileri kalkış senaryosu
+python docs/torque/plot_torque.py                                                       # tork şekli
+python evaluate_ads33.py --model models_takeoff/takeoff_torque.zip                     # ADS-33 MTE karnesi
+# yeniden üretmek: (1) gözlemi genişlet, (2) K10'da tork cezasıyla ince ayar, (3) K11a → K11 ileri kalkış
+python widen_takeoff_obs.py --model models_takeoff/takeoff_final.zip --out runs/tq/init.zip \
+    --env '{"aircraft": "repo", "ground_effect": "calibrated", "power_cap_psi": 56, "torque_obs": true,
+            "pen_torque_cont": 0.3, "pen_torque_over": 2.0, "pen_rpm_low": 1.0, "torque_aware_climb": true}'
+python train_command_curriculum.py --task takeoff --out runs/tq_v1 --level K10 --no-promote --init-model runs/tq/init.zip \
+    --n-envs 2 --n-steps 4096 --batch-size 512 --total-steps 2500000 --eval-freq 250000 --eval-levels K2,K4,K7,K10 \
+    --snapshot-freq 250000
+```
+
+## 31.7. Bilinen sınırlar / açık sorular
+
+- Kalibrasyon rotorun iç dt'si 1/120 s için (env'ler `set_dt`'yi `load_model`'den sonra çağırıyor); başka bir dt ile
+  yüklenirse `ge/inflow-amplification` yeniden hesaplanmalı (`Systems/ground_effect.xml` başlığı).
+- Tork göstergesi modelin kendi dönüşümü (yazarı ±%20 hata olabileceğini not etmiş); gerçek AH-1F transmisyon /
+  motor sınırlarıyla mentorla kontrol edilmeli. Motor gücü sıcaklık / irtifayla düşmüyor (elektrik motoru).
+- Yakıt yanmıyor; ağırlık gözlemde yok.
+- Manevra ajanı henüz stok fizikte ve tork sınırsız (49 koşunun 31'inde 56 psi üstü) → görev zinciri için aynı ince
+  ayar gerekli.
+- ADS-33 toleranslarının bir kısmı ikincil kaynaklardan; rüzgârlı MTE'ler (en kritik yönden 10–15 kt) rüzgâr
+  aşamasında.

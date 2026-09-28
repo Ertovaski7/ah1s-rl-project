@@ -826,7 +826,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
                 # canlı / değerlendirme (episode kendiliğinden bitmiyor): görev bitince aynı hedefte "hover tut"
                 # penceresi — eğitimde son görevden sonra episode bittiği için ajan kapanmış pencereyle (τ ≫ 1) uzun süre
                 # uçmadı; öyle kalınca hover'da yavaşça sürükleniyordu (ADS-33 hover MTE'sinde 30 s'de ~15 ft)
-                self.pending.append(dict(kind="hold", keep=True))
+                self.pending.append(dict(kind="hold", keep=True, auto=True))
                 self.next_issue_t = t_next + float(self.np_random.uniform(*cfg.gap_s))
             return
         nxt = self.pending[0]

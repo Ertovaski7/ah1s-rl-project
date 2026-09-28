@@ -10,11 +10,11 @@ stage3_complete_backup_2026_09_06.tar.gz
 # kanıt olarak saklamak istediğin bir sonucu `git add -f` ile ekleyebilirsin)
 results_*/
 # Kilitli modellerin doğrulama kanıtları ve Stage 3 eğitim zincirinin girdileri takipte kalır
-!results_stage2_hybrid_final/
-!results_stage3_hybrid_final/
-!results_stage3_lateral_diagnostic_v2/
-!results_stage3_lateral_teacher_v3/
+!legacy/results_stage2_hybrid_final/
+!legacy/results_stage3_hybrid_final/
+!legacy/results_stage3_lateral_diagnostic_v2/
+!legacy/results_stage3_lateral_teacher_v3/
 *.gif
 
-# training/make_v13_from_v7.py tarafından V7 şablonundan üretilen script
-training/train_turn_full_entry_v13_gated_50_patch.py
+# legacy/training/make_v13_from_v7.py tarafından V7 şablonundan üretilen script
+legacy/training/train_turn_full_entry_v13_gated_50_patch.py

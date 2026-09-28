@@ -1793,7 +1793,18 @@ iş.
   yerden, 8–20 kt), K11b (yerden 20–40 kt), K11 (yerden 40–60 kt, 8500–10280 lbs, %30 ağır iniş).
 - **Değerlendirme:** `evaluate_takeoff.py --depart` (8500 / 9400 / 10280 lbs); teknik ölçüsü "20 kt'ta kızak
   yüksekliği" (dikey tırmanıp sonra hızlanan ajanda yüksek, yer etkisinde hızlananda alçak).
-- **Durum (…):**
+- **Durum (2026-09-28):** görev, seviyeler ve değerlendirme hazır. Yapılabilirlik ve ödül kontrolü
+  (`docs/depart/check_depart_scripted.py`, eğitimde kullanılmaz): basit bir PI hız / irtifa / rota tutucusu K11r
+  episode'larını tamamlıyor (3'te 2, ödül 63–71); hover için eğitilmiş ajan duruyor ve ~2 ft/s ile ilerliyor (ödül
+  −20…47) → görev fiziksel olarak yapılabilir ve ödül takip edeni ödüllendiriyor. **Kalkış ajanından ince ayar
+  denemeleri ileri uçuşu henüz öğretmedi** (`docs/depart/dep_v*_train.log`, 0.25–0.5 M adım): hareketli hedefe
+  yetişemeyip uzaklaşma (v1) → yakalama payı ve yavaş profil (v2) → taşıyıcı hedef + yetişme ödülü (v3) → reverse
+  curriculum, ileri uçuşta başlama (v4) → hedef hızı girdisinin "önde hedef" gibi başlatılması + boylamsal cyclic'te
+  daha fazla keşif, lr 3e-4 (v5: hız 2 → ~10 ft/s'ye çıktı ama hover tekrarında başarı %97 → %64'e düştü; model
+  kaydedilmedi). Kök neden: hover ajanının öğrendiği "hedefte dur, yavaş yaklaş" davranışı güçlü; yeni girdiyi
+  kullanmayı öğrenmesi yavaş, keşif artınca hover becerisi bozuluyor. Sıradaki deneme: ayrı bir **geçiş (transition)
+  ajanı** — aynı env, doğrudan kumanda, sıfırdan (manevra ajanı ileri uçuşu sıfırdan 1.7 M adımda öğrenmişti) ve
+  reverse curriculum; görev zincirinde kalkış ajanı → geçiş ajanı → manevra ajanı.
 
 ## 31.6. Çalıştırma
 

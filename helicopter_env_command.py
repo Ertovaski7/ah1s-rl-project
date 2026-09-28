@@ -85,7 +85,7 @@ JSBSIM_DT = 0.0075
 PHYSICS_STEPS = 10
 CONTROL_DT = JSBSIM_DT * PHYSICS_STEPS
 
-# Resmi AH-1S trim / kalibrasyon değerleri (helicopter_env_v2.py, _stage2.py)
+# Resmi AH-1S trim / kalibrasyon değerleri (legacy/helicopter_env_v2.py, legacy/helicopter_env_stage2.py)
 AILERON_TRIM = 0.19095
 RUDDER_TRIM = 0.39
 PHI_TRIM_RAD = -0.049254
@@ -320,7 +320,7 @@ class HelicopterEnvCommand(gym.Env):
         if not fdm.load_ic("reset00.xml", True):
             raise RuntimeError("reset00.xml yüklenemedi.")
         fdm.set_dt(JSBSIM_DT)
-        # Resmi AH-1S kurulumu (helicopter_env_v2.py ile birebir)
+        # Resmi AH-1S kurulumu (legacy/helicopter_env_v2.py ile birebir)
         fdm["ap/afcs/psi-trim-rad"] = np.pi
         fdm["propulsion/tank[0]/contents-lbs"] = 0.0
         fdm["propulsion/tank[1]/contents-lbs"] = 0.0

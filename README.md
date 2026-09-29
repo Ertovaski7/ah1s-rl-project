@@ -130,6 +130,23 @@ python evaluate_ads33.py --model models_takeoff/takeoff_torque.zip              
 python command_viz.py --model models_takeoff/takeoff_torque.zip
 ```
 
+## 1.9. Yeni: Ortak fizik katmanı (tork, yakıt, rüzgâr / türbülans) ve tek ajanlı sürekli uçuş
+
+`physics_ext.py`: env'lerden bağımsız, config'le açılan (varsayılan kapalı → eski modeller birebir) katman — el kitabı
+grafiğinden yakıt tüketimi (tanklar bitince motor ayrılır), sabit rüzgâr, 1−cos gust'lar, MIL-F-8785C alçak irtifa Dryden
+türbülansı (`dryden_agl`; JSBSim'in kendi türbülansı bu helikopterde ıraksıyor). Probe'lar (a)–(e): dayanıklılık,
+rüzgârda trim, türbülans şiddeti, yakıt / CG → trim, hava hızı × ağırlık trim tablosu (`docs/physics_ext/`).
+`helicopter_env_flight.py`: **tek PPO ajanı** (sıfırdan, dört kumanda doğrudan) tek sürekli episode'da kalkış → hover →
+ileri uçuşa geçiş → ileri uçuşta Δhız / Δheading / Δirtifa → duruş → iniş; tork cezası, güç tavanı ve yakıt baştan
+açık, rüzgâr / türbülans curriculum'un çevre ekseninde. Ayrıntı ve sonuçlar: **bölüm 32**.
+
+```bash
+python physics_ext.py                                                  # katmanın birim testleri
+python docs/physics_ext/probe_e_trim_table.py --aircraft repo --power-cap 56   # probe'lar (a–e aynı biçimde)
+python evaluate_flight.py --model models_flight/flight_final.zip       # sabit senaryo takımı (zincirler, rüzgâr, ağırlık)
+python command_viz.py --model models_flight/flight_final.zip --wind-kt 15 --turb light   # canlı 3D, rüzgâr oku / tork / yakıt
+```
+
 ---
 
 # 2. Repo yapısı
@@ -1834,3 +1851,89 @@ python train_command_curriculum.py --task takeoff --out runs/tq_v1 --level K10 -
   ayar gerekli.
 - ADS-33 toleranslarının bir kısmı ikincil kaynaklardan; rüzgârlı MTE'ler (en kritik yönden 10–15 kt) rüzgâr
   aşamasında.
+
+---
+
+# 32. Ortak fizik katmanı ve tek ajanlı sürekli uçuş (2026-09-29)
+
+Mentor şartı: tork sınırı ve yakıt tüketimi; kullanıcı şartı: rüzgâr ve türbülans. Hedef: **tek bir PPO ajanı** (sıfırdan,
+teacher–student yok), tek ve sürekli bir episode'da rotor warm-up (scriptli) → kalkış → hover → Δirtifa / Δhız (0–100 kt)
+/ Δheading → isteğe bağlı iniş; dört kumanda doğrudan, AFCS yalnızca SAS. İki aşama: (1) env'lerden bağımsız fizik
+katmanı + ölçümler (eğitim yok), (2) tek ajan env'i, iki eksenli curriculum (görev × çevre), eğitim, değerlendirme.
+
+## 32.1. Fizik katmanı — `physics_ext.py` (ayrıntı: `docs/physics_ext/README.md`)
+
+- **Her özellik config ile açılır, varsayılan kapalı** (`TakeoffEnvConfig(physics={...})`, `ManeuverEnvConfig(physics=...)`;
+  modelin `ah1s_env_overrides`'ında taşınır). Kapalıyken env'in rastgele sayı akışına bile dokunmuyor: kalkış (28
+  senaryo × 2 model) ve dayanıklılık (49 koşu) değerlendirmelerinin JSON'ları entegrasyondan önceki ile **0 fark**.
+- **Tork:** modelin kendi göstergesi (psi = 0.00416·Q − 7.33; 50 psi sürekli, 56 psi = %100), güç tavanı ve ceza
+  kalkış env'inin 2026-09-28 uygulamasıyla aynı (fonksiyonlar katmana taşındı).
+- **Yakıt:** TM 55-1520-234-10 (AH-1S operatör el kitabı) şekil 7-8'in tork ↔ yakıt akışı doğruları, irtifaya göre
+  (W_f = a(h) + b·psi·N/324; 1800 shp'ye uzatınca eşdeğer SFC 0.573 ↔ yayımlanan T53-L-703 değeri 0.568). İki tanktan
+  eşit çekim (**varsayım** — el kitabında sıra yok); tanklar bitince motor ayrılır (`fcs/rpm-governor-active-norm = 0`)
+  ve `fuel_exhausted` olayı. Tam depoyla OGE hover **2.38 saat**, 60 kt **3.48 saat** (el kitabıyla hesap 2.40 / 3.44;
+  kullanıcının verdiği gerçek dayanıklılık ~2–2.5 saat).
+- **Rüzgâr / türbülans:** sabit rüzgâr (isteğe bağlı log kesmesi), JSBSim 1−cos gust'ı (yerel NED), MIL-F-8785C alçak
+  irtifa Dryden türbülansı (`dryden_agl`: AGL, yalnızca öteleme; hafif / orta / şiddetli W20 = 15 / 30 / 45 kt).
+  **JSBSim'in kendi türbülansı bu uçakta kullanılamaz** (yükseklik MSL → Edwards'ta hep orta irtifa dalı; açısal
+  türbülans 10.75 ft kanat açıklığıyla ölçekleniyor → hafifte bile 100+ °/s; sakin hover'da NaN). `run_ic()` rüzgârı
+  siliyor → katman her adımda yeniden yazıyor.
+- **Probe'lar:** (a) dayanıklılık, (b) rüzgârda hover ↔ rüzgârsız aynı hava hızı (trim farkı ≤ 0.0002: JSBSim rotoru ve
+  "deneysel" downwash hava hızını tutarlı kullanıyor), (c) türbülans şiddeti (hafif / orta öğrenilebilir, şiddetli
+  değil), (d) yakıt yakıldıkça CG → hover trimi (eşit çekimde boylamsal cyclic yalnızca 0.001–0.003), (e) hava hızı ×
+  ağırlık trim tablosu (`trim_table.py`). Stok uçak ve repo uçağı + 56 psi tavan için ayrı çıktılar.
+
+## 32.2. Tek ajan env'i — `helicopter_env_flight.py` (ayrıntı: `docs/flight/README.md`)
+
+- Kalkış env'inin alt sınıfı (aynı action hattı, hover / kalkış / iniş görevleri ve ödülü); repo uçağı (kalibre yer
+  etkisi), güç tavanı 56 psi, tork gözlemi + cezası, yakıt tüketimi baştan açık.
+- **Yeni görevler:** `cruise` (hava hızı / heading / irtifa hedefleri; Δ'lar ölçülen duruma göre, komut verilmeyen eksen
+  önceki hedefine devam eder; hover'dan hız komutu = ileri uçuşa geçiş) ve `stop` (yer izi boyunca yavaşlayan referans
+  noktası, sonra hover). Başarı bantları türbülansta genişler (hafif ×1.25, orta ×2 — ADS-33'ün desired / adequate
+  ayrımı gibi).
+- **Trim hava hızı × ağırlık tablosundan, görevin REFERANS hızıyla** çizelgelenir (hover 0; ileri uçuşta hedefe 2.5
+  ft/s² rampa; duruşta 0'a). Trim kayınca filtre durumu yeni trime göre yeniden hesaplanır (a-uzayında sıçrama yok).
+- Gözlem 42: kalkış env'inin 29'u (hız girdileri hız hatası olarak) + tork + hava / yer hızı, ileri uçuş bayrağı, hız
+  hatası, hedef hız, hareketli hedefin hızı, ağırlık, referans hızı. **Rüzgârın kendisi verilmez.**
+
+## 32.3. Curriculum — `flight_curriculum.py`
+
+F1 tut (%50 hover, %50 ileri uçuş) → F2 hover (kalkış + manevralar) + ileri uçuş tek eksen Δ → F3 ileri uçuş birleşik /
+büyük Δ + kesen komutlar + hover manevraları → F4 geçişler (hover → hızlanma, ileri uçuştan duruş) → F5 zincir (yerden
+kalkış → hızlanma → Δ → duruş) → F6 iniş → F7 karma (rüzgâr 0–15 kt, hafif türbülans) → F8 son (rüzgâr 0–25 kt, hafif /
+orta türbülans, gust'lar). Rehearsal %30–40, görev türü başına kapı (%80), `--promote-on-eval`.
+
+## 32.4. Tasarım bulguları (eğitim denemeleri)
+
+| deneme | ne oldu | düzeltme |
+|---|---|---|
+| fl_v0: trim ölçülen hava hızıyla | hover'da episode'ların ~%50'si 150 ft sapmayla bitti (kalkış env'inde %2): trim ileri kayınca ileri cyclic ekleyip doğal hız kararlılığını (flapback) sıfırlıyor | trim görevin referans hızıyla (ölçülen durumdan bağımsız) |
+| fl_v1: F1 hover → F2 hover → F3 yalnızca ileri uçuş | F1 / F2 0.5 M adımda geçildi; F3'te episode'ların %80'i 5 s'de 40° pitch: ajan 90 kt yer hızını "fren" diye okuyordu | hız girdileri hız hatası (hover'da aynı) |
+| fl_v2: F2 modelinden F3 | ileri uçuş 0.76 M adımda %0; deterministik F2 %100 → %25 (unutma) | hover ve ileri uçuş F1'den itibaren birlikte (sıfırdan yalnızca ileri uçuşta "tut" hemen %97) |
+| diag_f3: sıfırdan yalnızca ileri uçuş | 0.5 M adımda heading komutları %0 (dönüş yatışla yapılır; ajan bulamadı) | koordineli dönüş yönlendirmesi (istenen yatış = atan(r·V/g)); ilk seviyede yumuşak süre hedefleri |
+| **fl_v3** | F1 0.26 M adımda geçildi; F2'de ileri uçuş Δ'ları ~0.4 M adımda %90+ | (sürüyor) |
+
+## 32.5. Sonuçlar
+
+(eğitim sürüyor — `docs/flight/README.md` bölüm 6)
+
+## 32.6. Değerlendirme ve görselleştirme
+
+- `evaluate_flight.py`: 12 zincir (kısa / uzun × sakin / 15 kt / 25 kt + orta türbülans × 8800 / 9700 lbs) + 9 öğe
+  senaryosu; başarı, ADS-33 benzeri sınıf (istenen / yeterli), tutma doğruluğu, tork (tepe, 50 / 56 psi üstü süre),
+  yakıt. `--scripted`: kural tabanlı PID pilot (RL değil) karşılaştırma tabanı.
+- `command_viz.py` uçuş modu (obs 42 → otomatik): ileri uçuş Δ / hızlan / dur / hover tut / iniş görevleri; yeniden
+  başlatmada ileri uçuşta başlangıç, rüzgâr hızı / yönü, türbülans, gust, yakıt; HUD'da hava hızı ve hedef, rüzgâr oku
+  (ortalama + anlık), tork (50 / 56 psi) ve yakıt (kalan süre) göstergeleri; tork / yakıt / hava hızı grafikleri.
+
+## 32.7. Çalıştırma
+
+```bash
+python physics_ext.py && python helicopter_env_flight.py                 # birim testleri / duman testi
+python docs/flight/check_flight_scripted.py --scenarios all --zero        # PID pilotla yapılabilirlik + ödül kontrolü
+python train_command_curriculum.py --task flight --out runs/fl --total-steps 40000000 --n-envs 2 --n-steps 4096 \
+    --batch-size 512 --net 256,256 --eval-freq 500000 --eval-episodes 12 --promote-on-eval --snapshot-freq 1000000 \
+    --fine-from F7
+python evaluate_flight.py --model runs/fl/models/best.zip --levels F2,F5,F8 --json docs/flight/eval.json
+python docs/flight/fig_flight.py --model runs/fl/models/best.zip --runs runs/fl
+```

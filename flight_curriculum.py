@@ -190,17 +190,20 @@ def find_flight_level(level, levels=None) -> int:
 # Seviyeler (görev × çevre)
 # ---------------------------------------------------------------------------------
 #
-#   seviye | görev                                            | çevre
-#   F1     | hover tut (havada başla)                         | E0
-#   F2     | kalkış (alçak / orta) + hover manevraları        | E0
-#   F3     | ileri uçuş: hız / heading / irtifa (tek eksen)   | E0 (%70) + E1
-#   F4     | ileri uçuş: birleşik + kesen komutlar            | E0 / E1
-#   F5     | geçişler: hover → hızlanma, ileri uçuş → duruş   | E0 / E1
-#   F6     | zincir: yerden kalkış → hızlanma → Δ → duruş     | E0 / E1
-#   F7     | iniş (alçak hover / hafif yüklü başlangıçlar)    | E0 / E1
-#   F8     | karma (tüm görevler)                              | E1 / E2
-#   F9     | karma + zincir, rüzgâr + türbülans                | E1 / E2 / E3
+#   seviye | görev                                                        | çevre
+#   F1     | tut: %50 hover (havada), %50 ileri uçuş (40–100 kt)            | E0
+#   F2     | %50 hover (kalkış + manevralar), %50 ileri uçuş tek eksen Δ      | E0
+#   F3     | %60 ileri uçuş birleşik / büyük Δ + kesen, %40 hover manevraları | E0 / E1
+#   F4     | geçişler: hover → hızlanma, ileri uçuş → duruş                  | E0 / E1
+#   F5     | zincir: yerden kalkış → hızlanma → Δ → duruş                    | E0 / E1
+#   F6     | iniş (alçak hover / hafif yüklü başlangıçlar)                   | E0 / E1
+#   F7     | karma (tüm görevler)                                            | E1 / E2
+#   F8     | karma + zincir, rüzgâr + türbülans                              | E1 / E2 / E3
 #
+# Hover ve ileri uçuş F1'den itibaren birlikte (2026-09-29, fl_v1 / fl_v2): hover'da eğitilmiş ağ ileri uçuşa
+# geçince ilk seviyede ileri uçuş %0'da kaldı ve hover başarısı (deterministik F2) %100 → %25'e düştü (ağın ileri uçuş
+# gözlemlerine tepkisi — büyük hava hızı / tork girdileri — hover için hiç eğitilmemişti). Sıfırdan yalnızca ileri
+# uçuşta ise "tut" %97'ye hemen çıktı. İki rejim baştan birlikte öğretiliyor.
 # Rehearsal: F2'den itibaren episode'ların %30–45'i eski seviyelerden (unutmaya karşı; kalkış ajanında tek seviyede
 # eğitmek K5'i %100 → %65'e düşürmüştü, depart denemesi hover'ı %97 → %64'e).
 
@@ -209,63 +212,64 @@ _FUEL = (150.0, 600.0)          # tank başına → 8800–9700 lbs (OGE hover �
 
 DEFAULT_FLIGHT_LEVELS: list[FlightLevel] = [
     FlightLevel(
-        name="F1", description="Hover'ı tut: havada başla (15–300 ft, küçük bozukluk), 10 s sabit kal (kalkış "
-                               "curriculum'unun K1'i gibi)",
-        p_hover_start=1.0, hover_start_alt_ft=(15.0, 300.0), start_perturb=0.3, hold_first_s=10.0, hold_T_s=10.0,
-        fuel_lbs=_FUEL, promote_threshold=0.8),
+        name="F1", description="Tut: %50 hover (havada başla, 15–300 ft, küçük bozukluk; 10 s), %50 ileri uçuş "
+                               "(40–100 kt, 150–800 ft; hız / irtifa / heading'i 10 s tut)",
+        p_cruise_start=0.5, n_cruise=(0, 0), cruise_start_kt=(40.0, 100.0), cruise_start_alt_ft=(150.0, 800.0),
+        cruise_hold_s=10.0, p_hover_start=1.0, hover_start_alt_ft=(15.0, 300.0), start_perturb=0.3, hold_first_s=10.0,
+        hold_T_s=10.0, fuel_lbs=_FUEL, promote_threshold=0.8),
     FlightLevel(
-        name="F2", description="Kalkış → 10–300 ft hover + 0–2 hover manevrası (dönüş / kayma / bob); %40 havada "
-                               "başlayıp manevra",
+        name="F2", description="%50 hover: kalkış 10–300 ft ya da havada başla + 0–2 hover manevrası; %50 ileri uçuş: "
+                               "1–2 tek eksenli Δ (hız ±10–20 kt / heading ±15–60° / irtifa ±50–150 ft, yumuşak süre hedefi)",
+        p_cruise_start=0.5, n_cruise=(1, 2), cruise_probs={"u": 1 / 3, "psi": 1 / 3, "h": 1 / 3},
+        du_kt=(10.0, 20.0), dpsi_deg=(15.0, 60.0), dh_ft=(50.0, 150.0), cruise_accel_fps2=2.0, cruise_decel_fps2=2.0,
+        cruise_bank_deg=15.0, cruise_climb_fps=8.0, cruise_descent_fps=8.0, cruise_lag_s=4.0,
         p_hover_start=0.4, hover_start_alt_ft=(15.0, 300.0), takeoff_alt_ft=(10.0, 300.0), n_tasks=(0, 2),
         task_probs=_HOVER_MIX, turn_deg=(30.0, 120.0), move_ft=(15.0, 50.0), bob_ft=(15.0, 40.0), climb_fps=8.0,
         lag_s=5.0, fuel_lbs=_FUEL, promote_threshold=0.75, rehearse=("F1",), p_rehearse=0.3),
     FlightLevel(
-        name="F3", description="İleri uçuş (40–100 kt, 150–800 ft): hız ±10–25 kt / heading ±20–90° / irtifa ±50–200 ft, "
-                               "tek eksen; %30 hafif rüzgâr",
-        p_cruise_start=1.0, n_cruise=(1, 3), cruise_probs={"u": 1 / 3, "psi": 1 / 3, "h": 1 / 3},
-        du_kt=(10.0, 25.0), dpsi_deg=(20.0, 90.0), dh_ft=(50.0, 200.0), fuel_lbs=_FUEL, env_probs={"E0": 0.7, "E1": 0.3},
-        promote_threshold=0.75, rehearse=("F1", "F2"), p_rehearse=0.3),
+        name="F3", description="%60 ileri uçuş: 2–4 Δ, birleşik (hız + heading + irtifa), büyük (±35 kt / ±150° / ±300 ft), "
+                               "%30 kesen komut; %40 hover manevraları (1–3); %40 hafif rüzgâr",
+        p_cruise_start=0.6, n_cruise=(2, 4), cruise_probs={"u": 0.2, "psi": 0.25, "h": 0.2, "mix": 0.35},
+        du_kt=(10.0, 35.0), dpsi_deg=(20.0, 150.0), dh_ft=(50.0, 300.0), p_cruise_interrupt=0.3,
+        p_hover_start=0.5, hover_start_alt_ft=(15.0, 300.0), takeoff_alt_ft=(10.0, 300.0), n_tasks=(1, 3),
+        task_probs=_HOVER_MIX, climb_fps=8.0, lag_s=4.0, fuel_lbs=_FUEL, env_probs={"E0": 0.6, "E1": 0.4},
+        promote_threshold=0.7, rehearse=("F1", "F2"), p_rehearse=0.35),
     FlightLevel(
-        name="F4", description="İleri uçuş: birleşik Δ komutlar (hız + heading + irtifa), %30 kesen komut",
-        p_cruise_start=1.0, n_cruise=(2, 4), cruise_probs={"u": 0.2, "psi": 0.25, "h": 0.2, "mix": 0.35},
-        du_kt=(10.0, 35.0), dpsi_deg=(20.0, 150.0), dh_ft=(50.0, 300.0), p_cruise_interrupt=0.3, fuel_lbs=_FUEL,
-        env_probs={"E0": 0.6, "E1": 0.4}, promote_threshold=0.7, rehearse=("F1", "F2", "F3"), p_rehearse=0.35),
-    FlightLevel(
-        name="F5", description="Geçişler: hover → hızlanma (40–80 kt, +0–200 ft) + 0–1 Δ; ileri uçuş → duruş (hover)",
+        name="F4", description="Geçişler: hover → hızlanma (40–80 kt, +0–200 ft) + 0–1 Δ → duruş; ileri uçuş → duruş (hover)",
         p_hover_start=1.0, hover_start_alt_ft=(30.0, 300.0), p_cruise_start=0.5, cruise_start_kt=(30.0, 80.0),
         cruise_start_alt_ft=(100.0, 500.0), p_accel=1.0, accel_kt=(40.0, 80.0), accel_climb_ft=(0.0, 200.0),
         n_cruise=(0, 1), p_stop=1.0, stop_decel=(2.0, 3.0), fuel_lbs=_FUEL, env_probs={"E0": 0.6, "E1": 0.4},
-        promote_threshold=0.7, rehearse=("F2", "F3", "F4"), p_rehearse=0.4),
+        promote_threshold=0.7, rehearse=("F2", "F3"), p_rehearse=0.4),
     FlightLevel(
-        name="F6", description="Zincir: yerden kalkış (20–60 ft) → hızlanma (40–80 kt) → 1–3 Δ komut → duruş",
+        name="F5", description="Zincir: yerden kalkış (20–60 ft) → hızlanma (40–80 kt) → 1–3 Δ komut → duruş",
         p_chain=1.0, chain_takeoff_ft=(20.0, 60.0), accel_kt=(40.0, 80.0), accel_climb_ft=(50.0, 300.0), n_cruise=(1, 3),
         cruise_probs={"u": 0.25, "psi": 0.3, "h": 0.2, "mix": 0.25}, du_kt=(10.0, 30.0), dpsi_deg=(20.0, 120.0),
         dh_ft=(50.0, 250.0), stop_decel=(2.0, 3.0), climb_fps=8.0, lag_s=5.0, fuel_lbs=_FUEL,
-        env_probs={"E0": 0.6, "E1": 0.4}, promote_threshold=0.65, rehearse=("F2", "F4", "F5"), p_rehearse=0.4),
+        env_probs={"E0": 0.6, "E1": 0.4}, promote_threshold=0.65, rehearse=("F2", "F3", "F4"), p_rehearse=0.4),
     FlightLevel(
-        name="F7", description="İniş: alçak hover / kısa kalkıştan pad'e iniş (%30 yerde hafif yüklü, %30 çok alçak "
+        name="F6", description="İniş: alçak hover / kısa kalkıştan pad'e iniş (%30 yerde hafif yüklü, %30 çok alçak "
                                "hover'dan) + duruştan sonra iniş",
         p_hover_start=0.5, hover_start_alt_ft=(12.0, 60.0), takeoff_alt_ft=(12.0, 60.0), hold_first_s=5.0,
         n_tasks=(0, 1), move_ft=(15.0, 40.0), bob_ft=(10.0, 30.0), p_land=1.0, climb_fps=6.0, descent_fps=5.0,
         lag_s=4.0, p_touch_start=0.3, p_low_hover_start=0.3, fuel_lbs=_FUEL, env_probs={"E0": 0.7, "E1": 0.3},
-        promote_threshold=0.7, rehearse=("F2", "F5", "F6"), p_rehearse=0.4),
+        promote_threshold=0.7, rehearse=("F3", "F4", "F5"), p_rehearse=0.4),
     FlightLevel(
-        name="F8", description="Karma: hover / kalkış / iniş / ileri uçuş / geçişler; hafif–orta rüzgâr, %30 hafif "
-                               "türbülans",
+        name="F7", description="Karma: hover / kalkış / iniş / ileri uçuş / geçişler / zincir; hafif–orta rüzgâr, %30 "
+                               "hafif türbülans",
         p_hover_start=0.3, hover_start_alt_ft=(15.0, 400.0), takeoff_alt_ft=(10.0, 600.0), n_tasks=(0, 3),
         p_target_change=0.2, p_land=0.3, p_cruise_start=0.35, n_cruise=(1, 3), p_cruise_interrupt=0.2,
         du_kt=(10.0, 30.0), dpsi_deg=(20.0, 150.0), dh_ft=(50.0, 250.0), p_accel=0.5, p_stop=0.6, p_chain=0.4,
         p_land_after_stop=0.3, p_touch_start=0.05, p_low_hover_start=0.05, climb_fps=10.0, descent_fps=5.0, lag_s=4.0,
         fuel_lbs=_FUEL, env_probs={"E1": 0.5, "E2": 0.5}, promote_threshold=0.65,
-        rehearse=("F4", "F5", "F6", "F7"), p_rehearse=0.3),
+        rehearse=("F3", "F4", "F5", "F6"), p_rehearse=0.3),
     FlightLevel(
-        name="F9", description="Son seviye: karma + zincir; rüzgâr 0–25 kt, türbülans yok / hafif / orta, gust'lar",
+        name="F8", description="Son seviye: karma + zincir; rüzgâr 0–25 kt, türbülans yok / hafif / orta, gust'lar",
         p_hover_start=0.25, hover_start_alt_ft=(15.0, 400.0), takeoff_alt_ft=(10.0, 600.0), n_tasks=(0, 3),
         p_target_change=0.2, p_land=0.3, p_cruise_start=0.3, n_cruise=(1, 4), p_cruise_interrupt=0.25,
         du_kt=(10.0, 35.0), dpsi_deg=(20.0, 180.0), dh_ft=(50.0, 300.0), p_accel=0.5, p_stop=0.6, p_chain=0.5,
         p_land_after_stop=0.3, p_touch_start=0.05, p_low_hover_start=0.05, climb_fps=10.0, descent_fps=5.0, lag_s=4.0,
         fuel_lbs=_FUEL, env_probs={"E1": 0.3, "E2": 0.4, "E3": 0.3}, promote_threshold=0.6,
-        rehearse=("F4", "F5", "F6", "F7", "F8"), p_rehearse=0.3),
+        rehearse=("F3", "F4", "F5", "F6", "F7"), p_rehearse=0.3),
 ]
 
 

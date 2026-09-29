@@ -7,7 +7,7 @@ uçar; aynı episode'ları sıfır action (kumandalar trimde, çizelgeyle) da u�
   (2) ödül görevi yapanı yapmayanın üstünde tutuyor mu (getiri: pilot ↔ sıfır action).
 Eğitimde kullanılmaz; policy'ye action önermez.
 
-  python docs/flight/check_flight_scripted.py --scenarios all --levels F3,F5,F6,F9 --seeds 6 --json docs/flight/check_scripted.json
+  python docs/flight/check_flight_scripted.py --scenarios all --levels F2,F4,F5,F8 --seeds 6 --json docs/flight/check_scripted.json
   python docs/flight/check_flight_scripted.py --scenarios cruise_calm --trace 2      # 2 s'de bir durum satırı
 """
 from __future__ import annotations
@@ -108,7 +108,7 @@ def show(r: dict, name: str):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--scenarios", default="all", help="virgülle; 'all' ya da 'none'")
-    ap.add_argument("--levels", default="", help="örn. F3,F5,F6,F9")
+    ap.add_argument("--levels", default="", help="örn. F2,F4,F5,F8")
     ap.add_argument("--seeds", type=int, default=4, help="seviye başına episode")
     ap.add_argument("--seed0", type=int, default=500)
     ap.add_argument("--zero", action="store_true", help="aynı episode'ları sıfır action ile de uç")
@@ -123,7 +123,7 @@ def main(argv=None):
     names = list(SCENARIOS) if args.scenarios == "all" else [n for n in args.scenarios.split(",") if n and n != "none"]
     for name in names:
         sc = SCENARIOS[name]
-        env = HelicopterEnvFlight(level="F9", config=cfg)
+        env = HelicopterEnvFlight(level="F8", config=cfg)
         opts = dict(sc, live=False)
         for mode in modes:
             r = run_episode(env, mode, 1, dict(opts, start_heading_deg=30.0, fuel=(300.0, 300.0)), args.trace)

@@ -360,7 +360,7 @@ class LiveFlight:
         self.is_to = self.task in ("takeoff", "flight")          # görev listesi / pencereler kalkış env'inin yapısında
         if self.task == "flight":
             cfg = FlightEnvConfig(**self.env_overrides)
-            self.env = HelicopterEnvFlight(level=level or "F9", config=cfg)
+            self.env = HelicopterEnvFlight(level=level or "F8", config=cfg)
         elif self.task == "takeoff":
             cfg = TakeoffEnvConfig(**self.env_overrides)
             self.env = HelicopterEnvTakeoff(level=level or "K9", config=cfg)

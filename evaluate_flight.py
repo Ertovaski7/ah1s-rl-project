@@ -25,7 +25,7 @@ Kullanım
   python evaluate_flight.py --model runs/fl_v1/models/best.zip --json docs/flight/eval_best.json
   python evaluate_flight.py --model ... --only uzun_sakin_hafif hover_ruzgar
   python evaluate_flight.py --scripted                     # kural tabanlı PID pilot (karşılaştırma; RL değil)
-  python evaluate_flight.py --model ... --levels F3,F6,F9 --episodes 20 --no-scenarios
+  python evaluate_flight.py --model ... --levels F2,F5,F8 --episodes 20 --no-scenarios
 """
 
 import argparse
@@ -99,7 +99,7 @@ def load_policy(model_path):
     return (lambda o: m.predict(o, deterministic=True)[0]), dict(getattr(m, "ah1s_env_overrides", None) or {})
 
 
-def make_env(model_path=None, env_overrides: dict | None = None, level="F9", scripted=False):
+def make_env(model_path=None, env_overrides: dict | None = None, level="F8", scripted=False):
     """(env, policy(obs) → action, ayarlar). scripted=True → kural tabanlı pilot (docs/flight/scripted_pilot.py)."""
     from helicopter_env_flight import FlightEnvConfig, HelicopterEnvFlight
     ov = {}
@@ -139,7 +139,7 @@ def run_one(env, policy, sc, seed=0):
     sid, group, title, start, tasks, fuel, env_name, episode_s = sc
     phys = dict(ENVS[env_name] if isinstance(env_name, str) else env_name)
     phys.setdefault("wind_dir_relative", True)
-    opts = dict(level="F9", tasks=[dict(t) for t in tasks], fuel=fuel, start_heading_deg=0.0, start_perturb=0.0,
+    opts = dict(level="F8", tasks=[dict(t) for t in tasks], fuel=fuel, start_heading_deg=0.0, start_perturb=0.0,
                 physics=phys, episode_s=episode_s, live=episode_s <= 40.0, **_start_opts(start))
     obs, info = env.reset(seed=seed, options=opts)
     if hasattr(policy, "pilot"):
@@ -345,7 +345,7 @@ def main(argv=None):
     ap.add_argument("--model", default=None)
     ap.add_argument("--scripted", action="store_true", help="kural tabanlı PID pilot (karşılaştırma)")
     ap.add_argument("--only", nargs="*", default=None)
-    ap.add_argument("--levels", default=None, help="ayrıca bu seviyelerden rastgele episode (virgülle, ör. F3,F6,F9)")
+    ap.add_argument("--levels", default=None, help="ayrıca bu seviyelerden rastgele episode (virgülle, ör. F2,F5,F8)")
     ap.add_argument("--episodes", type=int, default=20)
     ap.add_argument("--no-scenarios", action="store_true")
     ap.add_argument("--seed", type=int, default=0)

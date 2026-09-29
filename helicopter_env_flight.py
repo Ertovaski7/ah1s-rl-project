@@ -100,6 +100,11 @@ class FlightEnvConfig(TakeoffEnvConfig):
     w_accel: float = 0.4                    # ivme yönlendirmesi: istenen u̇ = clip(k·e_u, ±ivme)
     guide_k_u: float = 0.3
     kernel_accel: tuple = (1.0, 4.0)
+    # koordineli dönüş yönlendirmesi: istenen yatış = atan(r_istenen · V / g) (hava hızı 15 → 30 kt arasında devreye girer).
+    # Neden (diag_f3, 2026-09-29): sıfırdan F3'te 0.5 M adımda heading komutları %0 — ileri uçuşta dönüş yatışla yapılır,
+    # dönüş hızı ödülü (w_r) yatıştan birkaç saniye sonra geliyor; hover'da pedalla dönmeye alışkın ajan yatışı bulamıyor.
+    w_bank: float = 0.3
+    kernel_bank: tuple = (5.0, 20.0)
     progress_min_scale_u: float = 10.0
     sched_scale_u: float = 15.0
     pen_side: float = 0.3                   # · (v_air / 10)², hava hızı 30 kt üstünde (koordineli uçuş)
@@ -705,6 +710,12 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         a_des = float(np.clip(cfg.guide_k_u * e["u"], -1.25 * lv.cruise_decel_fps2, 1.25 * lv.cruise_accel_fps2))
         guide = (cfg.w_vs * K(s["vs"] - vs_des, cfg.kernel_vs) + cfg.w_r * K(math.degrees(s["r"]) - r_des, cfg.kernel_r)
                  + cfg.w_accel * K(self.u_dot - a_des, cfg.kernel_accel))
+        if cfg.w_bank > 0.0:
+            air_u = abs(float(self.fdm["velocities/u-aero-fps"]))
+            xb = float(np.clip((air_u - 15.0 * KT) / (15.0 * KT), 0.0, 1.0))
+            if xb > 0.0:
+                phi_des = math.degrees(math.atan(math.radians(r_des) * max(air_u, 20.0) / 32.174))
+                guide += xb * cfg.w_bank * K(math.degrees(s["phi"]) - phi_des, cfg.kernel_bank)
         progress = 0.0
         for k, mn in (("u", cfg.progress_min_scale_u), ("h", cfg.progress_min_scale[1]),
                       ("psi", cfg.progress_min_scale[2])):
@@ -804,7 +815,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
 
 if __name__ == "__main__":
     import time
-    for lvl in ("F1", "F3", "F5", "F6", "F9"):
+    for lvl in ("F1", "F2", "F4", "F5", "F8"):
         env = HelicopterEnvFlight(level=lvl)
         t0 = time.time()
         obs, info = env.reset(seed=1)

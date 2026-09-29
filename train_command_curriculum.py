@@ -45,7 +45,7 @@ takeoff_curriculum.py — seviyeler K1…K9, K5'ten itibaren ince ayar modu):
   Seviyelerin `rehearse` / `p_rehearse` ayarı: eğitim env'lerinde episode'ların bir kısmı eski seviyelerden
   (unutmaya karşı); bu episode'lar seviye atlama istatistiğine girmez, log'da "tekrar:" diye ayrıca görünür.
 
-Tek ajanlı sürekli uçuş (2026-09-29; helicopter_env_flight.py, flight_curriculum.py — seviyeler F1…F9, görev × çevre;
+Tek ajanlı sürekli uçuş (2026-09-29; helicopter_env_flight.py, flight_curriculum.py — seviyeler F1…F8, görev × çevre;
 tork cezası, güç tavanı ve yakıt tüketimi baştan açık; rüzgâr / türbülans seviyenin çevre karışımından):
   %run train_command_curriculum.py --task flight --out runs/fl_v1 --total-steps 20000000 --eval-freq 500000 \
        --eval-episodes 12 --promote-on-eval --snapshot-freq 1000000
@@ -120,9 +120,9 @@ def make_env_fn(rank: int, level_index: int, config_name: str, task: str = "comm
 
 
 def build_vec_env(n_envs: int, level_index: int, vec: str, config_name: str = "v2", task: str = "command",
-                  overrides: dict | None = None):
+                  overrides: dict | None = None, rehearsal: bool = True):
     from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
-    fns = [make_env_fn(i, level_index, config_name, task, overrides, train=True) for i in range(n_envs)]
+    fns = [make_env_fn(i, level_index, config_name, task, overrides, train=rehearsal) for i in range(n_envs)]
     if vec == "subproc" and n_envs > 1:
         method = "fork" if sys.platform.startswith("linux") else None
         venv = SubprocVecEnv(fns, start_method=method)
@@ -373,7 +373,7 @@ def parse_args(argv=None):
     p.add_argument("--task", choices=["command", "maneuver", "takeoff", "flight"], default="command",
                    help="command: Δ komut curriculum'u (H1…R1); maneuver: süre hedefli manevralar (M1…M5, S1…S4); "
                         "takeoff: yerden kalkış / hover / iniş, 4 kumanda doğrudan (K1…K9); "
-                        "flight: tek ajan — kalkış / hover / ileri uçuş / duruş / iniş, rüzgâr / türbülans / yakıt (F1…F9)")
+                        "flight: tek ajan — kalkış / hover / ileri uçuş / duruş / iniş, rüzgâr / türbülans / yakıt (F1…F8)")
     p.add_argument("--out", default="runs/command_curriculum", help="çıktı klasörü (Colab'da Drive önerilir)")
     p.add_argument("--total-steps", type=int, default=6_000_000,
                    help="üst sınır; son seviye geçilince eğitim kendiliğinden biter")
@@ -429,6 +429,8 @@ def parse_args(argv=None):
     p.add_argument("--env-overrides", dest="env_overrides_cli", default=None,
                    help="env ayarları (JSON; kalkış / manevra), init / resume modelinin taşıdıklarının üstüne yazılır ve "
                         "modelle kaydedilir. Ör. kalkış: '{\"aircraft\": \"repo\", \"power_cap_psi\": 56, \"torque_obs\": true}'")
+    p.add_argument("--no-rehearsal", dest="rehearsal", action="store_false",
+                   help="eğitimde eski seviyelerden tekrar episode'u yok (tanı koşuları için)")
     p.add_argument("--smoke", action="store_true", help="çok kısa deneme koşusu")
     return p.parse_args(argv)
 
@@ -446,7 +448,7 @@ def main(argv=None):
         # kalkış / flight: dört kumanda doğrudan, daha az gürültü
         args.log_std_init = -1.2 if args.task in ("takeoff", "flight") else -1.0
     if args.eval_levels is None:
-        args.eval_levels = {"takeoff": "K2,K4,K9", "flight": "F2,F4,F6"}.get(args.task, "M5,S2,S3")
+        args.eval_levels = {"takeoff": "K2,K4,K9", "flight": "F2,F3,F5"}.get(args.task, "M5,S2,S3")
     if str(args.fine_from).lower() == "none":
         args.fine_from = None
     if args.smoke:
@@ -515,7 +517,8 @@ def main(argv=None):
             raise SystemExit(f"bilinmeyen {args.task} env ayarı: {unknown}")
         if args.env_overrides:
             print(f"[env] {args.task} ayarları: {args.env_overrides} (modelle birlikte kaydedilir)")
-    venv = build_vec_env(args.n_envs, level_index, args.vec, args.env_config, args.task, args.env_overrides)
+    venv = build_vec_env(args.n_envs, level_index, args.vec, args.env_config, args.task, args.env_overrides,
+                         rehearsal=args.rehearsal)
     from dataclasses import asdict
     env_config = asdict(make_config(args.env_config, args.task, args.env_overrides))
     tb = None

@@ -5,7 +5,8 @@ Tek ajanlı uçuş şekilleri (docs/flight/):
                            heading, tork, yakıt, yer izi; görev pencereleri dikey çizgilerle
   fig_flight_training.png: eğitim — seviye ve eğitim başarısı (progress.csv), deterministik değerlendirme (eval.csv)
 
-  python docs/flight/fig_flight.py --model models_flight/flight_final.zip --runs /home/claude/runs/fl_v3
+  python docs/flight/fig_flight.py --model models_flight/flight_final.zip \
+      --runs runs/fl_v3:2765704 runs/fl_v6:500000 runs/fl_v8 runs/fl_v9     # soy: her koşu öncekinin modelinden
   python docs/flight/fig_flight.py --scripted          # PID pilotla (şekil kodunu denemek için)
 """
 from __future__ import annotations
@@ -148,20 +149,29 @@ def _read_csv(path: Path) -> list[dict]:
         return list(csv.DictReader(f))
 
 
-def plot_training(run_dirs: list[Path], out: Path):
-    prog, ev = [], []
+def _run_spec(spec: str) -> tuple[Path, int | None]:
+    """'klasör' ya da 'klasör:en_çok_adım' (koşunun yalnızca o adıma kadarki kısmı soya girer; ör. fl_v3:2765704)."""
+    if ":" in spec and spec.rsplit(":", 1)[1].isdigit():
+        d, m = spec.rsplit(":", 1)
+        return Path(d), int(m)
+    return Path(spec), None
+
+
+def plot_training(run_specs: list[str], out: Path):
+    """Soydaki koşuları (her biri bir öncekinin modelinden başlar) adım ekseninde uç uca ekler."""
+    prog, ev, bounds = [], [], []
     offset = 0
-    for d in run_dirs:
-        p = _read_csv(d / "progress.csv")
-        for r in p:
-            r["_steps"] = offset + int(r["timesteps"])
-        e = _read_csv(d / "eval.csv")
-        for r in e:
+    for spec in run_specs:
+        d, mx = _run_spec(spec)
+        p = [r for r in _read_csv(d / "progress.csv") if mx is None or int(r["timesteps"]) <= mx]
+        e = [r for r in _read_csv(d / "eval.csv") if mx is None or int(r["timesteps"]) <= mx]
+        for r in p + e:
             r["_steps"] = offset + int(r["timesteps"])
         prog += p
         ev += e
+        bounds.append((offset, d.name))
         if p:
-            offset = prog[-1]["_steps"]
+            offset = (offset + mx) if mx is not None else prog[-1]["_steps"]
     if not prog:
         print("progress.csv yok — eğitim şekli atlandı")
         return
@@ -173,28 +183,47 @@ def plot_training(run_dirs: list[Path], out: Path):
     lvl = np.array([levels.index(r["level"]) for r in prog])
     succ = np.array([float(r["success_rate"]) for r in prog])
     fig, axs = plt.subplots(3, 1, figsize=(11, 9), constrained_layout=True, sharex=True)
+
+    def runs(ax, label=False):
+        for b, name in bounds[1:] if not label else bounds:
+            if b > 0:
+                ax.axvline(b / 1e6, color=MUTED, linewidth=0.8, linestyle=":")
+            if label:
+                ax.text(b / 1e6 + 0.03, 0.98, name, transform=ax.get_xaxis_transform(), fontsize=7, color=INK2, va="top")
+
     ax = axs[0]
     ax.step(x, lvl, where="post", color=BLUE, linewidth=1.6)
     ax.set_yticks(range(len(levels)))
     ax.set_yticklabels(levels)
+    runs(ax, label=True)
     _style(ax, "Seviye", "curriculum")
     ax = axs[1]
     ax.plot(x, 100 * succ, color=BLUE, linewidth=1.2)
+    runs(ax)
     _style(ax, "Eğitim başarısı (stokastik policy, son 100 episode, mevcut seviye)", "%")
     ax.set_ylim(-3, 103)
     ax = axs[2]
     if ev:
-        cols = [c for c in ev[0] if c.startswith("success_") and c != "success_current"]
-        colors = [BLUE, ORANGE, AQUA, YELLOW]
+        cols = []
+        for r in ev:
+            cols += [c for c in r if c.startswith("success_") and c != "success_current" and c not in cols]
+        cols = sorted(cols, key=lambda c: next((i for i, lv in enumerate(levels) if lv == c[8:]), 99))
+        colors = [BLUE, ORANGE, AQUA, YELLOW, "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
         xe = np.array([r["_steps"] for r in ev]) / 1e6
         for k, c in enumerate(cols):
             y = np.array([float(r[c]) if r.get(c) not in (None, "", "None") else np.nan for r in ev])
             ax.plot(xe, 100 * y, color=colors[k % len(colors)], linewidth=1.4, marker="o", markersize=3.5,
                     label=c.replace("success_", ""))
-        ax.legend(fontsize=8, frameon=False, ncol=len(cols), loc="upper left")
+        cur = [(r["_steps"] / 1e6, float(r["success_current"]), r.get("current_level", "")) for r in ev
+               if r.get("success_current") not in (None, "", "None") and f"success_{r.get('current_level')}" not in r]
+        if cur:
+            ax.plot([c[0] for c in cur], [100 * c[1] for c in cur], linestyle="none", marker="s", markersize=4.5,
+                    color=INK2, label="mevcut seviye (ör. F7, F8)")
+        ax.legend(fontsize=8, frameon=False, ncol=len(cols) + 1, loc="lower right")
+    runs(ax)
     _style(ax, "Deterministik değerlendirme (12 episode / seviye, sabit seed)", "%")
     ax.set_ylim(-3, 103)
-    ax.set_xlabel("adım (milyon)", fontsize=8, color=INK2)
+    ax.set_xlabel("adım (milyon; soydaki koşular uç uca)", fontsize=8, color=INK2)
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=130)
     plt.close(fig)
@@ -206,7 +235,8 @@ def main(argv=None):
     ap.add_argument("--model", default=None)
     ap.add_argument("--scripted", action="store_true")
     ap.add_argument("--scenario", default="uzun_ruzgar_agir")
-    ap.add_argument("--runs", nargs="*", default=[], help="eğitim koşu klasörleri (sırayla birleştirilir)")
+    ap.add_argument("--runs", nargs="*", default=[],
+                    help="eğitim koşu klasörleri, soy sırasıyla; 'klasör:adım' o adımdan sonrasını atar")
     ap.add_argument("--out-prefix", default=str(HERE / "fig_flight"))
     args = ap.parse_args(argv)
     if args.model or args.scripted:
@@ -216,7 +246,7 @@ def main(argv=None):
         who = "PID pilot (RL değil)" if args.scripted else Path(args.model).name
         plot_chain(rows, res, info, f"{sc[2]} — {who}", Path(f"{args.out_prefix}_chain{'_pid' if args.scripted else ''}.png"))
     if args.runs:
-        plot_training([Path(r) for r in args.runs], Path(f"{args.out_prefix}_training.png"))
+        plot_training(args.runs, Path(f"{args.out_prefix}_training.png"))
 
 
 if __name__ == "__main__":

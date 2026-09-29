@@ -118,6 +118,12 @@ class FlightEnvConfig(TakeoffEnvConfig):
     # --- reset ---------------------------------------------------------------------------------------------------
     cruise_settle_max_s: float = 90.0
     max_episode_s: float = 600.0
+    # --- episode sonu ---------------------------------------------------------------------------------------------
+    # Son görev başarıyla bitince episode, başarısız olsaydı biteceği anda (pencere başı + son sınır + tutma + 1 s)
+    # biter; eski davranış (False): başarıdan 1 s sonra. Adım başına ödül pozitif olduğu için eski davranışta başarı
+    # episode'u kısaltıp getiriyi düşürüyordu: yerde hafif yüklü başlangıçta oturmak (başarı) 43, havalanıp 2 ft'te
+    # hover etmek (başarısız) 60 getiri (fl_v4, F6a; görev başarı ödülü yalnızca 3).
+    end_at_deadline: bool = True
 
 
 class HelicopterEnvFlight(HelicopterEnvTakeoff):
@@ -573,6 +579,9 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
                 self._schedule_next(w["t"] + w["deadline"] + w["hold_s"])
 
     def _schedule_next(self, t_next: float):
+        if not self.pending and self.auto_end and self.windows and self.cfg.end_at_deadline:
+            w = self.windows[-1]                                 # son görev: başarıyla bitse de episode aynı anda biter
+            t_next = max(t_next, w["t"] + w["deadline"] + w["hold_s"])
         if (not self.pending and not self.auto_end and self.windows and self.windows[-1]["kind"] == "cruise"
                 and self._prev_wow == 0):
             # canlı: son ileri uçuş komutu bitince aynı hız / heading / irtifada devam (hover tut değil)

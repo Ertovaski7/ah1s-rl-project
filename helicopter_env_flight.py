@@ -118,6 +118,12 @@ class FlightEnvConfig(TakeoffEnvConfig):
     # ödül getirmiyordu. 0 → kapalı.
     w_coll_down_air: float = 1.0
     coll_down_air_hs_ft: tuple = (1.0, 3.0)
+    # Yerdeyken (iniş penceresi) komut edilen collective'e (ham action) doğrudan: clip((a_hi − a) / (a_hi + 1), 0, 1).
+    # Neden (fl_v6 / fl_t7, F6a): kumanda hız sınırlı (collective 0.6/s) — yerde başlangıçta hedef kumanda mevcut
+    # kumandanın çok üstündeyken action'daki küçük değişiklik kumandayı hiç değiştirmiyor (en yüksek hızla yükseliyor),
+    # coll_down / iniş ödülleri (gerçek kumandaya bağlı) yerel gradyan vermiyor; 1000 iniş episode'unda %0.
+    w_coll_down_act: float = 1.0
+    coll_down_act_hi: float = 0.5
     # --- güvenlik ----------------------------------------------------------------------------------------------
     max_roll_cruise_deg: float = 60.0       # ileri uçuşta (hava hızı > 30 kt)
     max_airspeed_kt: float = 130.0
@@ -760,6 +766,22 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         down = float(np.clip((a_ige - self.filt[0]) / max(1e-3, a_ige - a_set), 0.0, 1.0))
         return cfg.w_coll_down_air * near * slow * down
 
+    def _coll_down_act(self, s: dict, e: dict, a: np.ndarray) -> float:
+        """İniş penceresinde yerdeyken (pad'in 10 ft içinde) komut edilen collective'i indirme ödülü × temas yumuşaklığı
+        (cfg.w_coll_down_act)."""
+        cfg = self.cfg
+        w = self.windows[-1] if self.windows else None
+        if (cfg.w_coll_down_act <= 0.0 or w is None or w["closed"] or w["kind"] != "land" or s["wow"] == 0
+                or e["xy"] > 10.0):
+            return 0.0
+        td = w["touchdown_vs"]
+        if s["wow"] > 0 and self._prev_wow == 0 and self._airborne_once:
+            td = self._prev_vs if td is None else min(td, self._prev_vs)
+        soft = 1.0 if td is None else float(np.clip((cfg.soft_zero_fps + td) / (cfg.soft_zero_fps - cfg.soft_full_fps),
+                                                    0.0, 1.0))
+        hi = cfg.coll_down_act_hi
+        return cfg.w_coll_down_act * soft * float(np.clip((hi - float(a[0])) / (hi + 1.0), 0.0, 1.0))
+
     def _reward(self, s: dict, e: dict, a: np.ndarray):
         if not self._in_cruise():
             r, parts = super()._reward(s, e, a)
@@ -770,7 +792,9 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             parts["side"] = -side
             cair = self._coll_down_air(s)
             parts["coll_down_air"] = cair
-            return float(r + cair), parts
+            cact = self._coll_down_act(s, e, a)
+            parts["coll_down_act"] = cact
+            return float(r + cair + cact), parts
         cfg, lv = self.cfg, self.ep_level
         w = self.windows[-1]
         K = self._kernel2

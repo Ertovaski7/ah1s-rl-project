@@ -199,6 +199,42 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
     # =================================================================
 
     def reset(self, seed=None, options=None):
+        """Başlangıç koşulu kurulamazsa (nadir: fl_v3 3.1 M adımda bir yerde başlangıçta kızak 3 temas noktasında kaldı,
+        aynı koşulla 3 deneme de; eğitim durdu) seviyeden örneklenen episode (eğitim; eğitim içi değerlendirme yalnızca
+        `level` verir) yeniden örneklenir; sabit senaryolu çağrıda (değerlendirme takımı, canlı) hata verilir.
+        Kurulabilen episode'lar birebir aynı."""
+        last = None
+        fixed = any(k != "level" for k in (options or {}))
+        for k in range(5):
+            try:
+                return self._reset_once(seed=seed if k == 0 else None, options=options)
+            except RuntimeError as exc:
+                if fixed:
+                    raise
+                self.n_reset_resampled = getattr(self, "n_reset_resampled", 0) + 1
+                last = exc
+        raise last
+
+    def _teleport_ground(self, psi_deg: float):
+        """Kalkış env'ininki; kızaklar tam oturmadıysa (kızak < 4) 3 s daha bekler, oturunca devam eder."""
+        try:
+            return super()._teleport_ground(psi_deg)
+        except RuntimeError as exc:
+            if "kızak" not in str(exc):
+                raise
+        c = np.r_[0.0, self.trim[1:]]
+        t, s = 0.0, self._state()
+        while t < 3.0:
+            self._write_controls(c)
+            if not self._run_plain():
+                raise RuntimeError("JSBSim yerde durdu")
+            t += CONTROL_DT
+            s = self._state()
+            if s["rpm"] >= 300.0 and s["wow"] == 4:
+                return None
+        raise RuntimeError(f"yerde başlangıç kurulamadı (rpm {s['rpm']:.0f}, kızak {s['wow']}, +3 s)")
+
+    def _reset_once(self, seed=None, options=None):
         gym.Env.reset(self, seed=seed)
         options = dict(options or {})
         if "level" in options:

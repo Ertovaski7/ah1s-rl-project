@@ -196,6 +196,7 @@ def find_flight_level(level, levels=None) -> int:
 #   F3     | %60 ileri uçuş birleşik / büyük Δ + kesen, %40 hover manevraları | E0 / E1
 #   F4     | geçişler: hover → hızlanma, ileri uçuş → duruş                  | E0 / E1
 #   F5     | zincir: yerden kalkış → hızlanma → Δ → duruş                    | E0 / E1
+#   F6a    | oturma okulu: yerde hafif yüklü / çok alçak hover → otur         | E0
 #   F6     | iniş (alçak hover / hafif yüklü başlangıçlar)                   | E0 / E1
 #   F7     | karma (tüm görevler)                                            | E1 / E2
 #   F8     | karma + zincir, rüzgâr + türbülans                              | E1 / E2 / E3
@@ -206,6 +207,10 @@ def find_flight_level(level, levels=None) -> int:
 # uçuşta ise "tut" %97'ye hemen çıktı. İki rejim baştan birlikte öğretiliyor.
 # Rehearsal: F2'den itibaren episode'ların %30–45'i eski seviyelerden (unutmaya karşı; kalkış ajanında tek seviyede
 # eğitmek K5'i %100 → %65'e düşürmüştü, depart denemesi hover'ı %97 → %64'e).
+# F6a (2026-09-29, fl_v3): F5'ten doğrudan F6'ya geçince 0.23 M adımda iniş %0 — ajan kızaklar ~2 ft'teyken hover
+# ediyor, yerde hafif yüklü başlasa bile collective'i kaldırıp havalanıyor (kalkış ajanının sıfırdan tekrarında görülen
+# yerel optimum, README 30.7); %2.5 kuyruk çarpması. Aynı sürede deterministik F3 10/12 → 3/12. Önerilen düzeltme:
+# yalnızca "touch" / çok alçak hover başlangıçlı ara seviye (oturma okulu).
 
 _HOVER_MIX = {"turn": 1 / 3, "move": 1 / 3, "bob": 1 / 3}
 _FUEL = (150.0, 600.0)          # tank başına → 8800–9700 lbs (OGE hover ≤ ~53 psi, güç tavanı 56); en az 300 lbs yakıt
@@ -247,11 +252,16 @@ DEFAULT_FLIGHT_LEVELS: list[FlightLevel] = [
         dh_ft=(50.0, 250.0), stop_decel=(2.0, 3.0), climb_fps=8.0, lag_s=5.0, fuel_lbs=_FUEL,
         env_probs={"E0": 0.6, "E1": 0.4}, promote_threshold=0.65, rehearse=("F2", "F3", "F4"), p_rehearse=0.4),
     FlightLevel(
-        name="F6", description="İniş: alçak hover / kısa kalkıştan pad'e iniş (%30 yerde hafif yüklü, %30 çok alçak "
+        name="F6a", description="Oturma okulu (iniş, ters curriculum): %60 yerde hafif yüklü başla (collective'i indir, "
+                                "otur), %40 çok alçak hover'dan (kızaklar 1.5–4 ft: yere değ, otur); sakin hava",
+        p_touch_start=0.6, p_low_hover_start=0.4, p_land=1.0, n_tasks=(0, 0), descent_fps=5.0, lag_s=4.0,
+        fuel_lbs=_FUEL, promote_threshold=0.8, rehearse=("F3", "F4", "F5"), p_rehearse=0.3),
+    FlightLevel(
+        name="F6", description="İniş: alçak hover / kısa kalkıştan pad'e iniş (%15 yerde hafif yüklü, %15 çok alçak "
                                "hover'dan); duruştan sonra iniş F7'den itibaren",
         p_hover_start=0.5, hover_start_alt_ft=(12.0, 60.0), takeoff_alt_ft=(12.0, 60.0), hold_first_s=5.0,
         n_tasks=(0, 1), move_ft=(15.0, 40.0), bob_ft=(10.0, 30.0), p_land=1.0, climb_fps=6.0, descent_fps=5.0,
-        lag_s=4.0, p_touch_start=0.3, p_low_hover_start=0.3, fuel_lbs=_FUEL, env_probs={"E0": 0.7, "E1": 0.3},
+        lag_s=4.0, p_touch_start=0.15, p_low_hover_start=0.15, fuel_lbs=_FUEL, env_probs={"E0": 0.7, "E1": 0.3},
         promote_threshold=0.7, rehearse=("F3", "F4", "F5"), p_rehearse=0.4),
     FlightLevel(
         name="F7", description="Karma: hover / kalkış / iniş / ileri uçuş / geçişler / zincir; hafif–orta rüzgâr, %30 "

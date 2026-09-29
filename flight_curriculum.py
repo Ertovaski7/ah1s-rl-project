@@ -248,7 +248,7 @@ DEFAULT_FLIGHT_LEVELS: list[FlightLevel] = [
         env_probs={"E0": 0.6, "E1": 0.4}, promote_threshold=0.65, rehearse=("F2", "F3", "F4"), p_rehearse=0.4),
     FlightLevel(
         name="F6", description="İniş: alçak hover / kısa kalkıştan pad'e iniş (%30 yerde hafif yüklü, %30 çok alçak "
-                               "hover'dan) + duruştan sonra iniş",
+                               "hover'dan); duruştan sonra iniş F7'den itibaren",
         p_hover_start=0.5, hover_start_alt_ft=(12.0, 60.0), takeoff_alt_ft=(12.0, 60.0), hold_first_s=5.0,
         n_tasks=(0, 1), move_ft=(15.0, 40.0), bob_ft=(10.0, 30.0), p_land=1.0, climb_fps=6.0, descent_fps=5.0,
         lag_s=4.0, p_touch_start=0.3, p_low_hover_start=0.3, fuel_lbs=_FUEL, env_probs={"E0": 0.7, "E1": 0.3},

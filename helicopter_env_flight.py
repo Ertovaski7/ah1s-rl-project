@@ -110,6 +110,14 @@ class FlightEnvConfig(TakeoffEnvConfig):
     pen_side: float = 0.3                   # · (v_air / 10)², hava hızı 30 kt üstünde (koordineli uçuş)
     cruise_att_roll_deg: float = 35.0       # açı cezası eşikleri (hover'da 20° / 15°)
     cruise_att_pitch_deg: float = 20.0
+    # --- inişin son metreleri --------------------------------------------------------------------------------------
+    # Kalkış env'inin collective indirme ödülü (coll_down: action uzayında doğrusal, IGE trimi → düz hatve) yalnızca
+    # yerdeyken; iniş penceresinde yere yakın havadayken de (kızak 3 ft → 0, 1 ft → tam; alçalma ≤ 1 ft/s tam, ≥ 3 ft/s
+    # yok). Neden (fl_v5, F6a, 0.43 M adım): ajan kızaklar ~1.5–2 ft'teyken hover ediyor, yerde başlasa da havalanıyor;
+    # collective'i IGE triminin altına indirmek expo'nun düz bölgesi yüzünden (a ≈ −0.3…−0.5 gerekir) hiçbir ara adımda
+    # ödül getirmiyordu. 0 → kapalı.
+    w_coll_down_air: float = 1.0
+    coll_down_air_hs_ft: tuple = (1.0, 3.0)
     # --- güvenlik ----------------------------------------------------------------------------------------------
     max_roll_cruise_deg: float = 60.0       # ileri uçuşta (hava hızı > 30 kt)
     max_airspeed_kt: float = 130.0
@@ -735,6 +743,23 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         x = float(np.clip((abs(air["u_air"]) - 15.0 * KT) / (15.0 * KT), 0.0, 1.0))
         return x * self.cfg.pen_side * (air["v_air"] / 10.0) ** 2
 
+    def _coll_down_air(self, s: dict) -> float:
+        """İniş penceresinde yere yakın havadayken collective'i IGE triminin altına indirme ödülü (cfg.w_coll_down_air)."""
+        cfg = self.cfg
+        w = self.windows[-1] if self.windows else None
+        if cfg.w_coll_down_air <= 0.0 or w is None or w["closed"] or w["kind"] != "land" or s["wow"] > 0:
+            return 0.0
+        lo, hi = cfg.coll_down_air_hs_ft
+        near = float(np.clip((hi - s["hs"]) / (hi - lo), 0.0, 1.0))
+        slow = float(np.clip((3.0 + s["vs"]) / 2.0, 0.0, 1.0))
+        if near <= 0.0 or slow <= 0.0:
+            return 0.0
+        c_ige = self._ige_coll(s["weight"])
+        a_ige, a_set = expo_inv(np.clip((np.array([c_ige, cfg.coll_flat]) - self.trim[0]) / self.rng_ctrl[0], -1.0, 1.0),
+                                cfg.expo)
+        down = float(np.clip((a_ige - self.filt[0]) / max(1e-3, a_ige - a_set), 0.0, 1.0))
+        return cfg.w_coll_down_air * near * slow * down
+
     def _reward(self, s: dict, e: dict, a: np.ndarray):
         if not self._in_cruise():
             r, parts = super()._reward(s, e, a)
@@ -743,7 +768,9 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
                 side = self._side_penalty()
                 r -= side
             parts["side"] = -side
-            return float(r), parts
+            cair = self._coll_down_air(s)
+            parts["coll_down_air"] = cair
+            return float(r + cair), parts
         cfg, lv = self.cfg, self.ep_level
         w = self.windows[-1]
         K = self._kernel2

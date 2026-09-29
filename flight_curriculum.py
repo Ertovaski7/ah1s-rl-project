@@ -255,7 +255,7 @@ DEFAULT_FLIGHT_LEVELS: list[FlightLevel] = [
         name="F6a", description="Oturma okulu (iniş, ters curriculum): %60 yerde hafif yüklü başla (collective'i indir, "
                                 "otur), %40 çok alçak hover'dan (kızaklar 1.5–4 ft: yere değ, otur); sakin hava",
         p_touch_start=0.6, touch_coll=(0.05, 0.52), p_low_hover_start=0.4, p_land=1.0, n_tasks=(0, 0),
-        descent_fps=5.0, lag_s=4.0, fuel_lbs=_FUEL, promote_threshold=0.8, rehearse=("F3", "F4", "F5"), p_rehearse=0.3),
+        descent_fps=5.0, lag_s=4.0, fuel_lbs=_FUEL, promote_threshold=0.8, rehearse=("F3", "F4", "F5"), p_rehearse=0.2),
     FlightLevel(
         name="F6", description="İniş: alçak hover / kısa kalkıştan pad'e iniş (%15 yerde hafif yüklü, %15 çok alçak "
                                "hover'dan); duruştan sonra iniş F7'den itibaren",

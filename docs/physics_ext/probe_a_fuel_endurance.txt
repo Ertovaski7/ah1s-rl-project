@@ -1,0 +1,26 @@
+Probe (a) — tam depoyla yakıtın bitme süresi (300 ft AGL, 2 × 890 lbs, eşit çekim, stok uçak)
+
+koşul  yakıt modeli | bitiş saat | 56 psi üstü dk | 50 psi üstü dk | tepe psi | olay
+hover  chart       |       2.38 |           15.8 |           78.0 |     64.4 | fuel_exhausted
+hover  sfc_gauge   |       2.69 |           17.1 |           86.0 |     64.4 | fuel_exhausted
+hover  sfc_rotor   |       3.42 |           22.1 |          110.3 |     64.4 | fuel_exhausted
+60kt   chart       |       3.48 |            0.0 |            0.0 |     32.1 | fuel_exhausted
+60kt   sfc_gauge   |       5.28 |            0.0 |            0.0 |     32.1 | fuel_exhausted
+60kt   sfc_rotor   |       6.16 |            0.0 |            0.0 |     32.1 | fuel_exhausted
+
+El kitabı ile hesaplanan (aynı yakıt akışı doğruları; tork gereksinimi el kitabının şekillerinden):
+  hover OGE  10,280 → 8,500 lbs (1780 lbs, modelle aynı): 2.40 h
+  hover OGE  10,000 → 8,300 lbs (1700 lbs JP-4, gerçek azami GW): 2.34 h
+  60 KTAS    10,280 → 8,500 lbs: 3.44 h
+  60 KTAS    10,000 → 8,300 lbs: 3.33 h
+  Kullanıcının verdiği gerçek dayanıklılık: ~2–2.5 saat (rezervsiz; seyir / hover karışık).
+
+tork gereksinimi, model ↔ el kitabı (psi):
+  hover W  10199: model  57.0  el kitabı  55.9
+  hover W   9497: model  51.7  el kitabı  51.1
+  hover W   9005: model  48.0  el kitabı  47.7
+  hover W   8605: model  45.2  el kitabı  44.9
+  60kt  W  10198: model  29.1  el kitabı  29.3
+  60kt  W   9503: model  26.3  el kitabı  26.9
+  60kt  W   8996: model  24.4  el kitabı  25.2
+  60kt  W   8604: model  23.0  el kitabı  24.0

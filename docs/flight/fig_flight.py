@@ -134,7 +134,9 @@ def plot_chain(rows, res, info, title, out: Path):
     ax.legend(fontsize=8, frameon=False, loc="best")
     ph = info.get("physics_summary", {}).get("params", {})
     wind = f"rüzgâr {ph.get('wind_kt', 0):.0f} kt ({ph.get('wind_from_deg', 0):.0f}°'den)" if ph.get("wind_kt") else "rüzgâr yok"
-    fig.suptitle(f"{title} — {wind}, türbülans {ph.get('turb_level', 'none')} · bitiş: {info.get('termination')} · "
+    turb = {"none": "yok", "light": "hafif", "moderate": "orta", "severe": "şiddetli"}.get(ph.get("turb_level", "none"),
+                                                                                          ph.get("turb_level"))
+    fig.suptitle(f"{title} — {wind}, türbülans {turb} · bitiş: {info.get('termination')} · "
                  f"görev {sum(c['success'] for c in res)}/{len(res)}", fontsize=11, color=INK, x=0.01, ha="left")
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=130)

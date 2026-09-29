@@ -6,7 +6,8 @@ iniş. Dört kumanda doğrudan (collective, boylamsal / yanal cyclic, pedal); AF
 uçağı (kalibre yer etkisi), güç tavanı %100 tork (56 psi), tork gözlemi ve cezası, yakıt tüketimi (el kitabı grafiği;
 bitince motor ayrılır). Rüzgâr / gust / türbülans seviyenin çevre aşamasından.
 
-> Durum: **eğitim sürüyor** (bu dosya koşular ilerledikçe güncellenir). Sonuç tablosu ve şekiller bölüm 6'da.
+> Durum (2026-09-29): **eğitim bitti** — sonuç modeli `models_flight/flight_final.zip` (fl_v9 4.5 M). Sonuç tablosu ve
+> şekiller bölüm 6'da.
 
 ## 1. Env
 
@@ -77,10 +78,12 @@ istenen = env başarısı; yeterli = bantlar 2×, son sınır 1.5×, kuplaj 2×)
 
 ## 5. Eğitim koşuları
 
-Ortam: Claude'un cloud konteyneri, 2 çekirdek CPU, SB3 PPO, 2 paralel env (~500 adım/s). Ortak ayarlar: n_steps 4096 ×
-2 env, batch 512, 10 epoch, lr 3e-4, γ 0.995, λ 0.95, σ0 = e^−1.2, ayrı pi / vf ağları (256×256, tanh), `--promote-on-eval`,
-500 bin adımda bir deterministik değerlendirme (F2 / F3 / F5 + mevcut seviye, 12'şer episode; en iyisi `best.zip`:
-F2 / F3 / F5 ortalaması).
+Ortam: Claude'un cloud konteyneri, 2 çekirdek CPU, SB3 PPO, 2 paralel env (~640 adım/s, ~2.3 M adım/saat). Ortak
+ayarlar: n_steps 4096 × 2 env, batch 512, 10 epoch, lr 3e-4 (F6a'dan itibaren 1e-4 + KL 0.02), γ 0.995, λ 0.95,
+σ0 = e^−1.2, ayrı pi / vf ağları (256×256, tanh), `--promote-on-eval`, 500 bin adımda bir deterministik değerlendirme
+(12'şer episode, seed 90000+; en iyisi `best.zip`). Her koşunun günlüğü, `progress.csv`, `eval.csv` ve
+`curriculum_state.json`'ı: `docs/flight/runs/<koşu>/`. **Sonuç modelinin soyu:** fl_v3 (0 → 2.77 M, F5 geçilene kadar)
+→ fl_v6 (0.5 M) → fl_v8 (4.0 M) → fl_v9 (4.5 M) = toplam ~11.8 M adım, ~5 saat CPU.
 
 | koşu | başlangıç | değişiklik | sonuç |
 |---|---|---|---|
@@ -93,22 +96,120 @@ F2 / F3 / F5 ortalaması).
 | fl_v5 | aynı | **episode sonu başarıdan bağımsız** (`end_at_deadline`): eskiden son görev başarılı olunca episode 1 s sonra bitiyordu — adım başına ödül pozitif olduğundan oturmak 43, havalanıp 2 ft'te hover etmek 60 getiri; şimdi 89 ↔ 61 | 0.55 M adımda %0 |
 | fl_v6 | aynı; F6a'dan itibaren lr 1e-4 + KL 0.02 | yere yakın havadayken collective indirme ödülü (`w_coll_down_air`); F6a tekrar %20 | 0.56 M adımda %0; F3 / F5 korunuyor (det. %75 / %75) |
 | fl_t7 | aynı, tekrar yok (tanı) | — | 0.2 M adımda (1000+ iniş episode'u) %0, F5 %58 → %17: sorun örnek azlığı değil |
-| **fl_v8** | fl_v6'nın 0.5 M modeli | **yerde komut edilen collective'e (ham action) ödül** (`w_coll_down_act`). Neden: collective hız sınırlı (0.6/s); yerde başlangıçta hedef kumanda mevcut kumandanın çok üstündeyken action'daki küçük değişiklik kumandayı hiç değiştirmiyor → kumandaya bağlı iniş ödülleri yerel gradyan vermiyordu | 0.4 M adımda ajan yerde kalmayı öğrendi; **F6a 0.87 M, F6 1.5 M (det. %83), F7 3.5 M adımda** geçildi (det. F7 %67); F8'de sürüyor |
+| **fl_v8** | fl_v6'nın 0.5 M modeli | **yerde komut edilen collective'e (ham action) ödül** (`w_coll_down_act`). Neden: collective hız sınırlı (0.6/s); yerde başlangıçta hedef kumanda mevcut kumandanın çok üstündeyken action'daki küçük değişiklik kumandayı hiç değiştirmiyor → kumandaya bağlı iniş ödülleri yerel gradyan vermiyordu | 0.4 M adımda ajan yerde kalmayı öğrendi; **F6a 0.87 M, F6 1.5 M (det. %83), F7 3.5 M, F8 4.0 M adımda** geçildi (det. F7 %67, F8 %67; son seviye geçilince eğitim bitti, 103 dk). Takımda: güvenli 21/21, tüm görevler 12/21, görev 94/104; zayıf: yerinde dönüş (ADS-33 yetersiz, 180°'de 17–42 ft kayma), orta türbülansta iniş, 9700 lbs'de geçişte 7–9 s 57 psi |
+| **fl_v9** (cila) | fl_v8'in F8 modeli, F9'da (`--no-promote`), 5 M adım (120 dk) | F9: F8 karışımı + havada başlangıç %40, 1–3 hover manevrası, sakin hover manevrası tekrarı (F2); 56 psi üstüne doğrusal ek ceza (`pen_torque_over_lin`) | eğitim başarısı F9 %45 → %70–85; yerinde dönüş %25 → %94, kayma %20 → %94, iniş %55 → %80. Takımda en iyi ara model **4.5 M** (tüm görevler 17/21, görev 102/105, iniş 13/13); 5 M'de iniş 8/13'e düştü (dalgalanma) → **sonuç modeli = fl_v9 4.5 M** |
 
 ## 6. Sonuçlar
 
-(eğitim bitince)
+**Sonuç modeli: `models_flight/flight_final.zip`** = fl_v9'un 4.5 M adımdaki ara modeli (soy toplamı ~11.8 M adım, ~5 saat
+CPU; sha256 `models_sha256.txt`'de). Obs 42, dört kumanda, AFCS yalnızca SAS, repo uçağı + 56 psi güç tavanı + tork
+cezası + yakıt tüketimi. **Seçim:** fl_v9'un 3 / 4 / 4.5 / 5 M ara modelleri ve fl_v8'in F8 modeli değerlendirme takımında
+karşılaştırıldı; en iyisi 4.5 M (takım bu yüzden seçimde de kullanıldı → sayıları biraz iyimser). Bağımsız kontrol:
+seviye istatistikleri (başka seed'ler) ve ADS-33 karnesi. 4 M ara modeli istatistiksel olarak eşdeğer (takımda tüm görevler
+16/21 ↔ 17/21, seviyelerde ortalama %90 ↔ %86).
+
+### 6.1. Değerlendirme takımı — `evaluate_flight.py` (deterministik; `eval_final.json`, `eval_fl_v8_F8.json`, `eval_pid.json`)
+
+Zincirler: kısa (yerden 50 ft → 60 kt'a hızlanma +100 ft → duruş → iniş) ve uzun (30 ft → 80 kt +200 ft → +20 kt → +90° →
+−100 ft → −30 kt / −60° / +50 ft → +180° → duruş → iniş) × sakin / 15 kt rüzgâr (45° sağdan) / 25 kt rüzgâr + orta
+türbülans + gust × 8800 / 9700 lbs; 9 öğe senaryosu. "İstenen" = env'in başarı bandı + süre hedefi + kuplaj; "yeterli" =
+bantlar 2×, son sınır 1.5× (ADS-33'ün desired / adequate ayrımı gibi; Cooper-Harper değil).
+
+| ölçüt | **RL sonuç (fl_v9 4.5 M)** | RL fl_v8 F8 (4.0 M) | PID pilot (RL değil) |
+|---|---|---|---|
+| güvenli (21 senaryo; düşme / sınır aşımı yok) | **21/21** | 21/21 | 21/21 |
+| tüm görevleri başarılı senaryo | **17/21** | 12/21 | 5/21 |
+| görev başarısı (istenen) | **102/105** | 94/104 | 65/104 |
+| görev: yeterli ya da iyi | **105/105** | 100/104 | 94/104 |
+| zincir, sakin: tüm / görev | 4/4 · 26/26 | 3/4 · 25/26 | 0/4 · 20/26 |
+| zincir, 15 kt rüzgâr: tüm / görev | 4/4 · 26/26 | 3/4 · 25/26 | 0/4 · 15/26 |
+| zincir, 25 kt + orta türbülans + gust: tüm / görev | 2/4 · 23/26 | 0/4 · 19/26 | 0/4 · 8/26 |
+| öğe senaryoları: tüm / görev | 7/9 · 27/27 | 6/9 · 25/26 | 5/9 · 22/26 |
+| 56 psi (%100) aşılan senaryo | 9/21 | 11/21 | 14/21 |
+| 56 psi üstü toplam süre | 43 s / 3648 s (%1.2) | 54 s / 3736 s | 37 s / 4318 s |
+| 56 psi üstü en uzun kesintisiz | 8.5 s | 8.9 s | 2.8 s |
+| en yüksek tork | 64.8 psi (türbülans, anlık) | 66.8 psi | 61.9 psi |
+| 50 psi üstü toplam süre | 330 s | 334 s | 347 s |
+| en düşük rotor devri | 311 rpm | 312 | 317 |
+| yakıt: toplam, ortalama akış | 565 lbs, 568 lb/h | 574 lbs, 562 lb/h | 695 lbs, 589 lb/h |
+
+Görev türü başına (istenen / yeterli+ / n), sonuç modeli: hızlanma 14/14/14, duruş 13/13/13, **iniş 13/13/13**, kalkış
+12/12/12, hover tut 13/13/13, ileri uçuşta hız 6/8/8, heading 14/14/14, irtifa 7/8/8, birleşik 6/6/6. **56 psi
+aşımları:** türbülanssız senaryolarda en fazla 56.9–58.4 psi ve çoğunlukla 9700 lbs'de (OGE hover ~53 psi, tavana 3 psi),
+hover → ileri uçuş geçişinde (hızlanma penceresi, 0 → ~30 kt'ta tırmanırken; kısa zincir 15 kt rüzgârda 8.5 s
+kesintisiz) ve kalkış anında ~1 s; 60 psi üstü tepeler yalnızca orta türbülansta, anlık (en fazla 64.8 psi).
+
+### 6.2. Seviye istatistikleri (20 episode / seviye, deterministik, seed 70000+; `eval_final_levels.json`)
+
+| seviye | episode başarısı | çevre | notlar |
+|---|---|---|---|
+| F3 (ileri uçuş 2–4 birleşik Δ + hover manevraları) | %70 | E0 9 · E1 11 | ileri uçuşta heading %70 (10 komut), irtifa %83 (6); hover görevleri 15/16 (kayma 3/4) |
+| F5 (yerden kalkış → hızlanma → Δ → duruş) | **%100** | E0 10 · E1 10 | 97/97 görev |
+| F6 (iniş) | %95 | E0 12 · E1 8 | iniş 20/20 |
+| F7 (karma, 0–15 kt, hafif türbülans) | %85 | E1 9 · E2 11 | |
+| F8 (karma + zincir, 0–25 kt, hafif / orta türbülans, gust) | %80 | E1 7 · E2 6 · E3 7 | iniş 4/5, yerinde dönüş 4/5 |
+
+Düşme / güvenlik sınırı aşımı: 100 episode'un hiçbirinde (hepsi `time_limit`).
+
+### 6.3. ADS-33 karnesi — `evaluate_ads33.py --heavy` (sakin hava; `docs/ads33/karne_flight_final.json`)
+
+| MTE | 8800 lbs | 9700 lbs | kalkış ajanı `takeoff_torque` (8500 lbs) |
+|---|---|---|---|
+| hover (sağ / sol yaklaşma) | yeterli / yeterli | yeterli / yeterli | yeterli / yeterli |
+| hovering turn ±180° | yetersiz / yetersiz | yetersiz / yetersiz | yeterli / yetersiz |
+| vertical (+25 / −25 ft) | **istenen** | yeterli | yeterli |
+| pirouette | yetersiz / yetersiz | yetersiz / yetersiz | yetersiz / yetersiz |
+| landing | **istenen** | yeterli | yetersiz |
+| toplam | istenen 2, yeterli 6, yetersiz 8 / 16 | | istenen 0, yeterli 4, yetersiz 4 / 8 |
+
+Hovering turn 180°'yi 5–10 s'de tamamlıyor (ADS-33 istenen ≤ 10 s) ama dönüş sırasında konum 8–22 ft kayıyor (ADS-33
+yeterli ±6 ft; eğitimdeki dönüş görevinin kuplaj sınırı 20 ft — daha gevşek). fl_v8'de 17–42 ft idi (cila öncesi).
+
+### 6.4. Şekiller
+
+- `fig_flight_chain.png` — uzun zincir, 15 kt rüzgâr, 9700 lbs: irtifa, hava / yer hızı ve trim çizelgesi, heading,
+  tork (50 / 56 psi çizgileri), yakıt, yer izi; görev pencereleri.
+- `fig_flight_training.png` — soy boyunca seviye, eğitim başarısı ve deterministik değerlendirmeler (fl_v3 → fl_v6 → fl_v8
+  → fl_v9).
+- `fig_flight_chain_pid.png` — aynı zincir, PID pilot (karşılaştırma).
+
+### 6.5. Bilinen sınırlar / açık konular
+
+- **Yerinde dönüş ve pirouette hassasiyeti** ADS-33'ün altında (konum kayması); eğitim toleransı sıkılaştırılabilir.
+- **Tork:** 9700 lbs'de (tavana 3 psi) rüzgârlı geçişlerde 56 psi 2–3 psi aşılıyor (en uzun 8.5 s). Doğrusal ek ceza aşımı
+  fl_v8'e göre azalttı, sıfırlamadı. AH-1S'in 56 psi üstü geçici sınırı (süre) el kitabından doğrulanmadı — **varsayım
+  yok, yalnızca ölçüm raporlandı.**
+- **Orta türbülans + 25 kt:** güvenli, ama uzun zincirde ileri uçuşta hız / irtifa bantları (2× genişletilmiş) her zaman
+  tutmuyor (2/4 zincir tüm görevler).
+- **Soy tek seed ve birden çok koşu:** ödül / curriculum değişiklikleri koşular arasında yapıldı (iniş ödülleri F6a'da,
+  doğrusal tork cezası F9'da). Son kodla sıfırdan tek koşu doğrulanmadı.
+- **İleri uçuşta en yüksek hız 100 kt'a kadar eğitildi** (şartname 0–100 kt); 130 kt güvenlik sınırı.
+- Rüzgârın kendisi gözlemde yok (hava / yer hızı farkından dolaylı); sensör gürültüsü yok.
 
 ## 7. Çalıştırma
 
 ```bash
 python helicopter_env_flight.py                                    # duman testi (F1/F2/F4/F5/F8, sıfır action)
-python docs/flight/check_flight_scripted.py --scenarios all --levels F3,F5,F6 --seeds 3 --zero
-python train_command_curriculum.py --task flight --out runs/fl --total-steps 40000000 --n-envs 2 --n-steps 4096 \
-    --batch-size 512 --net 256,256 --eval-freq 500000 --eval-episodes 12 --promote-on-eval --snapshot-freq 1000000 \
-    --fine-from F7 --seed 4
-python evaluate_flight.py --model runs/fl/models/best.zip --json docs/flight/eval.json [--levels F2,F5,F8]
-python evaluate_ads33.py --model runs/fl/models/best.zip           # ADS-33 MTE karnesi (sakin hava)
-python docs/flight/fig_flight.py --model runs/fl/models/best.zip --runs runs/fl
-python command_viz.py --model models_flight/flight_final.zip --start ground --wind-kt 15 --turb light
+python docs/flight/check_flight_scripted.py --scenarios all --levels F3,F5,F6a,F6 --seeds 3 --zero   # PID pilot + ödül
+# eğitim, son kodla (F1 → F8, sonra F9 cila). Sonuç modelinin soyu birden çok koşudan geldi (bölüm 5: fl_v3 F5'e kadar →
+# fl_v6 → fl_v8 → fl_v9) ve aradaki kod değişiklikleri F6a'dan önceki seviyeleri de etkiler (end_at_deadline, doğrusal
+# tork cezası) — bu iki komutla sıfırdan tek seferde yeniden üretme DOĞRULANMADI.
+python train_command_curriculum.py --task flight --out runs/fl --stop-after F8 --total-steps 40000000 --n-envs 2 \
+    --n-steps 4096 --batch-size 512 --net 256,256 --eval-freq 500000 --eval-episodes 12 --eval-levels F3,F5,F6 \
+    --promote-on-eval --snapshot-freq 1000000 --fine-from F6a
+python train_command_curriculum.py --task flight --out runs/fl_cila --init-model runs/fl/models/level_08_F8.zip \
+    --level F9 --no-promote --total-steps 5000000 --n-envs 2 --n-steps 4096 --batch-size 512 --net 256,256 \
+    --eval-freq 500000 --eval-episodes 12 --eval-levels F3,F6,F8 --snapshot-freq 500000 --fine-from F6a
+# değerlendirme (ara modeller arasından seçim: takım + seviye istatistikleri + ADS-33)
+python evaluate_flight.py --model models_flight/flight_final.zip --json docs/flight/eval_final.json
+python evaluate_flight.py --model models_flight/flight_final.zip --levels F3,F5,F6,F7,F8 --episodes 20 --no-scenarios \
+    --json docs/flight/eval_final_levels.json
+python evaluate_flight.py --scripted --json docs/flight/eval_pid.json               # PID pilot tabanı (RL değil)
+python evaluate_ads33.py --model models_flight/flight_final.zip --heavy --json docs/ads33/karne_flight_final.json
+# şekiller ve demolar
+python docs/flight/fig_flight.py --model models_flight/flight_final.zip \
+    --runs docs/flight/runs/fl_v3:2765704 docs/flight/runs/fl_v6:500000 docs/flight/runs/fl_v8 docs/flight/runs/fl_v9:4500000
+python docs/flight/fig_flight.py --scripted                                        # aynı zincir, PID pilot
+python command_viz.py record                                                       # demo uçuşları (fl_* dahil)
+python command_viz.py --model models_flight/flight_final.zip --start ground --wind-kt 15 --turb light   # canlı 3D
 ```

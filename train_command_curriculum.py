@@ -236,7 +236,8 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
             return True
 
         def _axis_summary(self) -> str:
-            short = {"interrupt": "kesen", "interrupted": "kesilen"}
+            short = {"interrupt": "kesen", "interrupted": "kesilen", "cruise_hold": "ctut", "cruise_u": "chız",
+                     "cruise_psi": "cdön", "cruise_h": "cirt", "cruise_mix": "ckar", "accel": "hızl", "stop": "dur"}
             return " ".join(f"{short.get(ax, ax[:3])}={np.mean(dq):.0%}({len(dq)})" for ax, dq in sorted(self.axis_ok.items())
                             if ax != "none")
 

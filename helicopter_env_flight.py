@@ -26,10 +26,11 @@ Farklar (2026-09-29, Aşama 2):
              Hover'dan verilen hız komutu = hızlanma (ileri uçuşa geçiş).
     stop   — ileri uçuştan duruş: referans noktası yer izi boyunca mevcut yer hızından sabit yavaşlamayla durur
              (depart'ın hareketli hedefi, tersine); sonra o noktada hover bandı.
-* Gözlem 42 = kalkış env'inin 29'u (ileri uçuşta konum hatası 0; takvim gecikmesinin ilk elemanı hız ekseni) + tork
-  (1) + hava hızı ileri / yana, yer hızı ileri / yana (4; ileri uçuşa uygun ölçek; farkları rüzgârı dolaylı gösterir)
-  + ileri uçuş bayrağı, hız hatası (ince / kaba), hedef hava hızı (4) + hareketli hedefin hızı (2) + ağırlık (1)
-  + trim çizelgesinin hızı (1). Rüzgârın kendisi verilmez.
+* Gözlem 42 = kalkış env'inin 29'u (ileri uçuşta konum hatası 0; takvim gecikmesinin ilk elemanı hız ekseni; hız
+  girdileri HIZ HATASI: hover'da yer hızı (referans 0, kalkış env'iyle aynı), duruşta hareketli hedefe göre, ileri
+  uçuşta referans hava hızına (u_ff) göre ve yana hava hızı) + tork (1) + hava hızı ileri / yana, yer hızı ileri / yana
+  (4; farkları rüzgârı dolaylı gösterir) + ileri uçuş bayrağı, hız hatası (ince / kaba), hedef hava hızı (4) +
+  hareketli hedefin hızı (2) + ağırlık (1) + referans hızı u_ff (1). Rüzgârın kendisi verilmez.
 * Ödül: hover görevlerinde kalkış env'inin ödülü (tork cezası dahil); ileri uçuşta hız / irtifa / heading çekirdekleri
   + yönlendirme (dikey hız, dönüş hızı, ivme) + ilerleme − takvim gecikmesi − süre aşımı − kuplaj − yana kayma − açı /
   oran − kumanda hızı − tork. Başarı: hız ±4 ft/s (süzülmüş hava hızı, τ 1 s), irtifa ±12 ft, heading ±3°, dikey hız
@@ -175,13 +176,13 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
     def _update_trim(self, s: dict):
         """Trim çizelgesi. step() başında, action hattından ÖNCE çağrılır."""
         cfg = self.cfg
+        # görevin referans hızı (u_ff) her modda izlenir: gözlemdeki hız hatası buna göre
+        tgt, rate = self._ff_target()
+        self.u_ff += float(np.clip(tgt - self.u_ff, -rate * CONTROL_DT, rate * CONTROL_DT))
         if cfg.trim_schedule == "airspeed":
             u_air = float(self.fdm["velocities/u-aero-fps"])
             a_t = 1.0 - math.exp(-CONTROL_DT / cfg.trim_u_tau_s)
             self.u_trim += a_t * (u_air - self.u_trim)
-        elif cfg.trim_schedule == "command":
-            tgt, rate = self._ff_target()
-            self.u_ff += float(np.clip(tgt - self.u_ff, -rate * CONTROL_DT, rate * CONTROL_DT))
         self.trim = self._trim_for(self._sched_speed(), s["weight"], s["h"])
 
     def _ige_coll(self, weight: float) -> float:
@@ -559,11 +560,23 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         a = self._air()
         cr = self._in_cruise()
         vf, vr = self._target_vel_body(s)
+        # kalkış env'inin hız girdileri (13, 14: yer hızı ileri / yana / 20) HIZ HATASI olarak: hover'da referans 0 (aynı),
+        # duruşta hareketli hedefin hızı, ileri uçuşta referans hava hızı (u_ff; hedefe ivmeyle rampa) ve yana hava hızı 0.
+        # (fl_v1, 2026-09-29: yer hızıyla bırakınca hover'da eğitilmiş policy F3'te 90 kt'ı "fren yap" diye okuyup
+        # cyclic'i tam geri çekiyordu → episode'ların %80'i 5 s içinde 40° pitch ile bitti.)
+        if cr:
+            du, dv = a["u_air"] - self.u_ff, a["v_air"]
+        elif self.track is not None:
+            du, dv = s["ug"] - vf, s["vg"] - vr
+        else:
+            du, dv = s["ug"], s["vg"]
+        base[13] = np.float32(np.clip(du / 20.0, -5.0, 5.0))
+        base[14] = np.float32(np.clip(dv / 20.0, -5.0, 5.0))
         extra = np.array([
             a["u_air"] / 100.0, a["v_air"] / 30.0, a["u_gnd"] / 100.0, a["v_gnd"] / 30.0,
             1.0 if cr else 0.0, float(np.clip(e["u"] / 10.0, -3.0, 3.0)), e["u"] / 60.0,
             (self.cruise["u"] / 100.0) if self.cruise is not None else 0.0,
-            vf / 100.0, vr / 100.0, (s["weight"] - 9000.0) / 1000.0, self._sched_speed() / 100.0,
+            vf / 100.0, vr / 100.0, (s["weight"] - 9000.0) / 1000.0, self.u_ff / 100.0,
         ], dtype=np.float64)
         extra = np.clip(np.nan_to_num(extra, nan=0.0, posinf=5.0, neginf=-5.0), -5.0, 5.0)
         return np.concatenate([base, extra.astype(np.float32)])

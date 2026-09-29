@@ -200,6 +200,7 @@ def find_flight_level(level, levels=None) -> int:
 #   F6     | iniş (alçak hover / hafif yüklü başlangıçlar)                   | E0 / E1
 #   F7     | karma (tüm görevler)                                            | E1 / E2
 #   F8     | karma + zincir, rüzgâr + türbülans                              | E1 / E2 / E3
+#   F9     | cila: F8 + daha çok hover manevrası, sakin hover manevrası tekrarı | E1 / E2 / E3
 #
 # Hover ve ileri uçuş F1'den itibaren birlikte (2026-09-29, fl_v1 / fl_v2): hover'da eğitilmiş ağ ileri uçuşa
 # geçince ilk seviyede ileri uçuş %0'da kaldı ve hover başarısı (deterministik F2) %100 → %25'e düştü (ağın ileri uçuş
@@ -280,6 +281,14 @@ DEFAULT_FLIGHT_LEVELS: list[FlightLevel] = [
         p_land_after_stop=0.3, p_touch_start=0.05, p_low_hover_start=0.05, climb_fps=10.0, descent_fps=5.0, lag_s=4.0,
         fuel_lbs=_FUEL, env_probs={"E1": 0.3, "E2": 0.4, "E3": 0.3}, promote_threshold=0.6,
         rehearse=("F3", "F4", "F5", "F6", "F7"), p_rehearse=0.3),
+    FlightLevel(
+        name="F9", description="Cila (F8'in çevresi): F8 karışımı + daha çok hover manevrası (havada başlangıç %40, kalkış / hover'dan sonra 1–3 manevra); tekrar F2 (sakin hover manevraları) / F3 / F5 / F6 / F7 / F8",
+        p_hover_start=0.4, hover_start_alt_ft=(15.0, 400.0), takeoff_alt_ft=(10.0, 600.0), n_tasks=(1, 3),
+        p_target_change=0.2, p_land=0.3, p_cruise_start=0.3, n_cruise=(1, 4), p_cruise_interrupt=0.25,
+        du_kt=(10.0, 35.0), dpsi_deg=(20.0, 180.0), dh_ft=(50.0, 300.0), p_accel=0.4, p_stop=0.6, p_chain=0.5,
+        p_land_after_stop=0.3, p_touch_start=0.05, p_low_hover_start=0.05, climb_fps=10.0, descent_fps=5.0, lag_s=4.0,
+        fuel_lbs=_FUEL, env_probs={"E1": 0.3, "E2": 0.4, "E3": 0.3}, promote_threshold=0.6,
+        rehearse=("F2", "F3", "F5", "F6", "F7", "F8"), p_rehearse=0.35),
 ]
 
 

@@ -71,6 +71,10 @@ class FlightEnvConfig(TakeoffEnvConfig):
     torque_obs: bool = True
     pen_torque_cont: float = 0.3
     pen_torque_over: float = 2.0
+    # 56 psi üstünde doğrusal ek ceza: pen·min(1, (psi − 56)/3). Karesel ceza 56'nın hemen üstünde çok küçük (57 psi:
+    # 0.22 / adım); fl_v8'in F8 modeli 9700 lbs'de hover → hızlanma geçişinde 7–9 s 56.7–57 psi'de kaldı. 0 → kapalı
+    # (fl_v8 ve öncesi böyle eğitildi).
+    pen_torque_over_lin: float = 1.0
     pen_rpm_low: float = 1.0
     torque_aware_climb: bool = True
     physics: dict | None = field(default_factory=lambda: {"fuel": {"enable": True}})
@@ -749,6 +753,12 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         x = float(np.clip((abs(air["u_air"]) - 15.0 * KT) / (15.0 * KT), 0.0, 1.0))
         return x * self.cfg.pen_side * (air["v_air"] / 10.0) ** 2
 
+    def _torque_lin(self, s: dict) -> float:
+        cfg = self.cfg
+        if cfg.pen_torque_over_lin <= 0.0:
+            return 0.0
+        return cfg.pen_torque_over_lin * min(1.0, max(0.0, s["torque_psi"] - cfg.torque_max_psi) / 3.0)
+
     def _coll_down_air(self, s: dict) -> float:
         """İniş penceresinde yere yakın havadayken collective'i IGE triminin altına indirme ödülü (cfg.w_coll_down_air)."""
         cfg = self.cfg
@@ -794,7 +804,9 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             parts["coll_down_air"] = cair
             cact = self._coll_down_act(s, e, a)
             parts["coll_down_act"] = cact
-            return float(r + cair + cact), parts
+            tlin = self._torque_lin(s)
+            parts["torque_lin"] = -tlin
+            return float(r + cair + cact - tlin), parts
         cfg, lv = self.cfg, self.ep_level
         w = self.windows[-1]
         K = self._kernel2
@@ -845,9 +857,11 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             sink = cfg.pen_sink * (max(0.0, -s["vs"] - allow) / 3.0) ** 2
         torque = torque_penalty(s["torque_psi"], s["rpm"], cfg.pen_torque_cont, cfg.pen_torque_over, cfg.pen_rpm_low,
                                 cfg.torque_cont_psi, cfg.torque_max_psi, cfg.rpm_low_warn)
-        r = track + guide + progress - sched - late - att - rate - smooth - couple - side - sink - torque
+        tlin = self._torque_lin(s)
+        r = track + guide + progress - sched - late - att - rate - smooth - couple - side - sink - torque - tlin
         return float(r), dict(track=track, guide=guide, progress=progress, schedule=sched, late=late, attitude=att,
-                              rate=rate, smooth=smooth, coupling=couple, side=-side, sink=-sink, torque=-torque)
+                              rate=rate, smooth=smooth, coupling=couple, side=-side, sink=-sink, torque=-torque,
+                              torque_lin=-tlin)
 
     def _flight_window(self) -> bool:
         """İleri uçuş / duruş penceresi (güvenlik sınırları ileri uçuşunkiler)."""

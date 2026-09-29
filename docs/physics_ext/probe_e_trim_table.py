@@ -18,7 +18,8 @@ import math
 
 import numpy as np
 
-from probe_common import GROUND_MSL_FT, KT_TO_FPS, OUT, Holder, Rig, settle_and_measure, sfd_trim
+import probe_common  # noqa: E402  (outp: çıktı adı eki)
+from probe_common import GROUND_MSL_FT, KT_TO_FPS, OUT, Holder, Rig, env_config_from_args, settle_and_measure, sfd_trim
 
 U_KT = (-20.0, -10.0, 0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0,
         110.0, 120.0)
@@ -42,11 +43,9 @@ def trim_at(u_kt: float, v_kt: float, fuel_tank: float, h_agl: float, env_config
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--aircraft", default=None)
+    ap.add_argument("--power-cap", type=float, default=0.0, help="repo uçağında güç tavanı, psi (0 → yok)")
     args = ap.parse_args()
-    env_config = None
-    if args.aircraft:
-        from helicopter_env_takeoff import TakeoffEnvConfig
-        env_config = TakeoffEnvConfig(aircraft=args.aircraft)
+    env_config = env_config_from_args(args.aircraft, args.power_cap)
     rows = []
 
     def run(u, v, ft, h):
@@ -67,7 +66,7 @@ def main():
         for v in (-20.0, -10.0, 10.0, 20.0):
             run(u, v, 0.0, 300.0)
 
-    with open(OUT / "probe_e_trim_table.csv", "w", newline="") as fh:
+    with open(probe_common.outp("probe_e_trim_table.csv"), "w", newline="") as fh:
         wr = csv.DictWriter(fh, fieldnames=list(rows[0]))
         wr.writeheader()
         wr.writerows(rows)
@@ -76,7 +75,7 @@ def main():
     main_rows = [r for r in rows if r["h_agl"] == 300.0 and r["v_kt"] == 0.0]
     weights = sorted({round(r["weight"]) for r in main_rows})
     tab = {"source": "docs/physics_ext/probe_e_trim_table.py (JSBSim 1.3.1 ah1s, AFCS yalnızca SAS, "
-                     f"{'aircraft=' + args.aircraft if args.aircraft else 'stok uçak'}, 300 ft AGL, düz uçuş, "
+                     f"{'aircraft=' + args.aircraft + (f', power_cap_psi={args.power_cap:g}' if args.power_cap else '') if args.aircraft else 'stok uçak'}, 300 ft AGL, düz uçuş, "
                      "yana hava hızı 0, heading sabit; iki tank eşit)",
            "u_kt": list(U_KT), "weight_lbs": weights, "h_agl_ft": 300.0}
     fields = {"collective": "c0", "elevator": "c1", "aileron": "c2", "rudder": "c3", "theta_deg": "theta",
@@ -95,7 +94,7 @@ def main():
             grid.append(line)
         tab[name] = grid
     tab["converged_all"] = all(conv)
-    (OUT / "trim_table_airspeed.json").write_text(json.dumps(tab, indent=1))
+    (probe_common.outp("trim_table_airspeed.json")).write_text(json.dumps(tab, indent=1))
     report(rows, weights)
     plot(rows, weights)
 
@@ -143,7 +142,7 @@ def report(rows, weights):
             d = [r[f"c{i}"] - b[f"c{i}"] for i in range(4)]
             lines.append(f"  u {r['u_kt']:+4.0f} v {r['v_kt']:+4.0f}: coll {d[0]:+.3f} lon {d[1]:+.3f} lat {d[2]:+.3f} "
                          f"ped {d[3]:+.3f} φ {math.degrees(r['phi'] - b['phi']):+.1f}° conv={r['converged']}")
-    (OUT / "probe_e_trim_table.txt").write_text("\n".join(lines) + "\n")
+    (probe_common.outp("probe_e_trim_table.txt")).write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 
 
@@ -185,7 +184,7 @@ def plot(rows, weights):
         ax.grid(alpha=0.3)
     fig.suptitle("Probe (e): hava hızı × ağırlık trim tablosu (300 ft AGL, düz uçuş, yana hava hızı 0)")
     fig.tight_layout()
-    fig.savefig(OUT / "fig_e_trim_table.png", dpi=110)
+    fig.savefig(probe_common.outp("fig_e_trim_table.png"), dpi=110)
 
 
 if __name__ == "__main__":

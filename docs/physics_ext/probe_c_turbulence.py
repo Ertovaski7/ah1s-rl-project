@@ -22,7 +22,9 @@ import math
 
 import numpy as np
 
-from probe_common import CONTROL_DT, GROUND_MSL_FT, KT_TO_FPS, OUT, Holder, Rig, settle_and_measure, sfd_trim
+import probe_common  # noqa: E402  (outp: çıktı adı eki)
+from probe_common import (CONTROL_DT, GROUND_MSL_FT, KT_TO_FPS, OUT, Holder, Rig, env_config_from_args,
+                          settle_and_measure, sfd_trim)
 from helicopter_env_command import wrap_deg  # noqa: E402
 
 LEVELS = ("none", "light", "moderate", "severe")
@@ -54,8 +56,7 @@ def run_case(cond, backend, level, seed, env_config=None, t_open=10.0, t_closed=
     rig, hold = make(cond, backend, level, env_config)
     s0 = rig.state()
     frozen = hold.ctrl.copy()
-    rig.ext.reset(rig.fdm, np.random.default_rng(1000 + seed), 0.0)
-    rig.ext.start_disturbances(rig.fdm)
+    rig.start_physics(1000 + seed, 0.0)
     mx = dict(dphi=0.0, dth=0.0, dpsi=0.0, p=0.0, q=0.0, r=0.0, dxy=0.0, dh=0.0)
     gust = []
     for _ in range(int(round(t_open / CONTROL_DT))):
@@ -76,8 +77,7 @@ def run_case(cond, backend, level, seed, env_config=None, t_open=10.0, t_closed=
     # ---- kapalı döngü ----
     rig, hold = make(cond, backend, level, env_config)
     s0 = rig.state()
-    rig.ext.reset(rig.fdm, np.random.default_rng(2000 + seed), 0.0)
-    rig.ext.start_disturbances(rig.fdm)
+    rig.start_physics(2000 + seed, 0.0)
     e_xy, e_h, e_psi, e_u, ctrls, band = [], [], [], [], [], []
     for _ in range(int(round(t_closed / CONTROL_DT))):
         s = rig.state()
@@ -117,13 +117,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", type=int, default=6)
     ap.add_argument("--aircraft", default=None)
+    ap.add_argument("--power-cap", type=float, default=0.0, help="repo uçağında güç tavanı, psi (0 → yok)")
     ap.add_argument("--conds", default="H0,H15,F60")
     ap.add_argument("--backends", default=",".join(BACKENDS))
     args = ap.parse_args()
-    env_config = None
-    if args.aircraft:
-        from helicopter_env_takeoff import TakeoffEnvConfig
-        env_config = TakeoffEnvConfig(aircraft=args.aircraft)
+    env_config = env_config_from_args(args.aircraft, args.power_cap)
     rows = []
     for cond in args.conds.split(","):
         for backend in args.backends.split(","):
@@ -146,7 +144,7 @@ def main():
         d = dict(r)
         d["cl_dctrl_rms"] = ";".join(f"{x:.3f}" for x in r["cl_dctrl_rms"])
         flat.append(d)
-    with open(OUT / "probe_c_turbulence.csv", "w", newline="") as fh:
+    with open(probe_common.outp("probe_c_turbulence.csv"), "w", newline="") as fh:
         wr = csv.DictWriter(fh, fieldnames=list(flat[0]))
         wr.writeheader()
         wr.writerows(flat)
@@ -192,7 +190,7 @@ def write_report(rows):
                              f"{_f(a['cl_h_rms'], 4)} {_f(a['cl_h_max'])} | {_f(a['cl_psi_rms'], 4)} {_f(a['cl_psi_max'])} | "
                              f"{a['cl_band_frac'] * 100:5.1f} | " + " ".join(_f(x, 5, 3) for x in a["dctrl"]))
         lines.append("")
-    (OUT / "probe_c_turbulence.txt").write_text("\n".join(lines) + "\n")
+    (probe_common.outp("probe_c_turbulence.txt")).write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 
 
@@ -230,7 +228,7 @@ def plot(rows):
     axes[0][0].legend(fontsize=7)
     fig.suptitle("Probe (c): türbülans seviyeleri — H0 hover sakin, H15 hover 15 kt karşı rüzgâr, F60 60 kt düz uçuş")
     fig.tight_layout()
-    fig.savefig(OUT / "fig_c_turbulence.png", dpi=110)
+    fig.savefig(probe_common.outp("fig_c_turbulence.png"), dpi=110)
 
 
 if __name__ == "__main__":

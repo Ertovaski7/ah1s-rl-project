@@ -1,0 +1,11 @@
+Probe (d) — yakıt / CG → OGE hover trimi (300 ft AGL)
+
+elevator (uzunlamasına cyclic)   = -0.1507 +0.01091·(CGx − 172 in) -0.0049·(W − 8500)/1000 lbs   (artık en çok 0.0025)
+collective                       = +0.5927 -0.00005·(CGx − 172 in) +0.0774·(W − 8500)/1000 lbs   (artık en çok 0.0417)
+pedal                            = +0.4004 +0.00179·(CGx − 172 in) +0.0581·(W − 8500)/1000 lbs   (artık en çok 0.0358)
+aileron                          = +0.1913 -0.00023·(CGx − 172 in) +0.0075·(W − 8500)/1000 lbs   (artık en çok 0.0061)
+θ (rad)                          = -0.0067 +0.00206·(CGx − 172 in) -0.0009·(W − 8500)/1000 lbs   (artık en çok 0.0007)
+
+eşit çekim yolu (%100 → %0): elevator -0.1543 → -0.1512, CG x 172.69 → 172.00 in, collective 0.7721 → 0.6055, pedal 0.5410 → 0.4123, θ -0.42 → -0.39°
+fwd_first yolu: elevator -0.1543 … -0.1195 (aralık 0.0349), CG x 172.00 … 175.22 in
+aft_first yolu: elevator -0.1815 … -0.1512 (aralık 0.0303), CG x 169.54 … 172.69 in

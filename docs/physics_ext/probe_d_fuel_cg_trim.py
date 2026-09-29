@@ -15,7 +15,8 @@ import math
 
 import numpy as np
 
-from probe_common import GROUND_MSL_FT, OUT, Holder, Rig, settle_and_measure, sfd_trim  # (repo kökünü path'e ekler)
+import probe_common  # noqa: E402  (outp: çıktı adı eki)
+from probe_common import GROUND_MSL_FT, OUT, Holder, Rig, env_config_from_args, settle_and_measure, sfd_trim  # (repo kökünü path'e ekler)
 from physics_ext import draw_from_tanks  # noqa: E402
 
 FRACS = (1.0, 0.75, 0.5, 0.25, 0.0)
@@ -35,17 +36,15 @@ def hover_trim(fuel, env_config=None) -> dict:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--aircraft", default=None)
+    ap.add_argument("--power-cap", type=float, default=0.0, help="repo uçağında güç tavanı, psi (0 → yok)")
     ap.add_argument("--plot-only", action="store_true", help="CSV'den yalnızca şekil")
     args = ap.parse_args()
+    env_config = env_config_from_args(args.aircraft, args.power_cap)
     if args.plot_only:
-        with open(OUT / "probe_d_fuel_cg_trim.csv") as fh:
+        with open(probe_common.outp("probe_d_fuel_cg_trim.csv")) as fh:
             rows = [{k: (v if k in ("draw", "converged") else float(v)) for k, v in r.items()} for r in csv.DictReader(fh)]
         plot(rows)
         return
-    env_config = None
-    if args.aircraft:
-        from helicopter_env_takeoff import TakeoffEnvConfig
-        env_config = TakeoffEnvConfig(aircraft=args.aircraft)
     rows, cache = [], {}
     for mode in ("equal", "fwd_first", "aft_first"):
         for fr in FRACS:
@@ -59,7 +58,7 @@ def main():
                   f"CG x {r['cg_x']:6.2f} z {r['cg_z']:5.2f} | coll {r['c0']:.4f} lon {r['c1']:+.4f} "
                   f"lat {r['c2']:+.4f} ped {r['c3']:+.4f} θ {math.degrees(r['theta']):+.2f} "
                   f"φ {math.degrees(r['phi']):+.2f} psi {r['psi_gauge']:.1f} conv={r['converged']}", flush=True)
-    with open(OUT / "probe_d_fuel_cg_trim.csv", "w", newline="") as fh:
+    with open(probe_common.outp("probe_d_fuel_cg_trim.csv"), "w", newline="") as fh:
         wr = csv.DictWriter(fh, fieldnames=list(rows[0]))
         wr.writeheader()
         wr.writerows(rows)
@@ -83,7 +82,7 @@ def main():
         lo, hi = min(r["c1"] for r in rr), max(r["c1"] for r in rr)
         lines.append(f"{mode} yolu: elevator {lo:+.4f} … {hi:+.4f} (aralık {hi - lo:.4f}), CG x "
                      f"{min(r['cg_x'] for r in rr):.2f} … {max(r['cg_x'] for r in rr):.2f} in")
-    (OUT / "probe_d_fuel_cg_trim.txt").write_text("\n".join(lines) + "\n")
+    (probe_common.outp("probe_d_fuel_cg_trim.txt")).write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
     plot(rows)
 
@@ -98,7 +97,7 @@ def plot(rows):
               ("cg_x", "CG x, in", 1.0), ("c0", "collective", 1.0), ("c3", "pedal", 1.0), ("c2", "aileron", 1.0))
     ts = None
     try:
-        with open(OUT / "probe_a_timeseries.csv") as fh:
+        with open(probe_common.outp("probe_a_timeseries.csv")) as fh:
             ts = [r for r in csv.DictReader(fh) if r["cond"] == "hover" and r["fuel_model"] == "chart"]
     except FileNotFoundError:
         pass
@@ -120,7 +119,7 @@ def plot(rows):
     axes.flat[0].legend(fontsize=8)
     fig.suptitle("Probe (d): yakıt azaldıkça OGE hover trimi (300 ft AGL) — çekim sırasına göre")
     fig.tight_layout()
-    fig.savefig(OUT / "fig_d_fuel_cg_trim.png", dpi=110)
+    fig.savefig(probe_common.outp("fig_d_fuel_cg_trim.png"), dpi=110)
 
 
 if __name__ == "__main__":

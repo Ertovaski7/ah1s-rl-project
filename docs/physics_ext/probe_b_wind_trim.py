@@ -16,7 +16,8 @@ import math
 
 import numpy as np
 
-from probe_common import KT_TO_FPS, OUT, Holder, Rig, sfd_trim, settle_and_measure
+import probe_common  # noqa: E402  (outp: çıktı adı eki)
+from probe_common import KT_TO_FPS, OUT, Holder, Rig, env_config_from_args, sfd_trim, settle_and_measure
 
 DIRS = {"karşı": 0.0, "sağ": 90.0, "arka": 180.0, "sol": 270.0}
 FIELDS = ("c0", "c1", "c2", "c3", "theta", "phi", "psi_gauge", "p_rotor_hp", "u_air", "v_air", "u_gnd", "v_gnd", "rpm",
@@ -47,19 +48,17 @@ def trim_point(wind_kt: float, from_deg: float, mode: str, env_config=None) -> d
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--aircraft", default=None, help="repo → ground-effect-torque uçak kopyası (varsa)")
+    ap.add_argument("--power-cap", type=float, default=0.0, help="repo uçağında güç tavanı, psi (0 → yok)")
     ap.add_argument("--plot-only", action="store_true")
     args = ap.parse_args()
+    env_config = env_config_from_args(args.aircraft, args.power_cap)
     if args.plot_only:
         import csv
-        with open(OUT / "probe_b_wind_trim.csv") as fh:
+        with open(probe_common.outp("probe_b_wind_trim.csv")) as fh:
             rows = [{k: (v if k in ("dir", "mode", "converged") else float(v)) for k, v in r.items()}
                     for r in csv.DictReader(fh)]
         plot(rows)
         return
-    env_config = None
-    if args.aircraft:
-        from helicopter_env_takeoff import TakeoffEnvConfig
-        env_config = TakeoffEnvConfig(aircraft=args.aircraft)
     rows = []
     for name, d in DIRS.items():
         for w in (0.0, 10.0, 20.0, 30.0):
@@ -80,7 +79,7 @@ def main():
                       f"u_air {r['u_air']:+6.1f} v_air {r['v_air']:+6.1f} yer ({r['u_gnd']:+.2f},{r['v_gnd']:+.2f})",
                       flush=True)
     import csv
-    path = OUT / "probe_b_wind_trim.csv"
+    path = probe_common.outp("probe_b_wind_trim.csv")
     with open(path, "w", newline="") as fh:
         wr = csv.DictWriter(fh, fieldnames=list(rows[0]))
         wr.writeheader()
@@ -108,7 +107,7 @@ def main():
                          f"{a['psi_gauge'] - b['psi_gauge']:+.2f} {a['rpm'] - b['rpm']:+.2f} | "
                          f"{se[0]:+.3f} {se[1]:+.3f} {se[2]:+.3f} {se[3]:+.3f}")
     lines += ["", f"iki tutucunun da oturduğu çiftlerde en büyük |Δ| (coll, lon, lat, ped): {np.round(maxd, 4).tolist()}"]
-    (OUT / "probe_b_wind_trim.txt").write_text("\n".join(lines) + "\n")
+    (probe_common.outp("probe_b_wind_trim.txt")).write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
     plot(rows)
 
@@ -168,7 +167,7 @@ def plot(rows):
     fig.suptitle("Probe (b): rüzgârda yerinde hover (daire) = rüzgârsız aynı hava hızında uçuş (çizgi)? "
                  "8500 lbs, 300 ft AGL, heading 0  (x: tutucu oturmadı)")
     fig.tight_layout()
-    fig.savefig(OUT / "fig_b_wind_trim.png", dpi=110)
+    fig.savefig(probe_common.outp("fig_b_wind_trim.png"), dpi=110)
 
 
 if __name__ == "__main__":

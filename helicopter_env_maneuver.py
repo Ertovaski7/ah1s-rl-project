@@ -55,6 +55,7 @@ from command_curriculum import AXES
 from helicopter_env_command import (CONTROL_DT, JSBSIM_DT, PHYSICS_STEPS, AfcsMode, CommandEnvConfig,
                                     HelicopterEnvCommand, wrap_deg)
 from maneuver_curriculum import DEFAULT_MANEUVER_LEVELS, ManeuverLevel, dynamic_time_target, find_maneuver_level
+from physics_ext import PhysicsExt, psi_to_throttle, read_torque_psi, torque_penalty
 
 OBS_DIM_M = 24
 SFD_KEYS = ("collective", "pitch", "roll", "yaw")        # fcs/automatic/<k>-trim-cmd-norm
@@ -126,6 +127,19 @@ class ManeuverEnvConfig(CommandEnvConfig):
     speed_margin_fps: float = 30.0
     heading_margin_deg: float = 45.0
     speed_limits_fps: tuple = (-40.0, 210.0)
+    # --- uçak / tork / ortak fizik katmanı (2026-09-29; kalkış env'indeki alanlarla aynı anlam) -----------------------
+    # Varsayılanlar eski davranış (stok uçak, gözlem 24, ceza yok, fizik katmanı kapalı) → eski modeller birebir.
+    aircraft: str = "stock"                   # "repo": aircraft/ah1s kopyası (kalibre yer etkisi + güç tavanı)
+    ground_effect: str = "calibrated"         # yalnızca "repo": "calibrated" | "stock" | "off"
+    power_cap_psi: float = 0.0                # yalnızca "repo": motor gücü tavanı (0 → yok)
+    torque_obs: bool = False                  # obs'un sonuna (psi − 50) / 10 → OBS_DIM_M + 1
+    torque_cont_psi: float = 50.0
+    torque_max_psi: float = 56.0
+    pen_torque_cont: float = 0.0              # 50–56 psi: · ((psi − 50) / 6)²
+    pen_torque_over: float = 0.0              # 56 psi üstü: · min(((psi − 56) / 3)², 9)
+    rpm_low_warn: float = 314.0
+    pen_rpm_low: float = 0.0
+    physics: dict | None = None               # physics_ext (rüzgâr / gust / türbülans; yakıt bu env'de desteklenmiyor)
 
 
 # ---------------------------------------------------------------------------------------
@@ -175,7 +189,15 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
         levels = list(levels or DEFAULT_MANEUVER_LEVELS)
         super().__init__(level=0, levels=levels, config=config or ManeuverEnvConfig())
         self.level_index = find_maneuver_level(level, self.levels)
-        self.observation_space = spaces.Box(-5.0, 5.0, shape=(OBS_DIM_M,), dtype=np.float32)
+        if self.cfg.aircraft not in ("stock", "repo"):
+            raise ValueError(f"aircraft: 'stock' ya da 'repo' ({self.cfg.aircraft})")
+        if self.cfg.aircraft == "stock" and self.cfg.power_cap_psi > 0.0:
+            raise ValueError("power_cap_psi yalnızca aircraft='repo' ile")
+        self.ext = PhysicsExt(self.cfg.physics, CONTROL_DT)
+        if self.ext.cfg.fuel.enable:
+            raise ValueError("manevra env'inde yakıt tüketimi desteklenmiyor (tanklar boş; kalkış / flight env'i kullan)")
+        self.obs_dim = OBS_DIM_M + int(bool(self.cfg.torque_obs))
+        self.observation_space = spaces.Box(-5.0, 5.0, shape=(self.obs_dim,), dtype=np.float32)
         self.resid = np.zeros(4)
         self.att_resid = np.zeros(2)
         self.att_cmd = np.zeros(2)                # (φ_cmd, θ_cmd) rad
@@ -207,6 +229,20 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
     def _sfd_att(self) -> np.ndarray:
         f = self.fdm
         return np.array([float(f["ap/afcs/automatic/phi-trim-rad"]), float(f["ap/afcs/automatic/theta-trim-rad"])])
+
+    def _aircraft_dir(self) -> str | None:
+        from helicopter_env_takeoff import REPO_AIRCRAFT_DIR
+        return REPO_AIRCRAFT_DIR if self.cfg.aircraft == "repo" else None
+
+    def _configure_aircraft(self, fdm):
+        cfg = self.cfg
+        if cfg.aircraft != "repo":
+            return
+        from helicopter_env_takeoff import GE_MODELS
+        fdm["ge/model"] = GE_MODELS.get(cfg.ground_effect, 1.0)
+        fdm["ge/enable"] = 0.0 if cfg.ground_effect == "off" else 1.0
+        fdm["fcs/throttle-max-norm"] = float(np.clip(psi_to_throttle(cfg.power_cap_psi), 0.05, 1.0)) \
+            if cfg.power_cap_psi > 0.0 else 1.0
 
     def _set_sas(self, psi_deg: float):
         """AFCS: roll/pitch yalnızca oran sönümleme, yaw sönümleme; heading-hold kapalı."""
@@ -273,6 +309,7 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
                                   f"v={s['v']:.2f}, psi_err={wrap_deg(psi0 - s['psi_deg']):+.1f})")
 
     def _run_physics_plain(self) -> bool:
+        self.ext.before_step(self.fdm)                        # rüzgâr (run_ic siliyor) / türbülans / gust
         for _ in range(PHYSICS_STEPS):
             if not self.fdm.run():
                 return False
@@ -281,6 +318,7 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
     def _run_physics(self) -> bool:
         """PHYSICS_STEPS JSBSim adımı; her adımda ACAH iç döngüsü cyclic'i günceller."""
         cfg, f = self.cfg, self.fdm
+        self.ext.before_step(f)                               # rüzgâr / türbülans / gust (kapalıyken hiçbir şey)
         ff = self._sfd_cache
         phi_c, th_c = self.att_cmd
         base_ail, base_elev = ff[2] + self.resid[2], ff[1] + self.resid[1]
@@ -315,6 +353,7 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
         u0 = float(options.get("start_speed_fps", u_s))
         psi0 = float(options["start_heading_deg"]) % 360.0 if "start_heading_deg" in options else float(rng.uniform(0, 360))
         errors, info_setup = [], None
+        self.ext.begin_episode(rng, psi0, options.get("physics"))
         for attempt in range(3):
             fresh = (attempt > 0 or self.fdm is None or self._fdm_needs_refresh or not cfg.reuse_fdm
                      or self._episodes_on_fdm >= cfg.fdm_refresh_episodes)
@@ -323,6 +362,7 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
                     self._create_fdm()
                     self._warmup_rotor()
                     self._episodes_on_fdm = 0
+                self.ext.attach(self.fdm)                     # önceki bölümün rüzgâr / gust'ını temizle, bu bölümünkü
                 self._teleport_m(h0, u0, psi0)
                 ok, info_setup = self._settle_m(h0, u0, psi0)
                 if ok:
@@ -365,6 +405,9 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
         self.last_delta = {a: 0.0 for a in AXES}
         self.steps = 0
         self.windows, self.failure = [], None
+        self.ext.start_disturbances(self.fdm)                 # fizik katmanı: türbülans / gust başlar (kapalıyken hiçbir şey)
+        if self.ext.armed:
+            self.setup_info["physics"] = dict(self.ext.params)
         # komutlar: sabit takvim (değerlendirme / canlı) ya da seviyeden dinamik takvim
         if "commands" in options:
             self.fixed_schedule = True
@@ -559,6 +602,7 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
             s["p"] / 1.0, s["q"] / 0.5, s["r"] / 0.7,
             (s["rpm"] - 320.0) / 30.0,
             *self.filt,
+            *([(read_torque_psi(self.fdm) - self.cfg.torque_cont_psi) / 10.0] if self.cfg.torque_obs else []),
         ], dtype=np.float64)
         o = np.nan_to_num(o, nan=0.0, posinf=5.0, neginf=-5.0)
         o[[0, 2, 4]] = np.clip(o[[0, 2, 4]], -3.0, 3.0)
@@ -588,6 +632,7 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
 
         ok = self._run_physics()
         self.steps += 1
+        ext_events = self.ext.after_step(self.fdm)            # tork istatistiği (kapalıyken [])
         s = self._read_state()
         finite = all(np.isfinite(list(s.values())))
         if finite:
@@ -625,7 +670,11 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
         controls = [float(self.fdm[f"fcs/{k}-cmd-norm"]) for k in ("collective", "elevator", "aileron", "rudder")]
         info = dict(level=self.level.name, level_index=self.level_index, reward_parts=parts, controls=controls,
                     att_cmd_deg=[math.degrees(x) for x in self.att_cmd], failure=self.failure,
-                    **self._info_state(s, e))
+                    torque_psi=read_torque_psi(self.fdm), **self._info_state(s, e))
+        if self.ext.armed:
+            info["physics"] = self.ext.info(self.fdm)
+            if ext_events:
+                info["physics_events"] = ext_events
         if self.windows:
             w = self.windows[-1]
             info.update(cmd_T=w["T"], cmd_deadline=w["deadline"], cmd_elapsed=t_after - w["t"])
@@ -644,10 +693,12 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
                                             eff=w.get("eff"), allow_s=w.get("allow_s", 0.0))
                                        for w in self.windows]
             info["termination"] = self.failure or "time_limit"
+            if self.ext.armed:
+                info["physics_summary"] = self.ext.summary()
             if terminated:
                 self._fdm_needs_refresh = True
         self.prev_action = a
-        obs = self._obs(s, e) if finite else np.zeros(OBS_DIM_M, dtype=np.float32)
+        obs = self._obs(s, e) if finite else np.zeros(self.obs_dim, dtype=np.float32)
         return obs, float(reward), bool(terminated), bool(truncated), info
 
     # =================================================================
@@ -692,9 +743,12 @@ class HelicopterEnvManeuver(HelicopterEnvCommand):
                 if active is None or not active[axis]:
                     x = min(1.0, max(0.0, abs(e[axis]) - cfg.couple_soft_frac * lim) / lim)
                     couple += cfg.pen_couple * x * x
-        r = track + progress - sched - late - side - att - smooth - couple
+        # tork (kalkış env'iyle aynı ceza; varsayılan ağırlıklar 0 → eski ödül birebir)
+        torque = torque_penalty(read_torque_psi(self.fdm), s["rpm"], cfg.pen_torque_cont, cfg.pen_torque_over,
+                                cfg.pen_rpm_low, cfg.torque_cont_psi, cfg.torque_max_psi, cfg.rpm_low_warn)
+        r = track + progress - sched - late - side - att - smooth - couple - torque
         return float(r), dict(track=track, progress=progress, schedule=sched, late=late, side=side, attitude=att,
-                              smooth=smooth, coupling=couple)
+                              smooth=smooth, coupling=couple, torque=-torque)
 
 
 # =====================================================================

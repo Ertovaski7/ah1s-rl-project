@@ -4,57 +4,58 @@ from __future__ import annotations
 PHYSICS EXT — ortak fizik katmanı: tork göstergesi / cezası, yakıt tüketimi, rüzgâr / gust / türbülans
 =======================================================================================================
 
-Env'den bağımsız; kalkış (`helicopter_env_takeoff.py`) ve manevra (`helicopter_env_maneuver.py`) env'leri ve yeni
-tek ajan env'i aynı modülü kullanır. Her özellik config ile açılır; **varsayılan: hepsi kapalı** → eski modeller
-(`takeoff_final.zip`, `maneuver_robust_final.zip`, ...) birebir aynı davranır. Env ayarı olarak modelin zip'inde
-taşınır (`ah1s_env_overrides = {"physics": {...}}`, `PhysicsExtConfig.to_dict / from_dict`).
+Env'den bağımsız; kalkış (`helicopter_env_takeoff.py`), manevra (`helicopter_env_maneuver.py`) ve tek ajan
+(`helicopter_env_flight.py`) env'leri aynı modülü kullanır. Her özellik config ile açılır; **varsayılan: hepsi kapalı**
+→ eski modeller (`takeoff_final.zip`, `takeoff_torque.zip`, `maneuver_robust_final.zip`, ...) birebir aynı davranır.
+Env ayarı olarak modelin zip'inde taşınır (`ah1s_env_overrides = {"physics": {...}}`, `PhysicsExtConfig.to_dict`).
 
 Kullanım (env içinde):
-    ext = PhysicsExt(cfg.physics)                     # None / {} → pasif
-    ext.reset(fdm, rng, heading_deg)                  # FDM kurulduktan hemen sonra: bölüm parametreleri + sabit rüzgâr
-    ext.start_disturbances(fdm)                       # handover'da: türbülans ve gust'lar başlar
-    ext.before_step(fdm)                              # her kontrol adımından önce (türbülans enjeksiyonu, kesme)
-    events = ext.after_step(fdm)                      # her kontrol adımından sonra (yakıt, motor, istatistik)
-    pen, parts = ext.penalty(fdm)                     # tork cezası (açıksa)
-    ext.summary()                                     # bölüm özeti (tepe psi, sınır üstü süre, yakıt, olaylar)
+    ext = PhysicsExt(cfg.physics, control_dt)        # None / {} → pasif (hiçbir yöntem bir şey yapmaz)
+    ext.begin_episode(rng, heading_deg, options)     # reset başında bir kez: bölüm parametreleri (rüzgâr, türbülans...)
+    ext.attach(fdm)                                  # her yeni FDM'de (reset denemeleri): sabit rüzgâr
+    ext.before_step(fdm)                             # her fizik koşusundan önce (reset PID'i dahil): rüzgâr yeniden
+                                                     # yazılır (run_ic siler), türbülans / gust
+    ext.start_disturbances(fdm)                      # handover: türbülans ve gust'lar başlar, yakıt sayacı başlar
+    events = ext.after_step(fdm)                     # bölüm adımından sonra: yakıt, motor, tork istatistiği
+    ext.summary()                                    # tepe psi, 50 / 56 psi üstü süre, yakıt, olaylar
 
 1) Tork (psi)
    `ah1s.xml` "bell instruments": psi = 0.00416·Q_ana_rotor − 7.33 (model yazarı ±%20 hata olabilir diyor); el
-   kitabı sınırları 50 psi sürekli, 56 psi 30 dk (= %100 tork). Hover kalibrasyonu el kitabının hover şeklini
-   tutuyor (TM 55-1520-234-10 şekil 7-5, 8500 lbs, ~2600 ft yoğunluk irtifası: el kitabı ~44 psi, model 44.9 psi).
-   Ceza fonksiyonu `torque_penalty` (50–56 psi rampası, 56 üstü karesel, düşük rotor devri).
-   Fiziksel güç tavanı (`fcs/throttle-max-norm`) `ground-effect-torque` branch'indeki uçak kopyasında; bu modül onu
-   yalnızca property varsa ayarlar.
+   kitabı sınırları 50 psi sürekli, 56 psi 30 dk (= %100 tork). `torque_psi`, `psi_to_throttle` ve `torque_penalty`
+   `ground-effect-torque` branch'indeki kalkış env'i uygulamasının kendisi (buraya taşındı; env'ler buradan çağırır,
+   sonuçlar bit düzeyinde aynı). Gözlem / ceza / güç tavanı env config alanlarıyla (`torque_obs`, `pen_torque_cont`,
+   `pen_torque_over`, `pen_rpm_low`, `aircraft="repo"` + `power_cap_psi`). Model psi'si el kitabının hover ve seyir
+   grafikleriyle ~1 psi içinde (docs/physics_ext/README.md, probe a).
 
 2) Yakıt
    JSBSim AH-1S motoru `electric_1500hp` → yakıt yakmıyor. Burada her kontrol adımında W_f·dt tanklardan düşülür.
-   model = "chart" (önerilen): W_f(psi, basınç irtifası) = a(h) + b(h)·psi·(N_r/324) — AH-1S operatör el kitabı
-     TM 55-1520-234-10 şekil 7-8 sayfa 7 (seyir, T53-L-703, 4 TOW, FAT +15 °C, JP-4, ECU kapalı, 324 rotor rpm):
-     tork ve yakıt akışı ölçekleri aynı grafikte karşılıklı; 400 dpi taramadan eksen çentikleriyle okundu
-     (`docs/physics_ext/fuel_chart_digitized.csv`). Eşdeğer SFC (1290 shp = 56 psi ile): 50 psi 0.64, 30 psi 0.81
-     lb/shp/h; doğru 1800 shp'ye uzatılınca 0.56 → yayımlanmış kalkış SFC'si 0.568 ile tutarlı.
-   model = "sfc": W_f = sfc · P, sfc sabit (varsayılan 0.568 lb/shp/h: T53-L-703 kalkış gücünde, Purdue AAE
-     propulsion veritabanı). P = "gauge" (psi → shp: 1290 shp @ 56 psi, aircav) ya da "rotor" (modelin fiziksel
-     gücü: ana + kuyruk rotoru Q·Ω).
-   Tank çekimi: el kitabı iki hücre (ön / arka) ve her birinde yakıt pompası tarif ediyor; ağırlık-denge grafiği
-     yakıt momentini tek bir doğru olarak veriyor (kol ~200–203 in, yakıt azaldıkça neredeyse sabit) → iki hücre
-     birlikte boşalıyor. Çekim sırası açıkça yazılmıyor → VARSAYIM: iki tanktan eşit çekim ("equal"; biri
-     boşalırsa kalan diğerinden). Tanklar boşalınca motor ayrılır: `fcs/rpm-governor-active-norm = 0` (governor gazı
-     0'a çeker, FGTransmission serbest tekerlek) ve "fuel_exhausted" olayı kaydedilir.
+   model = "chart" (varsayılan, kullanıcı seçimi 2026-09-29): W_f(psi, basınç irtifası) = a(h) + b(h)·psi·(N_r/324) —
+     AH-1S operatör el kitabı TM 55-1520-234-10 şekil 7-8 sayfa 7 (seyir, T53-L-703, 4 TOW, FAT +15 °C, JP-4, ECU
+     kapalı, 324 rotor rpm): tork ve yakıt akışı ölçekleri aynı grafikte karşılıklı; 400 dpi taramadan eksen
+     çentikleriyle okundu (`docs/physics_ext/fuel_chart_digitized.csv`). Eşdeğer SFC (1290 shp = 56 psi): 50 psi 0.64,
+     30 psi 0.81 lb/shp/h; doğru 1800 shp'ye uzatılınca 0.573 → yayımlanmış kalkış SFC'si 0.568 ile tutarlı.
+   model = "sfc": W_f = sfc · P, sfc sabit (0.568 lb/shp/h: T53-L-703 kalkış gücünde, Purdue AAE propulsion
+     veritabanı). P = "gauge" (psi → shp: 1290 shp @ 56 psi, aircav) ya da "rotor" (ana + kuyruk rotoru Q·Ω).
+   Tank çekimi: el kitabı iki hücre (ön / arka) ve her birinde pompa tarif ediyor; ağırlık-denge grafiği yakıt
+     momentini tek bir doğru olarak veriyor (kol ~200–203 in) → iki hücre birlikte boşalıyor. Çekim sırası açıkça
+     yazılmıyor → VARSAYIM: iki tanktan eşit ("equal"; biri boşalırsa kalan diğerinden). Tanklar boşalınca motor
+     ayrılır: `fcs/rpm-governor-active-norm = 0` (governor gazı 0'a çeker, FGTransmission serbest tekerlek) ve
+     "fuel_exhausted" olayı kaydedilir.
 
 3) Rüzgâr / gust / türbülans
-   Sabit rüzgâr: `atmosphere/wind-{north,east}-fps` (yön "nereden esiyor", derece; mutlak ya da başlangıç
-   heading'ine göre). İsteğe bağlı yer yakını kesme (MIL-F-8785C log profili, W20 = 20 ft'teki rüzgâr).
-   Gust: JSBSim 1−cos gust'ı (`atmosphere/cosine-gust/*`, yerel NED çerçevesi), Poisson zamanlı ya da sabit liste.
+   Sabit rüzgâr: `atmosphere/wind-{north,east}-fps` (yön rüzgârın GELDİĞİ yön; mutlak ya da başlangıç heading'ine
+   göre). JSBSim `run_ic()` rüzgârı IC rüzgârıyla (0) eziyor (FGFDMExec::Initialize → Winds->SetWindNED) → her fizik
+   koşusundan önce yeniden yazılır. İsteğe bağlı yer yakını kesme (MIL-F-8785C log profili, W20 = 20 ft'teki rüzgâr).
+   Gust: JSBSim 1−cos gust'ı (`atmosphere/cosine-gust/*`, yerel NED), Poisson zamanlı ya da sabit liste.
    Türbülans:
-     backend "dryden_agl" (önerilen): MIL-F-8785C alçak irtifa Dryden modeli, yükseklik = AGL (kızak değil CG),
-       σ_w = 0.1·W20, L_w = h, σ_u = σ_v = σ_w/(0.177 + 0.000823h)^0.4, L_u = L_v = h/(0.177 + 0.000823h)^1.2;
-       bileşenler ortalama rüzgâr eksenlerinde; kesin (üstel) ayrıklaştırma, kontrol adımında güncellenir;
-       `atmosphere/gust-{north,east,down}-fps`'e yazılır (öteleme; açısal türbülans yok). Donmuş alan hızı
-       V = max(hava hızı, v_min).
-     backend "jsbsim_milspec" / "jsbsim_tustin": JSBSim'in kendi modeli (turb-type 3 / 4). DİKKAT: JSBSim
-       yüksekliği MSL alıyor (FGWinds::Run → Turbulence(in.AltitudeASL)); Edwards zemini 2283 ft MSL → her zaman
-       "orta / yüksek irtifa" dalı: L = 1750 ft, σ yalnızca şiddet tablosundan (W20 etkisiz). Probe (c) karşılaştırır.
+     backend "dryden_agl" (varsayılan; kullanıcı seçimi: yok → hafif → orta): MIL-F-8785C alçak irtifa Dryden,
+       yükseklik = AGL (CG), σ_w = 0.1·W20, L_w = h, σ_u = σ_v = σ_w/(0.177 + 0.000823h)^0.4,
+       L_u = L_v = h/(0.177 + 0.000823h)^1.2; bileşenler ortalama rüzgâr eksenlerinde; kesin (üstel) ayrıklaştırma,
+       kontrol adımında; `atmosphere/gust-{north,east,down}-fps`'e yazılır (öteleme; açısal türbülans yok). Donmuş
+       alan hızı V = max(hava hızı, v_min).
+     backend "jsbsim_milspec" / "jsbsim_tustin": JSBSim'in kendi modeli (turb-type 3 / 4). BU UÇAKTA KULLANILAMAZ
+       (probe c): yükseklik MSL (Edwards'ta hep orta irtifa dalı, W20 etkisiz), açısal türbülans 10.75 ft kanat
+       açıklığıyla ölçekleniyor → hafifte bile açık döngüde 6–900 °/s; sakin hover'da NaN. Yalnızca karşılaştırma için.
    MIL-F-8785C şiddet referansı (alçak irtifa): hafif W20 = 15 kt, orta 30 kt, şiddetli 45 kt.
 """
 
@@ -67,10 +68,10 @@ import numpy as np
 # Sabitler (kaynaklar modül başlığında ve docs/physics_ext/README.md'de)
 # =====================================================================================================================
 KT_TO_FPS = 1.6878099
-PSI_PROPERTY = "propulsion/engine/bell-torque-sensor-psi"
 PSI_CONT = 50.0
 PSI_LIMIT = 56.0
 NOMINAL_RPM = 324.0
+ELECTRIC_HP = 1500.0                  # Engines/electric_1500hp.xml (T53 yerine)
 SHP_AT_100 = 1290.0                   # aircav.com T53-L-703: "limited to 1290 shp at 100% torque"
 PSI_AT_100 = 56.0                     # aircav.com: 35 psi = %62.5 → %100 = 56 psi
 T53_703_TO_SFC = 0.568                # lb/shp/h @ 1800 shp kalkış (Purdue AAE propulsion DB, T53 sayfası)
@@ -90,23 +91,41 @@ TURB_JSBSIM_SEVERITY = {"none": 0, "light": 3, "moderate": 4, "severe": 6}
 
 
 # =====================================================================================================================
-# CONFIG
+# TORK (ground-effect-torque kalkış env'inden taşındı — aynı ifadeler, aynı sonuçlar)
 # =====================================================================================================================
 
-@dataclass
-class TorqueExtConfig:
-    enable: bool = False                  # psi izlenir, ceza hesaplanır (env ödüle ekler)
-    obs: bool = False                     # env gözleme psi ekler (env'in kararı; burada yalnızca bayrak)
-    psi_cont: float = PSI_CONT
-    psi_limit: float = PSI_LIMIT
-    pen_cont: float = 0.3                 # 50–56 psi arasında doğrusal rampa, 56'da pen_cont
-    pen_over: float = 2.0                 # 56 üstü: pen_over · min(((psi − 56)/over_scale)², over_cap)
-    over_scale: float = 3.0
-    over_cap: float = 9.0
-    pen_rpm_low: float = 1.0              # rotor devri rpm_low altında: pen_rpm_low · min(((rpm_low − rpm)/10)², 4)
-    rpm_low: float = 314.0
-    power_cap_psi: float | None = None    # fiziksel tavan (yalnızca uçak kopyasında fcs/throttle-max-norm varsa)
+def torque_psi(q_lbsft):
+    """Modelin kendi tork göstergesi (ah1s.xml 'bell instruments'): el kitabı sürekli 50 psi, %100 (30 dk) 56 psi."""
+    return 0.00416 * q_lbsft - 7.33
 
+
+def psi_to_throttle(psi: float) -> float:
+    """Bu tork (nominal devirde) kadar güç → governor gaz tavanı (elektrik motoru: güç = gaz · 1500 hp)."""
+    q = (psi + 7.33) / 0.00416
+    return q * (NOMINAL_RPM * 2.0 * math.pi / 60.0) / 550.0 / ELECTRIC_HP
+
+
+def torque_penalty(psi: float, rpm: float, pen_cont: float = 0.0, pen_over: float = 0.0, pen_rpm_low: float = 0.0,
+                   cont_psi: float = PSI_CONT, max_psi: float = PSI_LIMIT, rpm_low: float = 314.0) -> float:
+    """50–56 psi: pen_cont·((psi − 50)/6)² (kalkış gücü bölgesi, hafif), 56 üstü: pen_over·min(((psi − 56)/3)², 9),
+    rotor devri rpm_low altında: pen_rpm_low·((rpm_low − rpm)/10)². (kalkış env'i 2026-09-28 ile birebir.)"""
+    torque = 0.0
+    if pen_cont > 0.0 or pen_over > 0.0:
+        span = max(1e-6, max_psi - cont_psi)
+        torque = (pen_cont * min(1.0, max(0.0, psi - cont_psi) / span) ** 2
+                  + pen_over * min(9.0, (max(0.0, psi - max_psi) / 3.0) ** 2))
+    if pen_rpm_low > 0.0 and rpm < rpm_low:
+        torque += pen_rpm_low * ((rpm_low - rpm) / 10.0) ** 2
+    return torque
+
+
+def read_torque_psi(fdm) -> float:
+    return float(torque_psi(float(fdm["propulsion/engine/torque-lbsft"])))
+
+
+# =====================================================================================================================
+# CONFIG
+# =====================================================================================================================
 
 @dataclass
 class FuelExtConfig:
@@ -126,6 +145,7 @@ class FuelExtConfig:
 class WindExtConfig:
     enable: bool = False
     speed_kt: tuple = (0.0, 0.0)          # bölüm başında düzgün dağılımdan (kesme açıksa W20)
+    p_calm: float = 0.0                   # bu olasılıkla rüzgâr 0 (curriculum: rüzgârlı / rüzgârsız karışım)
     dir_deg: tuple = (0.0, 360.0)         # rüzgârın GELDİĞİ yön
     dir_relative: bool = True             # True: başlangıç heading'ine göre (0 = karşıdan, 90 = sağdan)
     shear: bool = False                   # MIL-F-8785C: W(h) = W20·ln(h/z0)/ln(20/z0), h ≤ 1000 ft (CG AGL)
@@ -162,7 +182,6 @@ class TurbExtConfig:
 
 @dataclass
 class PhysicsExtConfig:
-    torque: TorqueExtConfig = field(default_factory=TorqueExtConfig)
     fuel: FuelExtConfig = field(default_factory=FuelExtConfig)
     wind: WindExtConfig = field(default_factory=WindExtConfig)
     gust: GustExtConfig = field(default_factory=GustExtConfig)
@@ -170,7 +189,7 @@ class PhysicsExtConfig:
 
     @property
     def active(self) -> bool:
-        return any(getattr(self, k).enable for k in ("torque", "fuel", "wind", "gust", "turb"))
+        return any(getattr(self, f.name).enable for f in fields(self))
 
     def to_dict(self, only_changes: bool = True) -> dict:
         """JSON'a uygun dict (model zip'indeki ah1s_env_overrides["physics"] için); varsayılandan farklı olanlar."""
@@ -211,20 +230,8 @@ def as_physics_config(x) -> PhysicsExtConfig:
 
 
 # =====================================================================================================================
-# SAF FONKSİYONLAR (probe'lar ve env'ler doğrudan kullanabilir)
+# SAF FONKSİYONLAR
 # =====================================================================================================================
-
-def torque_psi(fdm) -> float:
-    return float(fdm[PSI_PROPERTY])
-
-
-def torque_penalty(psi: float, rpm: float, cfg: TorqueExtConfig) -> tuple[float, dict]:
-    """50–56 psi doğrusal rampa (sürekli sınır aşımı), 56 üstü karesel (kırpılı), düşük rotor devri."""
-    cont = cfg.pen_cont * float(np.clip((psi - cfg.psi_cont) / max(1e-6, cfg.psi_limit - cfg.psi_cont), 0.0, 1.0))
-    over = cfg.pen_over * min(max(0.0, (psi - cfg.psi_limit) / cfg.over_scale) ** 2, cfg.over_cap)
-    rpm_low = cfg.pen_rpm_low * min(max(0.0, (cfg.rpm_low - rpm) / 10.0) ** 2, 4.0)
-    return cont + over + rpm_low, dict(torque_cont=cont, torque_over=over, rpm_low=rpm_low)
-
 
 def fuel_flow_chart_lbh(psi: float, rpm: float, pressure_alt_ft: float) -> float:
     """TM 55-1520-234-10 şekil 7-8 (sayfa 7) doğruları; psi, rotor devriyle güce eşdeğerlenir (psi·N/324)."""
@@ -299,12 +306,26 @@ def draw_from_tanks(contents, amount: float, mode: str = "equal") -> np.ndarray:
     return np.maximum(c, 0.0)
 
 
+def air_ground_velocities(fdm) -> dict:
+    """Gövde ekseninde hava hızı (u, v, w: hava kütlesine göre) ve yer hızı (ileri, yana), ft/s."""
+    psi = float(fdm["attitude/psi-rad"])
+    vn, ve = float(fdm["velocities/v-north-fps"]), float(fdm["velocities/v-east-fps"])
+    return dict(u_air=float(fdm["velocities/u-aero-fps"]), v_air=float(fdm["velocities/v-aero-fps"]),
+                w_air=float(fdm["velocities/w-aero-fps"]),
+                u_gnd=vn * math.cos(psi) + ve * math.sin(psi), v_gnd=-vn * math.sin(psi) + ve * math.cos(psi))
+
+
+def fuel_total(fdm) -> float:
+    return float(fdm["propulsion/tank[0]/contents-lbs"]) + float(fdm["propulsion/tank[1]/contents-lbs"])
+
+
 # =====================================================================================================================
 # DURUMLU KATMAN
 # =====================================================================================================================
 
 class PhysicsExt:
-    """Bir env örneğine bağlı fizik katmanı. Varsayılan config → hiçbir şey yapmaz (eski modeller birebir)."""
+    """Bir env örneğine bağlı fizik katmanı. Varsayılan config (ya da begin_episode çağrılmadan) → hiçbir şey yapmaz,
+    env'in rastgele sayı akışına da dokunmaz (eski modeller birebir)."""
 
     def __init__(self, cfg=None, control_dt: float = 0.075):
         self.cfg = as_physics_config(cfg)
@@ -313,78 +334,105 @@ class PhysicsExt:
         self.t = 0.0
         self.params: dict = {}
         self.events: list[dict] = []
-        self.stats: dict = {}
+        self._armed = False                          # begin_episode ile (config açıksa ya da options verildiyse)
+        self._touched = False                        # FDM'e rüzgâr / gust / türbülans yazıldı mı (FDM yeniden kullanılırsa
+                                                     # sonraki bölümde temizlenir: run_ic gust / türbülansı SIFIRLAMIYOR)
+        self._jsbsim_turb = False
+        self._dist_on = False                        # start_disturbances ile (türbülans, gust, yakıt, istatistik)
         self._turb_on = False
         self._xi = np.zeros(3)
         self._gust_next_t = np.inf
         self._gust_queue: list[dict] = []
         self._engine_out = False
         self._wind_ned = (0.0, 0.0)
-        self._armed = False                          # reset() çağrılana kadar katman hiçbir şey yapmaz
         self.stats = self._new_stats()
-        self._last = dict(psi=0.0, rpm=NOMINAL_RPM, fuel_flow_lbh=0.0, shaft_shp=0.0, pen=0.0)
+        self._last = dict(psi=0.0, rpm=NOMINAL_RPM, fuel_flow_lbh=0.0, shaft_shp=0.0)
+
+    @property
+    def active(self) -> bool:
+        return self.cfg.active
+
+    @property
+    def armed(self) -> bool:
+        return self._armed
 
     @staticmethod
     def _new_stats() -> dict:
         return dict(t=0.0, peak_psi=-np.inf, t_over_cont=0.0, t_over_limit=0.0, min_rpm=np.inf, fuel_used_lbs=0.0,
                     fuel0_lbs=None, engine_out_t=None, gusts=0)
 
-    @property
-    def active(self) -> bool:
-        return self.cfg.active
-
     # -----------------------------------------------------------------------------------------------------------
     # bölüm başı
     # -----------------------------------------------------------------------------------------------------------
-    def reset(self, fdm, rng=None, heading_deg: float = 0.0, options: dict | None = None) -> dict:
-        """FDM kurulduktan sonra (tercihen reset PID'inden ÖNCE: helikopter rüzgârda otursun). Bölüm parametrelerini
-        seçer, sabit rüzgârı ve güç tavanını uygular. options: {"wind_kt":, "wind_dir_deg":, "turb_level":,
-        "gusts": [...]} → config'teki rastgele seçimi ezer (değerlendirme / canlı)."""
+    def begin_episode(self, rng, heading_deg: float = 0.0, options: dict | None = None) -> dict:
+        """Reset başında bir kez: bölüm parametrelerini seçer. rng: env'in np_random'u — YALNIZCA katman açıksa bir
+        tohum çekilir (kapalıyken env'in rastgele akışı değişmez). options (değerlendirme / canlı; config'i ezer):
+        {"wind_kt":, "wind_dir_deg":, "wind_dir_relative":, "turb_level":, "turb_backend":, "turb_w20_kt":,
+        "gusts": [...]}."""
         cfg, o = self.cfg, dict(options or {})
-        self.rng = rng if rng is not None else np.random.default_rng()
         self.t = 0.0
-        self.events, self._engine_out, self._turb_on = [], False, False
+        self.events, self._engine_out, self._turb_on, self._dist_on = [], False, False, False
         self._xi = np.zeros(3)
+        self._gust_next_t = np.inf
+        self._gust_queue = []
         self.stats = self._new_stats()
-        self._armed = self.active or bool(o)
+        self._wind_ned = (0.0, 0.0)
+        self.params = {}
+        self._armed = cfg.active or bool(o)
+        if not self._armed:
+            return {}
+        self.rng = np.random.default_rng(int(rng.integers(0, 2 ** 63 - 1)))
         p = {}
         if cfg.wind.enable or "wind_kt" in o:
             w = cfg.wind
-            spd = float(o.get("wind_kt", self.rng.uniform(*w.speed_kt)))
-            d = float(o.get("wind_dir_deg", self.rng.uniform(*w.dir_deg)))
+            spd = float(self.rng.uniform(*w.speed_kt))
+            if w.p_calm > 0.0 and self.rng.random() < w.p_calm:
+                spd = 0.0
+            d = float(self.rng.uniform(*w.dir_deg))
+            spd = float(o.get("wind_kt", spd))
+            d = float(o.get("wind_dir_deg", d))
             rel = bool(o.get("wind_dir_relative", w.dir_relative))
             d_abs = (heading_deg + d) % 360.0 if rel else d % 360.0
             p.update(wind_kt=spd, wind_dir_deg=d, wind_dir_relative=rel, wind_from_deg=d_abs)
             self._wind_ned = wind_ned_fps(spd * KT_TO_FPS, d_abs)
-        else:
-            self._wind_ned = (0.0, 0.0)
         if cfg.turb.enable or "turb_level" in o:
             tb = cfg.turb
-            if "turb_level" in o:
-                lvl = o["turb_level"]
-            else:
-                probs = np.asarray(tb.level_probs, dtype=np.float64) if tb.level_probs else None
-                lvl = tb.levels[int(self.rng.choice(len(tb.levels), p=probs / probs.sum() if probs is not None else None))]
+            probs = np.asarray(tb.level_probs, dtype=np.float64) if tb.level_probs else None
+            lvl = tb.levels[int(self.rng.choice(len(tb.levels), p=probs / probs.sum() if probs is not None else None))]
+            lvl = o.get("turb_level", lvl)
             p.update(turb_level=lvl, turb_backend=o.get("turb_backend", tb.backend),
                      turb_w20_kt=float(o.get("turb_w20_kt", TURB_W20_KT[lvl])))
-        self._gust_queue = []
-        if cfg.gust.enable or "gusts" in o:
-            self._gust_queue = [dict(g) for g in (o.get("gusts", cfg.gust.schedule) or ())]
+        if cfg.gust.enable or "gusts" in o or "gust_rate_per_min" in o:
+            self._gust_queue = sorted((dict(g) for g in (o.get("gusts", cfg.gust.schedule) or ())),
+                                      key=lambda g: float(g["t"]))
+            p["gust_rate_per_min"] = float(o.get("gust_rate_per_min", cfg.gust.rate_per_min if cfg.gust.enable else 0.0))
+            p["gust_kt"] = tuple(o.get("gust_kt", cfg.gust.magnitude_kt))
         self.params = p
-        self.apply_wind(fdm)
-        self._apply_power_cap(fdm)
-        if cfg.fuel.enable:
-            self.stats["fuel0_lbs"] = self.fuel_total(fdm)
         return dict(p)
 
-    def _apply_power_cap(self, fdm):
-        cap = self.cfg.torque.power_cap_psi
-        if cap is None:
-            return
-        pm = fdm.get_property_manager()
-        if not pm.hasNode("fcs/throttle-max-norm"):
-            raise RuntimeError("power_cap_psi için uçak kopyasında fcs/throttle-max-norm yok (ground-effect-torque)")
-        raise NotImplementedError("güç tavanı ground-effect-torque branch'indeki uygulamayla bağlanacak")
+    def attach(self, fdm):
+        """Her reset denemesinde (yeni ya da yeniden kullanılan FDM): önceki bölümün rüzgâr / gust / türbülansını temizler
+        (run_ic yalnızca sabit rüzgârı IC'den yeniden kurar; gust, 1−cos gust ve türbülans FDM'de kalır), sonra bu
+        bölümün sabit rüzgârını yazar (reset PID'i rüzgârda otursun). Hiç dokunulmamışsa ve kapalıysa hiçbir şey yazmaz."""
+        if self._touched:
+            self._clear(fdm)
+        if self._armed:
+            self.apply_wind(fdm)
+
+    def _clear(self, fdm):
+        for k in ("wind", "gust"):
+            for a in ("north", "east", "down"):
+                fdm[f"atmosphere/{k}-{a}-fps"] = 0.0
+        if self._jsbsim_turb:
+            fdm["atmosphere/turb-type"] = 0
+            self._jsbsim_turb = False
+        # çalışan 1−cos gust'ı sıfır genlikli kısa bir gust'la bitir (start=0 son değeri dondurur)
+        fdm["atmosphere/cosine-gust/magnitude-ft_sec"] = 0.0
+        fdm["atmosphere/cosine-gust/startup-duration-sec"] = 0.01
+        fdm["atmosphere/cosine-gust/steady-duration-sec"] = 0.0
+        fdm["atmosphere/cosine-gust/end-duration-sec"] = 0.01
+        fdm["atmosphere/cosine-gust/start"] = 1
+        self._touched = False
 
     def apply_wind(self, fdm, h_agl_ft: float | None = None):
         vn, ve = self._wind_ned
@@ -392,18 +440,25 @@ class PhysicsExt:
             h = float(fdm["position/h-agl-ft"]) if h_agl_ft is None else h_agl_ft
             k = shear_factor(h, self.cfg.wind.z0_ft, self.cfg.wind.shear_min_frac)
             vn, ve = vn * k, ve * k
-        if self.cfg.wind.enable or vn or ve:
+        if "wind_kt" in self.params:
             fdm["atmosphere/wind-north-fps"] = vn
             fdm["atmosphere/wind-east-fps"] = ve
             fdm["atmosphere/wind-down-fps"] = 0.0
+            self._touched = True
 
     def start_disturbances(self, fdm):
-        """Handover'da: türbülans ve gust zamanlaması başlar (reset PID'i sakin havada / sabit rüzgârda oturur)."""
+        """Handover'da: türbülans + gust zamanlaması başlar; yakıt ve tork istatistiği bölüm saatini başlatır."""
+        if not self._armed:
+            return
+        self._dist_on = True
+        self.t = 0.0
+        self.stats["fuel0_lbs"] = fuel_total(fdm)
         p = self.params
         if "turb_level" in p and p["turb_level"] != "none":
             self._turb_on = True
             be = p["turb_backend"]
             if be.startswith("jsbsim"):
+                self._touched = self._jsbsim_turb = True
                 fdm["atmosphere/turb-type"] = 3 if be == "jsbsim_milspec" else 4
                 fdm["atmosphere/turbulence/milspec/windspeed_at_20ft_AGL-fps"] = p["turb_w20_kt"] * KT_TO_FPS
                 fdm["atmosphere/turbulence/milspec/severity"] = TURB_JSBSIM_SEVERITY[p["turb_level"]]
@@ -411,22 +466,21 @@ class PhysicsExt:
                     fdm["atmosphere/randomseed"] = int(self.rng.integers(1, 2 ** 31 - 1))
             elif be != "dryden_agl":
                 raise ValueError(f"bilinmeyen türbülans backend'i: {be}")
-        g = self.cfg.gust
-        if g.enable and g.rate_per_min > 0.0:
-            self._gust_next_t = self.t + g.first_after_s + float(self.rng.exponential(60.0 / g.rate_per_min))
-        else:
-            self._gust_next_t = np.inf
+        rate = float(p.get("gust_rate_per_min", 0.0))
+        if rate > 0.0:
+            self._gust_next_t = self.cfg.gust.first_after_s + float(self.rng.exponential(60.0 / rate))
 
     # -----------------------------------------------------------------------------------------------------------
     # adım
     # -----------------------------------------------------------------------------------------------------------
     def before_step(self, fdm):
-        """Her kontrol adımından (ve reset'teki her fizik koşusundan) önce. Sabit rüzgâr HER adımda yeniden yazılır:
-        JSBSim `run_ic()` rüzgârı IC'deki rüzgârla (0) eziyor (FGFDMExec::Initialize → Winds->SetWindNED), env'ler
-        teleport / bozucu için run_ic çağırıyor."""
+        """Her fizik koşusundan (kontrol adımı) önce — reset PID'leri dahil. Sabit rüzgâr HER adımda yeniden yazılır
+        (env'ler teleport / bozucu için run_ic çağırıyor, run_ic rüzgârı siliyor)."""
         if not self._armed:
             return
         self.apply_wind(fdm)
+        if not self._dist_on:
+            return
         if self._turb_on and self.params.get("turb_backend") == "dryden_agl":
             self._dryden_step(fdm)
         self._gust_step(fdm)
@@ -449,6 +503,7 @@ class PhysicsExt:
         fdm["atmosphere/gust-north-fps"] = c * u - s * v
         fdm["atmosphere/gust-east-fps"] = s * u + c * v
         fdm["atmosphere/gust-down-fps"] = w
+        self._touched = True
 
     def _gust_step(self, fdm):
         g = self.cfg.gust
@@ -457,7 +512,7 @@ class PhysicsExt:
             due = self._gust_queue.pop(0)
         elif self.t >= self._gust_next_t:
             due = self._random_gust()
-            self._gust_next_t = self.t + float(self.rng.exponential(60.0 / g.rate_per_min))
+            self._gust_next_t = self.t + float(self.rng.exponential(60.0 / float(self.params["gust_rate_per_min"])))
         if due is None:
             return
         mag = float(due["mag_kt"]) * KT_TO_FPS
@@ -473,6 +528,7 @@ class PhysicsExt:
         fdm["atmosphere/cosine-gust/Y-velocity-ft_sec"] = hvec * math.sin(d)
         fdm["atmosphere/cosine-gust/Z-velocity-ft_sec"] = vf
         fdm["atmosphere/cosine-gust/start"] = 1
+        self._touched = True
         self.stats["gusts"] += 1
         self.events.append(dict(t=self.t, kind="gust", **{k: v for k, v in due.items() if k != "t"}))
 
@@ -484,25 +540,26 @@ class PhysicsExt:
         else:
             d = float(rng.uniform(0.0, 360.0))
         vf = float(rng.uniform(*g.vertical_frac)) * (1.0 if rng.random() < 0.5 else -1.0)
-        return dict(t=self.t, mag_kt=float(rng.uniform(*g.magnitude_kt)), dir_deg=d % 360.0, vert=vf,
+        return dict(t=self.t, mag_kt=float(rng.uniform(*self.params.get("gust_kt", g.magnitude_kt))), dir_deg=d % 360.0,
+                    vert=vf,
                     rise=float(rng.uniform(*g.rise_s)), hold=float(rng.uniform(*g.hold_s)),
                     decay=float(rng.uniform(*g.decay_s)))
 
     def after_step(self, fdm, dt: float | None = None) -> list[dict]:
-        """Kontrol adımından sonra: tork istatistiği, yakıt yakma, yakıt bitince motor ayrılması. Yeni olayları döndürür."""
+        """Bölüm adımından sonra: tork istatistiği, yakıt yakma, yakıt bitince motor ayrılması. Yeni olayları döndürür."""
+        if not (self._armed and self._dist_on):
+            return []
         dt = self.dt if dt is None else float(dt)
         n0 = len(self.events)
-        if not self._armed:
-            return []
         self.t += dt
-        psi, rpm = torque_psi(fdm), float(fdm["propulsion/engine/rotor-rpm"])
+        psi, rpm = read_torque_psi(fdm), float(fdm["propulsion/engine/rotor-rpm"])
         st = self.stats
         st["t"] = self.t
         st["peak_psi"] = max(st["peak_psi"], psi)
         st["min_rpm"] = min(st["min_rpm"], rpm)
-        if psi > self.cfg.torque.psi_cont:
+        if psi > PSI_CONT:
             st["t_over_cont"] += dt
-        if psi > self.cfg.torque.psi_limit:
+        if psi > PSI_LIMIT:
             st["t_over_limit"] += dt
         self._last.update(psi=psi, rpm=rpm)
         if self.cfg.fuel.enable:
@@ -523,8 +580,7 @@ class PhysicsExt:
             ff = fc.sfc * shp
         else:
             raise ValueError(f"bilinmeyen yakıt modeli: {fc.model}")
-        # governor gazı kesmişse (motor boşta / kapalı) yakıt yok sayılır
-        if float(fdm["fcs/rpm-governor-active-norm"]) <= 0.0:
+        if float(fdm["fcs/rpm-governor-active-norm"]) <= 0.0:      # motor kapalı / boşta sayılmaz
             ff = 0.0
         burn = ff * fc.burn_scale * dt / 3600.0
         c = np.array([float(fdm["propulsion/tank[0]/contents-lbs"]), float(fdm["propulsion/tank[1]/contents-lbs"])])
@@ -552,36 +608,21 @@ class PhysicsExt:
         return self._engine_out
 
     # -----------------------------------------------------------------------------------------------------------
-    # ödül / gözlem / özet
+    # gözlem / bilgi / özet
     # -----------------------------------------------------------------------------------------------------------
-    def penalty(self, fdm=None) -> tuple[float, dict]:
-        if not self.cfg.torque.enable:
-            return 0.0, {}
-        psi = self._last["psi"] if fdm is None else torque_psi(fdm)
-        rpm = self._last["rpm"] if fdm is None else float(fdm["propulsion/engine/rotor-rpm"])
-        pen, parts = torque_penalty(psi, rpm, self.cfg.torque)
-        self._last["pen"] = pen
-        return pen, parts
+    @property
+    def wind_ned(self) -> tuple[float, float]:
+        return self._wind_ned
 
-    @staticmethod
-    def fuel_total(fdm) -> float:
-        return float(fdm["propulsion/tank[0]/contents-lbs"]) + float(fdm["propulsion/tank[1]/contents-lbs"])
-
-    def fuel_fraction(self, fdm) -> float:
-        return self.fuel_total(fdm) / (2.0 * TANK_CAPACITY_LBS)
-
-    @staticmethod
-    def air_ground_velocities(fdm) -> dict:
-        """Gövde ekseninde hava hızı (u, v, w: hava kütlesine göre) ve yer hızı (ileri, yana), ft/s."""
-        psi = float(fdm["attitude/psi-rad"])
-        vn, ve = float(fdm["velocities/v-north-fps"]), float(fdm["velocities/v-east-fps"])
-        return dict(u_air=float(fdm["velocities/u-aero-fps"]), v_air=float(fdm["velocities/v-aero-fps"]),
-                    w_air=float(fdm["velocities/w-aero-fps"]),
-                    u_gnd=vn * math.cos(psi) + ve * math.sin(psi), v_gnd=-vn * math.sin(psi) + ve * math.cos(psi))
-
-    def info(self) -> dict:
+    def info(self, fdm=None) -> dict:
         d = dict(self._last)
         d["engine_out"] = self._engine_out
+        d["wind_n_fps"], d["wind_e_fps"] = self._wind_ned
+        if fdm is not None:
+            d["fuel_lbs"] = fuel_total(fdm)
+            d["gust_n_fps"] = float(fdm["atmosphere/total-wind-north-fps"]) - self._wind_ned[0]
+            d["gust_e_fps"] = float(fdm["atmosphere/total-wind-east-fps"]) - self._wind_ned[1]
+            d["gust_d_fps"] = float(fdm["atmosphere/total-wind-down-fps"])
         return d
 
     def summary(self) -> dict:
@@ -600,9 +641,13 @@ class PhysicsExt:
 # =====================================================================================================================
 
 if __name__ == "__main__":
-    # 1) varsayılan config pasif
+    # 1) varsayılan config pasif ve RNG'ye dokunmuyor
     cfg = PhysicsExtConfig()
     assert not cfg.active and cfg.to_dict() == {}
+    g = np.random.default_rng(5)
+    s0 = g.bit_generator.state
+    ext = PhysicsExt(None)
+    assert ext.begin_episode(g, 0.0) == {} and not ext.armed and g.bit_generator.state == s0
     # 2) dict ↔ config gidiş-dönüş (model zip'indeki ah1s_env_overrides["physics"])
     d = {"fuel": {"enable": True}, "wind": {"enable": True, "speed_kt": [0, 20]}, "turb": {"enable": True}}
     c2 = PhysicsExtConfig.from_dict(d)
@@ -616,7 +661,6 @@ if __name__ == "__main__":
     # 4) yakıt akışı: el kitabı doğruları (2000 ft, 43 psi ≈ 678 lb/h @ +15 °C; el kitabı örneği −30 °C'de 648)
     ff = fuel_flow_chart_lbh(43.0, 324.0, 2000.0)
     assert 670 < ff < 690, ff
-    # eşdeğer SFC 1800 shp'ye uzatılınca yayımlanmış 0.568'e yakın mı?
     psi_1800 = 1800.0 / (SHP_AT_100 / PSI_AT_100)
     sfc_1800 = fuel_flow_chart_lbh(psi_1800, 324.0, 0.0) / 1800.0
     assert abs(sfc_1800 - T53_703_TO_SFC) < 0.03, sfc_1800
@@ -626,7 +670,10 @@ if __name__ == "__main__":
     # 6) MIL-F-8785C: 100 ft, W20 = 15 kt → σ_w = 2.53, σ_u = 4.35 ft/s
     q = dryden_low_alt_params(100.0, 15 * KT_TO_FPS)
     assert abs(q["sig_w"] - 2.53) < 0.01 and abs(q["sig_u"] - 4.35) < 0.02
-    # 7) tork cezası
-    assert torque_penalty(49.0, 324.0, TorqueExtConfig())[0] == 0.0
-    assert abs(torque_penalty(53.0, 324.0, TorqueExtConfig())[0] - 0.15) < 1e-9
+    # 7) tork cezası (kalkış env'i 2026-09-28 ile aynı): 53 psi → 0.3·(3/6)² = 0.075; 59 psi → 0.3 + 2·1
+    assert torque_penalty(49.0, 324.0, 0.3, 2.0, 1.0) == 0.0
+    assert abs(torque_penalty(53.0, 324.0, 0.3, 2.0, 1.0) - 0.075) < 1e-12
+    assert abs(torque_penalty(59.0, 324.0, 0.3, 2.0, 1.0) - 2.3) < 1e-12
+    assert abs(torque_penalty(40.0, 304.0, 0.3, 2.0, 1.0) - 1.0) < 1e-12
+    assert abs(psi_to_throttle(56.0) - 0.6261) < 1e-3
     print(f"physics_ext: tamam (43 psi / 2000 ft → {ff:.0f} lb/h; 1800 shp'de eşdeğer SFC {sfc_1800:.3f})")

@@ -19,7 +19,8 @@ import time
 
 import numpy as np
 
-from probe_common import KT_TO_FPS, OUT, Holder, Rig, run_hold, settle_and_measure, sfd_trim
+import probe_common  # noqa: E402  (outp: çıktı adı eki)
+from probe_common import KT_TO_FPS, OUT, Holder, Rig, env_config_from_args, run_hold, settle_and_measure, sfd_trim
 from physics_ext import fuel_flow_chart_lbh
 
 MODELS = {"chart": dict(model="chart"), "sfc_gauge": dict(model="sfc", power_source="gauge"),
@@ -27,7 +28,7 @@ MODELS = {"chart": dict(model="chart"), "sfc_gauge": dict(model="sfc", power_sou
 
 
 def endurance_run(cond: str, fuel_model: str, env_config=None, max_h: float = 10.0, log_every_s: float = 60.0):
-    phys = {"fuel": dict(enable=True, **MODELS[fuel_model]), "torque": dict(enable=True)}
+    phys = {"fuel": dict(enable=True, **MODELS[fuel_model])}
     rig = Rig(fuel=(890.0, 890.0), physics=phys, env_config=env_config)
     h0, psi0 = 300.0, 0.0
     u = 60.0 * KT_TO_FPS if cond == "60kt" else 0.0
@@ -36,7 +37,7 @@ def endurance_run(cond: str, fuel_model: str, env_config=None, max_h: float = 10
     hold = (Holder(h0, psi0, mode="ground", n0=s["n"], e0=s["e"], weight=10280.0) if cond == "hover"
             else Holder(h0, psi0, mode="air", u=u, weight=10280.0))
     ext = rig.ext
-    ext.reset(rig.fdm, np.random.default_rng(0), psi0)
+    rig.start_physics(0, psi0)
     series = []
     next_log = 0.0
     t_start = rig.t
@@ -100,17 +101,15 @@ def manual_endurance(psi_of_gw, gw0: float = 10000.0, fuel_lbs: float = 1700.0, 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--aircraft", default=None)
+    ap.add_argument("--power-cap", type=float, default=0.0, help="repo uçağında güç tavanı, psi (0 → yok)")
     ap.add_argument("--models", default="chart,sfc_gauge,sfc_rotor")
     ap.add_argument("--conds", default="hover,60kt")
     ap.add_argument("--plot-only", action="store_true")
     args = ap.parse_args()
+    env_config = env_config_from_args(args.aircraft, args.power_cap)
     if args.plot_only:
         report_and_plot()
         return
-    env_config = None
-    if args.aircraft:
-        from helicopter_env_takeoff import TakeoffEnvConfig
-        env_config = TakeoffEnvConfig(aircraft=args.aircraft)
     summary, series = [], []
     for cond in args.conds.split(","):
         for fm in args.models.split(","):
@@ -121,7 +120,7 @@ def main():
                   f"56 psi üstü {out['t_over_56_min']:.1f} dk  50 üstü {out['t_over_50_min']:.1f} dk  "
                   f"tepe {out['peak_psi']:.1f} psi  olay {out['events']}  ({out['wall_s']:.0f} s)", flush=True)
     for name, rows in (("probe_a_fuel_endurance.csv", summary), ("probe_a_timeseries.csv", series)):
-        with open(OUT / name, "w", newline="") as fh:
+        with open(probe_common.outp(name), "w", newline="") as fh:
             wr = csv.DictWriter(fh, fieldnames=list(rows[0]))
             wr.writeheader()
             wr.writerows(rows)
@@ -129,7 +128,7 @@ def main():
 
 
 def _read(name):
-    with open(OUT / name) as fh:
+    with open(probe_common.outp(name)) as fh:
         return list(csv.DictReader(fh))
 
 
@@ -160,7 +159,7 @@ def report_and_plot():
             near = min(rr, key=lambda r: abs(float(r["weight"]) - w))
             lines.append(f"  {cond:5s} W {float(near['weight']):6.0f}: model {float(near['psi']):5.1f}  el kitabı "
                          f"{fit(float(near['weight'])):5.1f}")
-    (OUT / "probe_a_fuel_endurance.txt").write_text("\n".join(lines) + "\n")
+    (probe_common.outp("probe_a_fuel_endurance.txt")).write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 
     import matplotlib
@@ -221,7 +220,7 @@ def report_and_plot():
     ax.legend(fontsize=7)
     ax = axes[1][1]
     try:
-        tab = json.loads((OUT / "trim_table_airspeed.json").read_text())
+        tab = json.loads((probe_common.outp("trim_table_airspeed.json")).read_text())
         cm = plt.get_cmap("viridis")
         for j, (w, line) in enumerate(zip(tab["weight_lbs"], tab["torque_psi"])):
             ax.plot(tab["u_kt"], line, "-", color=cm(j / 3), label=f"model {w} lbs (300 ft, stok)")
@@ -239,7 +238,7 @@ def report_and_plot():
     ax.legend(fontsize=6, ncol=2)
     fig.suptitle("Probe (a): yakıt tüketimi ve dayanıklılık — model ↔ AH-1S el kitabı")
     fig.tight_layout()
-    fig.savefig(OUT / "fig_a_fuel_endurance.png", dpi=110)
+    fig.savefig(probe_common.outp("fig_a_fuel_endurance.png"), dpi=110)
 
 
 if __name__ == "__main__":

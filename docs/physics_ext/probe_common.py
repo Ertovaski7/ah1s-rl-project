@@ -21,9 +21,29 @@ import numpy as np  # noqa: E402
 
 from helicopter_env_command import CONTROL_DT, wrap_deg  # noqa: E402
 from helicopter_env_takeoff import CTRL_HI, CTRL_LO, HOVER_TRIM, HelicopterEnvTakeoff, TakeoffEnvConfig  # noqa: E402
-from physics_ext import KT_TO_FPS, PhysicsExt, shaft_power_rotor_hp, torque_psi  # noqa: E402
+from physics_ext import KT_TO_FPS, air_ground_velocities, fuel_total, read_torque_psi, shaft_power_rotor_hp  # noqa: E402
 
 OUT = Path(__file__).resolve().parent
+
+
+SUFFIX = ""                        # çıktı dosya adı eki: stok uçak "", repo uçağı "_repo" / "_repo_cap56"
+
+
+def outp(name: str) -> Path:
+    """docs/physics_ext/<ad><SUFFIX>.<uzantı> (stok ve repo uçağı sonuçları yan yana kalsın)."""
+    stem, dot, ext = name.rpartition(".")
+    return OUT / (f"{stem}{SUFFIX}.{ext}" if dot else f"{name}{SUFFIX}")
+
+
+def env_config_from_args(aircraft: str | None, power_cap_psi: float = 0.0) -> TakeoffEnvConfig | None:
+    """--aircraft repo [--power-cap 56] → TakeoffEnvConfig (kalibre yer etkisi + güç tavanı); None → stok.
+    Çıktı dosyalarının ekini de ayarlar."""
+    global SUFFIX
+    if not aircraft:
+        SUFFIX = ""
+        return None
+    SUFFIX = f"_{aircraft}" + (f"_cap{power_cap_psi:g}" if power_cap_psi > 0 else "")
+    return TakeoffEnvConfig(aircraft=aircraft, power_cap_psi=float(power_cap_psi))
 GROUND_MSL_FT = 2283.5            # reset00.xml (Edwards AFB)
 
 
@@ -71,13 +91,20 @@ def sfd_trim(v_kts: float, h_msl_ft: float, weight_lbs: float = 8500.0) -> np.nd
 # FDM düzeneği
 # ------------------------------------------------------------------------------------------------------------------
 class Rig:
+    """physics: physics_ext config (dict) → env'in kendi katmanı (env.ext; _run_plain her adımda before_step çağırır).
+    env_config: uçak ayarları (aircraft="repo", power_cap_psi, ...); physics burada verilirse o kullanılır."""
+
     def __init__(self, fuel=(0.0, 0.0), physics=None, env_config: TakeoffEnvConfig | None = None):
-        self.env = HelicopterEnvTakeoff(level="K1", config=env_config or TakeoffEnvConfig())
+        cfg = env_config or TakeoffEnvConfig()
+        if physics is not None:
+            from dataclasses import replace
+            cfg = replace(cfg, physics=physics)
+        self.env = HelicopterEnvTakeoff(level="K1", config=cfg)
         env = self.env
         env._create_fdm()
         env._set_fuel(fuel)
         self.fdm = env.fdm
-        self.ext = PhysicsExt(physics, control_dt=CONTROL_DT)
+        self.ext = env.ext
         env._warmup_rotor()
         f = self.fdm
         env._lat0, env._lon0 = float(f["position/lat-geod-rad"]), float(f["position/long-gc-rad"])
@@ -116,18 +143,24 @@ class Rig:
         f["atmosphere/wind-down-fps"] = 0.0
         self.env._set_sas(psi_deg)
 
+    def start_physics(self, seed: int = 0, heading_deg: float = 0.0, options: dict | None = None):
+        """Ölçüm başlangıcı: katmanın bölüm parametreleri + rüzgâr + türbülans / gust / yakıt sayacı."""
+        self.ext.begin_episode(np.random.default_rng(seed), heading_deg, options)
+        self.ext.attach(self.fdm)
+        self.ext.start_disturbances(self.fdm)
+
     def state(self) -> dict:
         f = self.fdm
         s = self.env._state()
-        s.update(PhysicsExt.air_ground_velocities(f))
-        s["psi_gauge"] = torque_psi(f)
+        s.update(air_ground_velocities(f))
+        s["psi_gauge"] = read_torque_psi(f)
         s["p_rotor_hp"] = shaft_power_rotor_hp(f)
         s["p_eng_hp"] = float(f["propulsion/engine/power-hp"])
         s["h_msl"] = float(f["position/h-sl-ft"])
         s["vt"] = float(f["velocities/vt-fps"])
         s["cg_x"] = float(f["inertia/cg-x-in"])
         s["cg_z"] = float(f["inertia/cg-z-in"])
-        s["fuel"] = PhysicsExt.fuel_total(f)
+        s["fuel"] = fuel_total(f)
         s["gust_n"] = float(f["atmosphere/total-wind-north-fps"]) - self.wind_ned[0]
         s["gust_e"] = float(f["atmosphere/total-wind-east-fps"]) - self.wind_ned[1]
         s["gust_d"] = float(f["atmosphere/total-wind-down-fps"])
@@ -138,9 +171,8 @@ class Rig:
         return s
 
     def step(self, ctrl) -> bool:
-        self.ext.before_step(self.fdm)
         self.env._write_controls(np.clip(ctrl, CTRL_LO, CTRL_HI))
-        ok = self.env._run_plain()
+        ok = self.env._run_plain()                              # içinde env.ext.before_step
         self.ext.after_step(self.fdm)
         self.t += CONTROL_DT
         return ok

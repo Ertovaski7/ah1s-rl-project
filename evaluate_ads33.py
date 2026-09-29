@@ -66,16 +66,32 @@ class Runner:
     """Tek FDM'de ajanı uçurur; hedefleri dışarıdan değiştirebilir, durumu kaydeder."""
 
     def __init__(self, model_path, env_overrides=None, deterministic=True):
-        from evaluate_takeoff import make_env
-        self.env, self.policy, self.overrides = make_env(model_path, env_overrides, level="K9")
+        # model gözlem boyutu 42 → tek ajanlı uçuş env'i (helicopter_env_flight; sakin hava, yakıt tüketimi açık),
+        # yoksa kalkış env'i (modelin env ayarlarıyla)
+        from stable_baselines3 import PPO
+        from helicopter_env_flight import OBS_DIM_F, FlightEnvConfig, HelicopterEnvFlight
+        m = PPO.load(str(model_path), device="cpu")
+        self.flight = int(m.observation_space.shape[0]) == OBS_DIM_F
+        if self.flight:
+            ov = dict(getattr(m, "ah1s_env_overrides", None) or {})
+            ov.update(env_overrides or {})
+            self.env = HelicopterEnvFlight(level="F8", config=FlightEnvConfig(**ov))
+            self.policy = lambda o: m.predict(o, deterministic=deterministic)[0]      # noqa: E731
+            self.overrides = ov
+        else:
+            from evaluate_takeoff import make_env
+            self.env, self.policy, self.overrides = make_env(model_path, env_overrides, level="K9")
         self.obs = None
         self.rows = []
 
     def reset(self, hs: float, heading: float = 0.0, fuel=(0.0, 0.0), settle_s: float = 6.0, seed: int = 0):
         env = self.env
-        self.obs, info = env.reset(seed=seed, options=dict(
-            start="hover", start_alt_ft=GROUND_H_FT + hs, start_heading_deg=heading, fuel=fuel, start_perturb=0.0,
-            tasks=[dict(kind="hold")], live=True, episode_s=400.0))
+        opts = dict(start="hover", start_alt_ft=GROUND_H_FT + hs, start_heading_deg=heading, fuel=fuel, start_perturb=0.0,
+                    tasks=[dict(kind="hold")], live=True, episode_s=400.0)
+        if self.flight:                                   # ADS-33 MTE'leri sakin havada; eğitimin ağırlık aralığı 8800 lbs'den
+            opts.update(physics=dict(wind_kt=0.0, turb_level="none"),
+                        fuel=tuple(max(150.0, float(x)) for x in fuel))
+        self.obs, info = env.reset(seed=seed, options=opts)
         self.rows = []
         self.run(settle_s, record=False)
         s = env._state()
@@ -384,7 +400,8 @@ def evaluate(model_path, only=None, env_overrides=None, fuels=((0.0, 0.0),), ver
     R = Runner(model_path, env_overrides)
     out = []
     if verbose:
-        print(f"\nADS-33 MTE KARNESİ — model {Path(model_path).name}  env {R.overrides or 'stok'}")
+        kind = "tek ajanlı uçuş env'i (F8, sakin hava, yakıt ≥ 150 lbs/tank) " if R.flight else ""
+        print(f"\nADS-33 MTE KARNESİ — model {Path(model_path).name}  env {kind}{R.overrides or 'stok'}")
     for name, runs in PLAN.items():
         if only and name not in only:
             continue

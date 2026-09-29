@@ -1911,7 +1911,10 @@ orta türbülans, gust'lar). Rehearsal %30–40, görev türü başına kapı (%
 | fl_v1: F1 hover → F2 hover → F3 yalnızca ileri uçuş | F1 / F2 0.5 M adımda geçildi; F3'te episode'ların %80'i 5 s'de 40° pitch: ajan 90 kt yer hızını "fren" diye okuyordu | hız girdileri hız hatası (hover'da aynı) |
 | fl_v2: F2 modelinden F3 | ileri uçuş 0.76 M adımda %0; deterministik F2 %100 → %25 (unutma) | hover ve ileri uçuş F1'den itibaren birlikte (sıfırdan yalnızca ileri uçuşta "tut" hemen %97) |
 | diag_f3: sıfırdan yalnızca ileri uçuş | 0.5 M adımda heading komutları %0 (dönüş yatışla yapılır; ajan bulamadı) | koordineli dönüş yönlendirmesi (istenen yatış = atan(r·V/g)); ilk seviyede yumuşak süre hedefleri |
-| **fl_v3** | F1 0.26 M adımda geçildi; F2'de ileri uçuş Δ'ları ~0.4 M adımda %90+ | (sürüyor) |
+| fl_v3 | F1–F5 2.8 M adımda (72 dk); F5 anında deterministik F3 10/12, F5 7/12 | — |
+| fl_v3 F6: F5'ten doğrudan iniş | 0.23 M adımda iniş %0: kızaklar ~2 ft'te hover, yerde başlasa havalanıyor (30.7'deki yerel optimum); deterministik F3 10/12 → 3/12 | F6a oturma okulu (yerde hafif yüklü / çok alçak hover başlangıçları) |
+| fl_v4–v6, fl_t7: F6a | 0.2–0.56 M adımda iniş %0 (tekrarsız 1000+ iniş episode'unda bile) | (1) son görevin başarısı episode'u kısaltmasın (`end_at_deadline`; eskiden oturmak 43, 2 ft'te hover 60 getiri), (2) yere yakın havada collective indirme ödülü, (3) **yerde komut edilen collective'e ödül**: collective hız sınırlı (0.6/s), hedef kumanda mevcut kumandanın çok üstündeyken action'daki küçük değişiklik kumandayı değiştirmiyor → kumandaya bağlı ödüller yerel gradyan vermiyordu |
+| **fl_v8** | ajan 0.4 M adımda yerde kalmayı öğrendi; F6a 0.87 M, F6 1.5 M (det. %83), F7 3.5 M adımda (det. %67) | (F8'de sürüyor) |
 
 ## 32.5. Sonuçlar
 

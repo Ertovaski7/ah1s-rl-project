@@ -1929,7 +1929,7 @@ kalkış → hızlanma → Δ → duruş) → **F6a oturma okulu** (yerde hafif 
 | fl_v3 F6: F5'ten doğrudan iniş | 0.23 M adımda iniş %0: kızaklar ~2 ft'te hover, yerde başlasa havalanıyor (30.7'deki yerel optimum); deterministik F3 10/12 → 3/12 | F6a oturma okulu (yerde hafif yüklü / çok alçak hover başlangıçları) |
 | fl_v4–v6, fl_t7: F6a | 0.2–0.56 M adımda iniş %0 (tekrarsız 1000+ iniş episode'unda bile) | (1) son görevin başarısı episode'u kısaltmasın (`end_at_deadline`; eskiden oturmak 43, 2 ft'te hover 60 getiri), (2) yere yakın havada collective indirme ödülü, (3) **yerde komut edilen collective'e ödül**: collective hız sınırlı (0.6/s), hedef kumanda mevcut kumandanın çok üstündeyken action'daki küçük değişiklik kumandayı değiştirmiyor → kumandaya bağlı ödüller yerel gradyan vermiyordu |
 | fl_v8 | ajan 0.4 M adımda yerde kalmayı öğrendi; F6a 0.87 M, F6 1.5 M (det. %83), F7 3.5 M, F8 4.0 M adımda (det. %67) geçildi; takımda tüm görevler 12/21; yerinde dönüşte 17–42 ft kayma (ADS-33 yetersiz), orta türbülansta iniş, 9700 lbs'de geçişte 7–9 s 57 psi | F9 cila seviyesi (daha çok hover manevrası + sakin hover tekrarı); 56 psi üstüne doğrusal ek ceza |
-| **fl_v9** (cila, 5 M adım) | eğitim başarısı %45 → %70–85; yerinde dönüş %25 → %94, iniş %55 → %80; takımda en iyi ara model 4.5 M (tüm görevler 17/21, görev 102/105), 5 M'de iniş 8/13'e düştü | sonuç modeli = fl_v9 4.5 M |
+| **fl_v9** (cila, 5 M adım) | eğitim başarısı %45–64 → %70–88; son 100 komutta yerinde dönüş %43 → %85–98, iniş %66 → %77–86 (fl_v8'in F7'sinde dönüş %20–30); takımda en iyi ara model 4.5 M (tüm görevler 17/21, görev 102/105), 5 M'de iniş 8/13'e düştü | sonuç modeli = fl_v9 4.5 M |
 
 ## 32.5. Sonuçlar (ayrıntı: `docs/flight/README.md` bölüm 6)
 

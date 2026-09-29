@@ -44,6 +44,11 @@ takeoff_curriculum.py — seviyeler K1…K9, K5'ten itibaren ince ayar modu):
   %run train_command_curriculum.py --task takeoff --out runs/to --total-steps 12000000
   Seviyelerin `rehearse` / `p_rehearse` ayarı: eğitim env'lerinde episode'ların bir kısmı eski seviyelerden
   (unutmaya karşı); bu episode'lar seviye atlama istatistiğine girmez, log'da "tekrar:" diye ayrıca görünür.
+
+Tek ajanlı sürekli uçuş (2026-09-29; helicopter_env_flight.py, flight_curriculum.py — seviyeler F1…F9, görev × çevre;
+tork cezası, güç tavanı ve yakıt tüketimi baştan açık; rüzgâr / türbülans seviyenin çevre karışımından):
+  %run train_command_curriculum.py --task flight --out runs/fl_v1 --total-steps 20000000 --eval-freq 500000 \
+       --eval-episodes 12 --promote-on-eval --snapshot-freq 1000000
 """
 
 import argparse
@@ -67,6 +72,9 @@ INFO_KEYS = ("episode_success", "level_index", "commands_ok", "commands_total")
 
 
 def make_config(name: str, task: str = "command", overrides: dict | None = None):
+    if task == "flight":
+        from helicopter_env_flight import FlightEnvConfig
+        return FlightEnvConfig(**(overrides or {}))
     if task == "takeoff":
         from helicopter_env_takeoff import TakeoffEnvConfig
         return TakeoffEnvConfig(**(overrides or {}))
@@ -78,6 +86,9 @@ def make_config(name: str, task: str = "command", overrides: dict | None = None)
 
 
 def task_levels(task: str):
+    if task == "flight":
+        from flight_curriculum import DEFAULT_FLIGHT_LEVELS
+        return DEFAULT_FLIGHT_LEVELS
     if task == "takeoff":
         from takeoff_curriculum import DEFAULT_TAKEOFF_LEVELS
         return DEFAULT_TAKEOFF_LEVELS
@@ -93,6 +104,9 @@ def make_env_fn(rank: int, level_index: int, config_name: str, task: str = "comm
         # SubprocVecEnv işçisinde de repo kökü import yolunda olsun
         if str(REPO_ROOT) not in sys.path:
             sys.path.insert(0, str(REPO_ROOT))
+        if task == "flight":
+            from helicopter_env_flight import HelicopterEnvFlight
+            return HelicopterEnvFlight(level=level_index, config=make_config(config_name, task, overrides), rehearsal=train)
         if task == "takeoff":
             from helicopter_env_takeoff import HelicopterEnvTakeoff
             # train=True: seviyenin rehearse / p_rehearse ayarıyla eski seviyelerden de episode (unutmaya karşı)
@@ -355,9 +369,10 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--task", choices=["command", "maneuver", "takeoff"], default="command",
+    p.add_argument("--task", choices=["command", "maneuver", "takeoff", "flight"], default="command",
                    help="command: Δ komut curriculum'u (H1…R1); maneuver: süre hedefli manevralar (M1…M5, S1…S4); "
-                        "takeoff: yerden kalkış / hover / iniş, 4 kumanda doğrudan (K1…K9)")
+                        "takeoff: yerden kalkış / hover / iniş, 4 kumanda doğrudan (K1…K9); "
+                        "flight: tek ajan — kalkış / hover / ileri uçuş / duruş / iniş, rüzgâr / türbülans / yakıt (F1…F9)")
     p.add_argument("--out", default="runs/command_curriculum", help="çıktı klasörü (Colab'da Drive önerilir)")
     p.add_argument("--total-steps", type=int, default=6_000_000,
                    help="üst sınır; son seviye geçilince eğitim kendiliğinden biter")
@@ -420,15 +435,17 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
     if args.level is None:
-        args.level = {"maneuver": "M1", "takeoff": "K1"}.get(args.task, "H1")
+        args.level = {"maneuver": "M1", "takeoff": "K1", "flight": "F1"}.get(args.task, "H1")
     if args.fine_from is None:
-        args.fine_from = {"maneuver": "M3", "takeoff": "K5"}.get(args.task, "V1")
+        # flight: yeni beceriler F7'ye kadar (ileri uçuş, geçişler, zincir, iniş) → ince ayar yalnızca karma seviyelerde
+        args.fine_from = {"maneuver": "M3", "takeoff": "K5", "flight": "F8"}.get(args.task, "V1")
     if args.gamma is None:
-        args.gamma = 0.995 if args.task in ("maneuver", "takeoff") else 0.99
+        args.gamma = 0.995 if args.task in ("maneuver", "takeoff", "flight") else 0.99
     if args.log_std_init is None:
-        args.log_std_init = -1.2 if args.task == "takeoff" else -1.0     # kalkış: dört kumanda doğrudan, daha az gürültü
+        # kalkış / flight: dört kumanda doğrudan, daha az gürültü
+        args.log_std_init = -1.2 if args.task in ("takeoff", "flight") else -1.0
     if args.eval_levels is None:
-        args.eval_levels = {"takeoff": "K2,K4,K9"}.get(args.task, "M5,S2,S3")
+        args.eval_levels = {"takeoff": "K2,K4,K9", "flight": "F2,F4,F6"}.get(args.task, "M5,S2,S3")
     if str(args.fine_from).lower() == "none":
         args.fine_from = None
     if args.smoke:
@@ -479,23 +496,24 @@ def main(argv=None):
             print(f"[env] ayarlar: {args.env_overrides} (modelle birlikte kaydedilir)")
     elif args.coll_scale is not None:
         raise SystemExit("--coll-scale yalnızca --task maneuver için")
-    if args.task == "takeoff":
-        # kalkış env ayarları (2026-09-28: repo uçağı / kalibre yer etkisi / güç tavanı / tork gözlemi ve cezası):
-        # modelin taşıdığı + --env-overrides. Model bu ayarlarla kaydedilir (evaluate_takeoff, command_viz okur).
+    if args.task in ("takeoff", "flight"):
+        # kalkış / flight env ayarları (2026-09-28: repo uçağı / kalibre yer etkisi / güç tavanı / tork gözlemi ve cezası;
+        # 2026-09-29: physics_ext): modelin taşıdığı + --env-overrides. Model bu ayarlarla kaydedilir
+        # (evaluate_takeoff / evaluate_flight / command_viz okur).
         from helicopter_env_maneuver import read_env_overrides
-        from helicopter_env_takeoff import TakeoffEnvConfig
         args.env_overrides = dict(read_env_overrides(model_path)) if model_path is not None else {}
     cli_ov = json.loads(args.env_overrides_cli) if args.env_overrides_cli else {}
     if cli_ov:
-        if args.task not in ("takeoff", "maneuver"):
-            raise SystemExit("--env-overrides yalnızca --task takeoff / maneuver için")
+        if args.task not in ("takeoff", "maneuver", "flight"):
+            raise SystemExit("--env-overrides yalnızca --task takeoff / maneuver / flight için")
         args.env_overrides.update(cli_ov)
-    if args.task == "takeoff":
-        unknown = [k for k in args.env_overrides if k not in TakeoffEnvConfig.__dataclass_fields__]
+    if args.task in ("takeoff", "flight"):
+        cfg_cls = type(make_config(args.env_config, args.task))
+        unknown = [k for k in args.env_overrides if k not in cfg_cls.__dataclass_fields__]
         if unknown:
-            raise SystemExit(f"bilinmeyen kalkış env ayarı: {unknown}")
+            raise SystemExit(f"bilinmeyen {args.task} env ayarı: {unknown}")
         if args.env_overrides:
-            print(f"[env] kalkış ayarları: {args.env_overrides} (modelle birlikte kaydedilir)")
+            print(f"[env] {args.task} ayarları: {args.env_overrides} (modelle birlikte kaydedilir)")
     venv = build_vec_env(args.n_envs, level_index, args.vec, args.env_config, args.task, args.env_overrides)
     from dataclasses import asdict
     env_config = asdict(make_config(args.env_config, args.task, args.env_overrides))
@@ -533,7 +551,7 @@ def main(argv=None):
                                log_std_init=args.log_std_init),
             tensorboard_log=tb, seed=args.seed, verbose=0, device="cpu")
         print(f"[model] yeni PPO (rastgele ağırlıklar) — ağ {net}, σ0={np.exp(args.log_std_init):.2f}")
-    if args.task in ("maneuver", "takeoff"):
+    if args.task in ("maneuver", "takeoff", "flight"):
         from helicopter_env_maneuver import ENV_OVERRIDES_ATTR
         setattr(model, ENV_OVERRIDES_ATTR, dict(args.env_overrides))      # her kayıtta zip'e girer
 
@@ -543,7 +561,8 @@ def main(argv=None):
     t0 = time.time()
     try:
         model.learn(total_timesteps=args.total_steps, callback=cb, reset_num_timesteps=not args.resume,
-                    tb_log_name={"maneuver": "ppo_man", "takeoff": "ppo_takeoff"}.get(args.task, "ppo_cmd"),
+                    tb_log_name={"maneuver": "ppo_man", "takeoff": "ppo_takeoff", "flight": "ppo_flight"}.get(
+                        args.task, "ppo_cmd"),
                     progress_bar=False)
     except KeyboardInterrupt:
         print("\n[train] durduruldu (Ctrl+C / Colab stop) — kaydediliyor...")

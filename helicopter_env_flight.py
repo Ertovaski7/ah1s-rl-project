@@ -11,29 +11,33 @@ Farklar (2026-09-29, Aşama 2):
 * Fizik baştan açık: repo uçağı (kalibre yer etkisi), güç tavanı %100 tork (56 psi), tork gözlemi + cezası (kalkış
   env'inin K10 ayarları), yakıt tüketimi (physics_ext, el kitabı grafiği; iki tanktan eşit; bitince motor ayrılır →
   bölüm kesilir). Rüzgâr / gust / türbülans seviyenin çevre aşamasından (flight_curriculum.ENV_STAGES).
-* Trim HAVA HIZINA göre çizelgelenir: `trim_table.AirspeedTrimTable` (probe e; gövde ekseninde ileri hava hızı ×
-  ağırlık; u = 0'da hover trimi). Tabloya süzülmüş hava hızı girer (τ 2 s): türbülans kumandayı titretmesin. Trim
-  kayınca filtre durumu bir sonraki adımda yeni trime göre yeniden hesaplanır (kalkış env'inin hattı): sabit action'da
-  fiziksel kumanda trimle birlikte kayar (ileri besleme), a-uzayında sıçrama olmaz.
+* Trim hava hızına göre çizelgelenir: `trim_table.AirspeedTrimTable` (probe e; gövde ekseninde ileri hava hızı ×
+  ağırlık; u = 0'da hover trimi). Tabloya GÖREVİN REFERANS hızı girer (`trim_schedule="command"`): hover görevlerinde 0,
+  ileri uçuşta hedef hıza seviyenin ivmesiyle (2.5 ft/s²) rampa, duruşta 0'a yavaşlama oranıyla — ölçülen hız değil.
+  Neden (fl_v0, 2026-09-29): ölçülen hava hızıyla çizelgelenen trim helikopterin doğal hız kararlılığını (flapback)
+  sıfırlıyor — ileri kayınca trim de ileri cyclic ekliyor, sabit action'da sürüklenme kaçışa dönüyor; eğitimin başında
+  episode'ların ~%50'si 150 ft sapmayla bitti (kalkış env'inin K1'inde %2). Referans hızı ölçülen durumdan bağımsız
+  olduğundan geri besleme yok (iki serbestlik dereceli kontrolcüdeki ileri besleme gibi). Trim kayınca filtre durumu bir
+  sonraki adımda yeni trime göre yeniden hesaplanır (kalkış env'inin hattı): sabit action'da fiziksel kumanda trimle
+  birlikte kayar, a-uzayında sıçrama olmaz. Çizelge hızı gözlemde.
 * Yeni görevler (flight_curriculum):
     cruise — ileri uçuşta hava hızı (u*, gövde ekseninde ileri), heading ψ*, irtifa h* hedefleri; Δ'lar ölçülen duruma
              göre, komut verilmeyen eksen önceki hedefine devam eder. Konum hedefi helikopteri izler (konum hatası 0).
              Hover'dan verilen hız komutu = hızlanma (ileri uçuşa geçiş).
     stop   — ileri uçuştan duruş: referans noktası yer izi boyunca mevcut yer hızından sabit yavaşlamayla durur
              (depart'ın hareketli hedefi, tersine); sonra o noktada hover bandı.
-* Gözlem 41 = kalkış env'inin 29'u (ileri uçuşta konum hatası 0; takvim gecikmesinin ilk elemanı hız ekseni) + tork
+* Gözlem 42 = kalkış env'inin 29'u (ileri uçuşta konum hatası 0; takvim gecikmesinin ilk elemanı hız ekseni) + tork
   (1) + hava hızı ileri / yana, yer hızı ileri / yana (4; ileri uçuşa uygun ölçek; farkları rüzgârı dolaylı gösterir)
-  + ileri uçuş bayrağı, hız hatası (ince / kaba), hedef hava hızı (4) + hareketli hedefin hızı (2) + ağırlık (1).
-  Rüzgârın kendisi verilmez.
+  + ileri uçuş bayrağı, hız hatası (ince / kaba), hedef hava hızı (4) + hareketli hedefin hızı (2) + ağırlık (1)
+  + trim çizelgesinin hızı (1). Rüzgârın kendisi verilmez.
 * Ödül: hover görevlerinde kalkış env'inin ödülü (tork cezası dahil); ileri uçuşta hız / irtifa / heading çekirdekleri
   + yönlendirme (dikey hız, dönüş hızı, ivme) + ilerleme − takvim gecikmesi − süre aşımı − kuplaj − yana kayma − açı /
   oran − kumanda hızı − tork. Başarı: hız ±4 ft/s (süzülmüş hava hızı, τ 1 s), irtifa ±12 ft, heading ±3°, dikey hız
   ±4 ft/s, `cruise_hold_s` boyunca.
 """
 
-import json
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import gymnasium as gym
@@ -50,8 +54,12 @@ from trim_table import AirspeedTrimTable
 
 KT = 1.6878099
 REPO = Path(__file__).resolve().parent
-FLIGHT_EXTRA_OBS = 11
-OBS_DIM_F = OBS_DIM_T + 1 + FLIGHT_EXTRA_OBS            # 41 (torque_obs açık, track_obs kapalı)
+FLIGHT_EXTRA_OBS = 12
+OBS_DIM_F = OBS_DIM_T + 1 + FLIGHT_EXTRA_OBS            # 42 (torque_obs açık, track_obs kapalı)
+# türbülansta başarı bantları (tol_turb_scale ile çarpılır): tek sayılar ve (a, b, c) / limit demetleri
+TOL_SCALAR = ("tol_psi_deg", "tol_v_fps", "tol_vs_fps", "land_tol_xy_ft", "land_tol_psi_deg", "track_tol_xy",
+              "track_tol_v", "tol_u_fps", "tol_psi_cruise_deg", "tol_h_cruise_ft", "tol_vs_cruise_fps")
+TOL_TUPLE = ("tol_h", "tol_xy", "coupling_limits", "coupling_cruise")
 
 
 @dataclass
@@ -67,8 +75,10 @@ class FlightEnvConfig(TakeoffEnvConfig):
     physics: dict | None = field(default_factory=lambda: {"fuel": {"enable": True}})
     # --- trim çizelgesi ---------------------------------------------------------------------------------
     trim_table: str = "docs/physics_ext/trim_table_airspeed_repo_cap56.json"
-    trim_schedule: bool = True              # False → sabit hover trimi (kalkış env'i gibi; karşılaştırma için)
-    trim_u_tau_s: float = 2.0               # trim tablosuna giren hava hızının süzgeci
+    # "command": görevin referans hızı (varsayılan) · "airspeed": ölçülen hava hızı (süzgeç τ; fl_v0 — hover'da kaçış)
+    # · "off": sabit hover trimi (kalkış env'i gibi; karşılaştırma için)
+    trim_schedule: str = "command"
+    trim_u_tau_s: float = 2.0               # yalnızca "airspeed"
     # --- ileri uçuş: başarı -----------------------------------------------------------------------------
     u_meas_tau_s: float = 1.0               # hız hatası / başarı için süzülmüş hava hızı (türbülansta ±2 ft/s tutulamaz)
     tol_u_fps: float = 4.0
@@ -76,6 +86,11 @@ class FlightEnvConfig(TakeoffEnvConfig):
     tol_h_cruise_ft: float = 12.0
     tol_vs_cruise_fps: float = 4.0
     coupling_cruise: tuple = (15.0, 10.0, 40.0)   # komut verilmeyen eksen: hız ft/s, heading °, irtifa ft
+    # türbülansta bantlar (hover, ileri uçuş, duruş, iniş konumu / heading, kuplaj) bu katsayıyla genişler — ADS-33'teki
+    # "istenen" (desired) ↔ "yeterli" (adequate ≈ 2×) ayrımı gibi: sakin / hafifte istenen, ortada yeterli sınırlar.
+    # (Kural tabanlı pilot orta türbülansta ±4 ft/s / ±3° bandında 5 s kalamıyor: docs/flight/check_scripted.) Güvenlik
+    # sınırları ve iniş temas hızı değişmez.
+    tol_turb_scale: dict = field(default_factory=lambda: {"none": 1.0, "light": 1.25, "moderate": 2.0, "severe": 2.5})
     # --- ileri uçuş: ödül ----------------------------------------------------------------------------------
     w_u: float = 1.0
     kernel_u: tuple = (2.0, 15.0)
@@ -109,12 +124,16 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         if not cfg.torque_obs or cfg.track_obs:
             raise ValueError("flight env: torque_obs=True, track_obs=False (kendi hedef hızı gözlemi var)")
         super().__init__(level=0, levels=levels, config=cfg, rehearsal=rehearsal)
+        self._base_cfg = cfg
+        self._cfg_cache = {}
+        self.tol_scale = 1.0
         self.level_index = find_flight_level(level, self.levels)
         path = Path(cfg.trim_table)
         self.trim_tab = AirspeedTrimTable(path if path.is_absolute() else REPO / path)
         self.obs_dim = OBS_DIM_F
         self.observation_space = spaces.Box(-5.0, 5.0, shape=(self.obs_dim,), dtype=np.float32)
-        self.u_trim = 0.0                   # trim çizelgesinin süzülmüş hava hızı (ft/s)
+        self.u_trim = 0.0                   # "airspeed": süzülmüş hava hızı (ft/s)
+        self.u_ff = 0.0                     # "command": görev referansının trim hızı (ft/s)
         self.u_meas = 0.0                   # başarı / hız hatası için süzülmüş hava hızı (ft/s)
         self.u_dot = 0.0
         self._u_prev = 0.0
@@ -128,19 +147,42 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
     def _air(self) -> dict:
         return air_ground_velocities(self.fdm)
 
+    def _table_trim(self, u_fps: float, weight: float, h_agl: float) -> np.ndarray:
+        return np.clip(self.trim_tab(u_fps / KT, weight, h_agl), CTRL_LO, CTRL_HI)
+
     def _trim_for(self, u_fps: float, weight: float, h_agl: float) -> np.ndarray:
-        if not self.cfg.trim_schedule:
+        if self.cfg.trim_schedule == "off":
             return np.asarray(self.cfg.hover_trim, dtype=np.float64)
-        c = self.trim_tab(u_fps / KT, weight, h_agl)
-        return np.clip(c, CTRL_LO, CTRL_HI)
+        return self._table_trim(u_fps, weight, h_agl)
+
+    def _sched_speed(self) -> float:
+        """Trim çizelgesine giren hız (ft/s)."""
+        return self.u_trim if self.cfg.trim_schedule == "airspeed" else (
+            self.u_ff if self.cfg.trim_schedule == "command" else 0.0)
+
+    def _ff_target(self) -> tuple[float, float]:
+        """'command' çizelgesi: (hedef hız ft/s, rampa ft/s²) — ileri uçuşta hedef hava hızı (seviyenin ivme /
+        yavaşlaması), duruşta 0 (referansın yavaşlaması), hover görevlerinde 0."""
+        lv = self.ep_level
+        w = self.windows[-1] if self.windows else None
+        if w is not None and w["kind"] == "cruise" and self.cruise is not None:
+            tgt = float(self.cruise["u"])
+            return tgt, (lv.cruise_accel_fps2 if tgt >= self.u_ff else lv.cruise_decel_fps2)
+        if w is not None and w["kind"] == "stop" and self.track is not None:
+            return 0.0, max(0.5, float(self.track["a"]))
+        return 0.0, lv.cruise_decel_fps2
 
     def _update_trim(self, s: dict):
-        """Süzgeçler (hava hızı) + trim çizelgesi. step() başında, action hattından ÖNCE çağrılır."""
+        """Trim çizelgesi. step() başında, action hattından ÖNCE çağrılır."""
         cfg = self.cfg
-        u_air = float(self.fdm["velocities/u-aero-fps"])
-        a_t = 1.0 - math.exp(-CONTROL_DT / cfg.trim_u_tau_s)
-        self.u_trim += a_t * (u_air - self.u_trim)
-        self.trim = self._trim_for(self.u_trim, s["weight"], s["h"])
+        if cfg.trim_schedule == "airspeed":
+            u_air = float(self.fdm["velocities/u-aero-fps"])
+            a_t = 1.0 - math.exp(-CONTROL_DT / cfg.trim_u_tau_s)
+            self.u_trim += a_t * (u_air - self.u_trim)
+        elif cfg.trim_schedule == "command":
+            tgt, rate = self._ff_target()
+            self.u_ff += float(np.clip(tgt - self.u_ff, -rate * CONTROL_DT, rate * CONTROL_DT))
+        self.trim = self._trim_for(self._sched_speed(), s["weight"], s["h"])
 
     def _ige_coll(self, weight: float) -> float:
         """İniş ödülünde IGE collective'i: tablonun hover trimi (ağırlığı içeriyor) − 0.04 + yer etkisi farkı."""
@@ -189,6 +231,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         else:
             self.env_stage, env_opts = lv.sample_env(rng)
         self.ext.begin_episode(rng, psi0, env_opts)
+        self.cfg = self._cfg_for_turb(self.ext.params.get("turb_level", "none"))
         errors, info = [], {}
         for attempt in range(3):
             try:
@@ -217,7 +260,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         else:
             raise RuntimeError("başlangıç koşulu kurulamadı: " + " | ".join(errors))
         self.setup_info = dict(info, errors=errors, start=start, h0=h0, psi0=psi0, fuel=fuel, touch_coll=c_touch,
-                               start_speed_kt=u0_kt, env_stage=self.env_stage,
+                               start_speed_kt=u0_kt, env_stage=self.env_stage, tol_scale=self.tol_scale,
                                weight=float(self.fdm["inertia/weight-lbs"]), cg_x_in=float(self.fdm["inertia/cg-x-in"]))
         self.setup_info.pop("ctrl", None)
         pert = float(options.get("start_perturb", lv.start_perturb)) if start == "hover" else 0.0
@@ -228,13 +271,26 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
                                     dphi=float(rng.uniform(-3, 3)) * pert, dtheta=float(rng.uniform(-3, 3)) * pert)
         return self._handover(lv, options, start, ep_idx)
 
+    def _cfg_for_turb(self, level: str) -> FlightEnvConfig:
+        """Bölümün türbülans seviyesine göre bantları genişletilmiş config (önbellekli; seviye 'none' → temel config)."""
+        b = self._base_cfg
+        k = float(b.tol_turb_scale.get(level, 1.0))
+        self.tol_scale = k
+        if abs(k - 1.0) < 1e-12:
+            return b
+        if k not in self._cfg_cache:
+            upd = {f: float(getattr(b, f)) * k for f in TOL_SCALAR}
+            upd.update({f: tuple(float(v) * k for v in getattr(b, f)) for f in TOL_TUPLE})
+            self._cfg_cache[k] = replace(b, **upd)
+        return self._cfg_cache[k]
+
     def _settle_cruise(self, h0: float, u0: float, psi0: float, fuel) -> tuple[bool, dict]:
         """Yalnızca reset: ileri uçuşta başlangıç için hava hızı / irtifa / heading / yana hava hızı tutan PID (policy'ye
         action önermez). İleri besleme = trim tablosu. Rüzgârda IC yer hızı = hava hızı + rüzgâr."""
         cfg = self.cfg
         f = self.fdm
         w = 8500.0 + float(sum(fuel))
-        ff = self._trim_for(u0, w, h0)
+        ff = self._table_trim(u0, w, h0)
         self._write_controls(ff)
         ps = math.radians(psi0)
         wn, we = self.ext.wind_ned
@@ -254,7 +310,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         while t < cfg.cruise_settle_max_s:
             s = self._state()
             a = self._air()
-            ff = self._trim_for(a["u_air"], s["weight"], s["h"])
+            ff = self._table_trim(a["u_air"], s["weight"], s["h"])
             eu, ev = u0 - a["u_air"], -a["v_air"]
             evs = float(np.clip(0.4 * (h0 - s["h"]), -6, 6)) - s["vs"]
             eps = wrap_deg(psi0 - s["psi_deg"])
@@ -286,9 +342,10 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         # süzgeçler mevcut hava hızıyla başlasın; trim bu hıza göre (filtre durumu kumanda − trim'den)
         a = self._air()
         self.u_trim = self.u_meas = self._u_prev = a["u_air"]
+        self.u_ff = a["u_air"] if start == "cruise" else 0.0
         self.u_dot = 0.0
         s0 = self._state()
-        self.trim = self._trim_for(self.u_trim, s0["weight"], s0["h"])
+        self.trim = self._trim_for(self._sched_speed(), s0["weight"], s0["h"])
         self.cruise = None
         if start == "cruise" and "tasks" not in options:        # takvim ileri uçuş başlangıcına göre (hover'ınki değil)
             options = dict(options, tasks=lv.sample_schedule(self.np_random, "cruise"))
@@ -487,6 +544,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         if w.get("category"):
             r["category"] = "interrupted" if w["interrupted"] else w["category"]
         r["u_target_kt"] = w.get("u_target", 0.0) / KT
+        r["active"] = list(w["active"])
         fe = w.get("final_err") or {}
         r["final_err"]["speed"] = float(fe.get("u", 0.0))
         r["max_abs_err"] = dict(w["max_err"])
@@ -505,7 +563,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             a["u_air"] / 100.0, a["v_air"] / 30.0, a["u_gnd"] / 100.0, a["v_gnd"] / 30.0,
             1.0 if cr else 0.0, float(np.clip(e["u"] / 10.0, -3.0, 3.0)), e["u"] / 60.0,
             (self.cruise["u"] / 100.0) if self.cruise is not None else 0.0,
-            vf / 100.0, vr / 100.0, (s["weight"] - 9000.0) / 1000.0,
+            vf / 100.0, vr / 100.0, (s["weight"] - 9000.0) / 1000.0, self._sched_speed() / 100.0,
         ], dtype=np.float64)
         extra = np.clip(np.nan_to_num(extra, nan=0.0, posinf=5.0, neginf=-5.0), -5.0, 5.0)
         return np.concatenate([base, extra.astype(np.float32)])
@@ -722,6 +780,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
                  ground_speed_lat=a["v_gnd"], u_meas_kt=self.u_meas / KT, cruise=self._in_cruise(),
                  u_target_kt=(self.cruise["u"] / KT if self.cruise is not None else float("nan")),
                  err_speed=e.get("u", 0.0), trim=[float(x) for x in self.trim], env_stage=self.env_stage,
+                 trim_speed_kt=self._sched_speed() / KT,
                  fuel_lbs=fuel_total(self.fdm), wind_n=self.ext.wind_ned[0], wind_e=self.ext.wind_ned[1])
         return d
 

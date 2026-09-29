@@ -1,4 +1,4 @@
-Probe (a) — tam depoyla yakıtın bitme süresi (300 ft AGL, 2 × 890 lbs, eşit çekim, stok uçak)
+Probe (a) — tam depoyla yakıtın bitme süresi (300 ft AGL, 2 × 890 lbs, eşit çekim, repo uçağı + 56 psi güç tavanı)
 
 koşul  yakıt modeli | bitiş saat | 56 psi üstü dk | 50 psi üstü dk | tepe psi | olay
 hover  chart       |       2.38 |           16.9 |           78.0 |     64.7 | fuel_exhausted

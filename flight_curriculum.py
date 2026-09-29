@@ -191,7 +191,7 @@ def find_flight_level(level, levels=None) -> int:
 # ---------------------------------------------------------------------------------
 #
 #   seviye | görev                                            | çevre
-#   F1     | hover tut + hover manevraları (havada başla)     | E0
+#   F1     | hover tut (havada başla)                         | E0
 #   F2     | kalkış (alçak / orta) + hover manevraları        | E0
 #   F3     | ileri uçuş: hız / heading / irtifa (tek eksen)   | E0 (%70) + E1
 #   F4     | ileri uçuş: birleşik + kesen komutlar            | E0 / E1
@@ -209,15 +209,16 @@ _FUEL = (150.0, 600.0)          # tank başına → 8800–9700 lbs (OGE hover �
 
 DEFAULT_FLIGHT_LEVELS: list[FlightLevel] = [
     FlightLevel(
-        name="F1", description="Hover: havada başla (15–300 ft), tut; 0–2 hover manevrası (dönüş / kayma / bob)",
-        p_hover_start=1.0, hover_start_alt_ft=(15.0, 300.0), start_perturb=0.3, hold_first_s=8.0, n_tasks=(0, 2),
-        task_probs=_HOVER_MIX, turn_deg=(30.0, 120.0), move_ft=(15.0, 50.0), bob_ft=(15.0, 40.0), fuel_lbs=_FUEL,
-        promote_threshold=0.75),
+        name="F1", description="Hover'ı tut: havada başla (15–300 ft, küçük bozukluk), 10 s sabit kal (kalkış "
+                               "curriculum'unun K1'i gibi)",
+        p_hover_start=1.0, hover_start_alt_ft=(15.0, 300.0), start_perturb=0.3, hold_first_s=10.0, hold_T_s=10.0,
+        fuel_lbs=_FUEL, promote_threshold=0.8),
     FlightLevel(
-        name="F2", description="Kalkış → 10–300 ft hover + 0–2 hover manevrası",
-        p_hover_start=0.3, hover_start_alt_ft=(15.0, 300.0), takeoff_alt_ft=(10.0, 300.0), n_tasks=(0, 2),
-        task_probs=_HOVER_MIX, climb_fps=8.0, lag_s=5.0, fuel_lbs=_FUEL, promote_threshold=0.75,
-        rehearse=("F1",), p_rehearse=0.3),
+        name="F2", description="Kalkış → 10–300 ft hover + 0–2 hover manevrası (dönüş / kayma / bob); %40 havada "
+                               "başlayıp manevra",
+        p_hover_start=0.4, hover_start_alt_ft=(15.0, 300.0), takeoff_alt_ft=(10.0, 300.0), n_tasks=(0, 2),
+        task_probs=_HOVER_MIX, turn_deg=(30.0, 120.0), move_ft=(15.0, 50.0), bob_ft=(15.0, 40.0), climb_fps=8.0,
+        lag_s=5.0, fuel_lbs=_FUEL, promote_threshold=0.75, rehearse=("F1",), p_rehearse=0.3),
     FlightLevel(
         name="F3", description="İleri uçuş (40–100 kt, 150–800 ft): hız ±10–25 kt / heading ±20–90° / irtifa ±50–200 ft, "
                                "tek eksen; %30 hafif rüzgâr",

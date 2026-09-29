@@ -18,6 +18,10 @@ zaman serilerini görürsün. Aynı sayfa kayıtlı uçuşları da oynatır.
       yunuslama komutları görünür. Manevra sürerken yeni komut verilebilir (önceki «kesilir»).
       Env, modelin zip'inde taşıdığı ayarlarla kurulur (dayanıklı model: collective ±0.45).
   komut (models_command_curriculum/v2_R1_final.zip): helicopter_env_command.py, 15 ft/s civarı.
+  kalkış (models_takeoff/…): helicopter_env_takeoff.py — yerden kalkış, hover manevraları, iniş (4 kumanda doğrudan).
+  uçuş (models_flight/flight_final.zip, 2026-09-29): helicopter_env_flight.py — tek ajan: kalkış → hover → ileri uçuşa
+      geçiş → ileri uçuşta Δhız / Δheading / Δirtifa → duruş → iniş; rüzgâr / türbülans / yakıt / tork. Sayfada rüzgâr
+      oku, yakıt ve tork göstergeleri; yeniden başlatmada rüzgâr, türbülans ve yakıt seçilir.
 
 Kullanım
 --------
@@ -25,6 +29,7 @@ Kullanım
     python command_viz.py                       # dayanıklı manevra modeli → http://127.0.0.1:8765
     python command_viz.py --model models_maneuver/maneuver_M5_final.zip                    # önceki manevra modeli
     python command_viz.py --model models_command_curriculum/v2_R1_final.zip --port 8766   # eski komut modeli
+    python command_viz.py --model models_flight/flight_final.zip --start ground --wind-kt 15 --turb light   # tek ajan
   Colab (hücrede, satır içi; localhost / paylaşım linki yok):
     import command_viz; command_viz.colab()
   Kayıtlı demo uçuşları üret (sayfanın "kayıt" modu için):
@@ -59,6 +64,8 @@ from helicopter_env_command import CONTROL_DT, CommandEnvConfig, HelicopterEnvCo
 from helicopter_env_maneuver import (ENV_OVERRIDES_ATTR, OBS_DIM_M, HelicopterEnvManeuver,  # noqa: E402
                                      ManeuverEnvConfig)
 from helicopter_env_takeoff import OBS_DIM_T, HelicopterEnvTakeoff, TakeoffEnvConfig  # noqa: E402
+from helicopter_env_flight import OBS_DIM_F, FlightEnvConfig, HelicopterEnvFlight  # noqa: E402
+from flight_curriculum import CRUISE_MAX_ALT_FT, CRUISE_MAX_KT, CRUISE_MIN_ALT_FT, CRUISE_MIN_KT  # noqa: E402
 from maneuver_curriculum import DEFAULT_MANEUVER_LEVELS  # noqa: E402
 from takeoff_curriculum import DEFAULT_TAKEOFF_LEVELS, GROUND_H_FT, TANK_CAPACITY_LBS  # noqa: E402
 
@@ -69,13 +76,17 @@ COMMAND_POLICY = REPO_ROOT / "models_command_curriculum" / "v2_R1_final.zip"
 MANEUVER_POLICY = REPO_ROOT / "models_maneuver" / "maneuver_M5_final.zip"
 ROBUST_POLICY = REPO_ROOT / "models_maneuver" / "maneuver_robust_final.zip"     # collective ±0.45 + S4 ince ayar (README 29)
 TAKEOFF_POLICY = REPO_ROOT / "models_takeoff" / "takeoff_final.zip"              # yerden kalkış / hover / iniş, 4 kumanda (README 30)
+FLIGHT_POLICY = REPO_ROOT / "models_flight" / "flight_final.zip"                 # tek ajan: kalkış → ileri uçuş → iniş (README 32)
 # varsayılan: dayanıklı manevra modeli; yoksa M5 manevra modeli; o da yoksa eski komut modeli
 DEFAULT_POLICY = next((p for p in (ROBUST_POLICY, MANEUVER_POLICY) if p.exists()), COMMAND_POLICY)
 # görev başına varsayılan başlangıç (eğitim aralığının içinde)
 DEFAULT_START = {"command": dict(alt=300.0, speed=15.0, heading=0.0, seed=0),
                  "maneuver": dict(alt=800.0, speed=101.3, heading=0.0, seed=0),       # 800 ft, 60 kt
                  # kalkış: yerde (rotor warm-up sonrası) ya da havada hover; yakıt tank başına lbs
-                 "takeoff": dict(start="ground", alt=100.0, speed=0.0, heading=0.0, seed=0, fuel=[0.0, 0.0])}
+                 "takeoff": dict(start="ground", alt=100.0, speed=0.0, heading=0.0, seed=0, fuel=[0.0, 0.0]),
+                 # tek ajan: + ileri uçuşta başlangıç (hava hızı kt), rüzgâr (kt, heading'e göre yön °), türbülans
+                 "flight": dict(start="ground", alt=100.0, speed=0.0, speed_kt=60.0, heading=0.0, seed=0,
+                                fuel=[300.0, 300.0], wind_kt=0.0, wind_dir=0.0, turb="none", gusts=False)}
 FORMAT = "ah1s-command-flight/1"
 EARTH_RADIUS_FT = 20_902_231.0
 LIVE_EPISODE_S = 4 * 3600.0              # canlı uçuşta zaman sınırı pratikte yok
@@ -96,6 +107,10 @@ COLUMNS = [
     ("phi_c", 2), ("theta_c", 2),                        # manevra env'i: attitude komutu (°); komut env'inde boş
     ("tx", 1), ("ty", 1), ("wow", 0), ("wf", 2),         # kalkış env'i: hedef konum (doğu / kuzey ft), yerdeki kızak sayısı,
                                                          # kızaklardaki ağırlık oranı
+    # uçuş env'i (tek ajan): hava hızı ileri kt, hedef hava hızı kt (ileri uçuş penceresinde), trim çizelgesinin hızı kt,
+    # toplam rüzgâr kuzey / doğu ft/s (ortalama + türbülans + gust), tork psi, yakıt lbs, yana hava hızı ft/s,
+    # hız hatası ft/s (süzülmüş), ileri uçuş bayrağı
+    ("ua", 2), ("uat", 2), ("uff", 2), ("wn", 2), ("we", 2), ("tq", 2), ("fuel", 1), ("va", 2), ("esp", 2), ("cr", 0),
 ]
 COLS = [c for c, _ in COLUMNS]
 AXIS_ERR_COL = {"heading": "e_psi", "speed": "e_u", "altitude": "e_h"}
@@ -131,7 +146,28 @@ def _limits_takeoff(cfg: TakeoffEnvConfig) -> dict:
     )
 
 
+def _limits_flight(cfg: FlightEnvConfig) -> dict:
+    """Tek ajan: kalkış görevinin sınırları + ileri uçuş bandı, tork / yakıt, türbülans bant katsayıları."""
+    L = _limits_takeoff(cfg)
+    L["task"] = "flight"
+    L["flight"] = dict(tol_u_fps=cfg.tol_u_fps, tol_psi_cruise_deg=cfg.tol_psi_cruise_deg, tol_h_cruise_ft=cfg.tol_h_cruise_ft,
+                       tol_vs_cruise_fps=cfg.tol_vs_cruise_fps, coupling_cruise=list(cfg.coupling_cruise),
+                       tol_turb_scale=dict(cfg.tol_turb_scale), max_airspeed_kt=cfg.max_airspeed_kt,
+                       max_roll_cruise_deg=cfg.max_roll_cruise_deg, torque_cont_psi=cfg.torque_cont_psi,
+                       torque_max_psi=cfg.torque_max_psi, fuel_capacity_lbs=2.0 * TANK_CAPACITY_LBS,
+                       trim_schedule=cfg.trim_schedule, power_cap_psi=cfg.power_cap_psi)
+    L["safety"].update(max_airspeed_kt=cfg.max_airspeed_kt, max_roll_cruise_deg=cfg.max_roll_cruise_deg,
+                       flyaway_track_ft=cfg.flyaway_track_ft)
+    L["trained"].update(cruise_kt=[CRUISE_MIN_KT, CRUISE_MAX_KT], cruise_alt_ft=[CRUISE_MIN_ALT_FT, CRUISE_MAX_ALT_FT],
+                        du_kt=35.0, dpsi_deg=180.0, dh_ft=300.0, accel_kt=[40.0, 80.0], wind_kt=[0.0, 25.0],
+                        turb=["none", "light", "moderate"], weight_lbs=[8800.0, 9700.0], fuel_lbs=[150.0, 600.0],
+                        start_alt_ft=[12.0, 1000.0])
+    return L
+
+
 def _limits(cfg: CommandEnvConfig, task: str = "command") -> dict:
+    if task == "flight":
+        return _limits_flight(cfg)
     if task == "takeoff":
         return _limits_takeoff(cfg)
     if task == "maneuver":
@@ -187,6 +223,21 @@ def task_text(t: dict) -> str:
         return f"bob {t.get('dh', 0):+.0f} ft"
     if k == "recover":
         return f"bozucu {t.get('dist', '')}"
+    if k == "cruise":
+        if t.get("hold"):
+            return "ileri uçuşu tut"
+        p = []
+        if "u_kt" in t:
+            p.append(f"{'hızlan' if t.get('accel') else 'hız'} → {t['u_kt']:.0f} kt")
+        if t.get("du_kt"):
+            p.append(f"Δhız {t['du_kt']:+.0f} kt")
+        if t.get("dpsi"):
+            p.append(f"Δψ {t['dpsi']:+.0f}°")
+        if t.get("dh"):
+            p.append(f"Δh {t['dh']:+.0f} ft")
+        return "ileri uçuş: " + (", ".join(p) or "devam")
+    if k == "stop":
+        return "dur (hover)"
     return {"land": "iniş", "hold": "hover tut"}.get(k, str(k))
 
 
@@ -304,8 +355,13 @@ class LiveFlight:
         # görev modelin observation boyutundan anlaşılır (komut 19, manevra 24, kalkış 29; kalkışa 2026-09-28'de
         # tork (+1) ve hareketli hedef hızı (+2) eklendi → 30 / 31 / 32)
         takeoff_dims = {OBS_DIM_T, OBS_DIM_T + 1, OBS_DIM_T + 2, OBS_DIM_T + 3}
-        self.task = task or ("takeoff" if obs_dim in takeoff_dims else {OBS_DIM_M: "maneuver"}.get(obs_dim, "command"))
-        if self.task == "takeoff":
+        self.task = task or ("flight" if obs_dim == OBS_DIM_F else "takeoff" if obs_dim in takeoff_dims
+                             else {OBS_DIM_M: "maneuver"}.get(obs_dim, "command"))
+        self.is_to = self.task in ("takeoff", "flight")          # görev listesi / pencereler kalkış env'inin yapısında
+        if self.task == "flight":
+            cfg = FlightEnvConfig(**self.env_overrides)
+            self.env = HelicopterEnvFlight(level=level or "F9", config=cfg)
+        elif self.task == "takeoff":
             cfg = TakeoffEnvConfig(**self.env_overrides)
             self.env = HelicopterEnvTakeoff(level=level or "K9", config=cfg)
         elif self.task == "maneuver":
@@ -359,7 +415,7 @@ class LiveFlight:
                                status=self._status()))
 
     def request_command(self, delta: dict) -> dict:
-        if self.task == "takeoff":
+        if self.is_to:
             return self._request_task(delta or {})
         try:
             d = {a: float((delta or {}).get(a, 0.0) or 0.0) for a in AXES}
@@ -383,9 +439,9 @@ class LiveFlight:
             self._pending_cmds.append(d)
             return dict(ok=True, queued=d, message="Komut kuyruğa alındı.")
 
-    def request_reset(self, alt=None, speed=None, heading=None, seed=None, start=None, fuel=None, **_ignored) -> dict:
-        if self.task == "takeoff":
-            return self._request_reset_takeoff(alt, heading, seed, start, fuel)
+    def request_reset(self, alt=None, speed=None, heading=None, seed=None, start=None, fuel=None, **extra) -> dict:
+        if self.is_to:
+            return self._request_reset_takeoff(alt, heading, seed, start, fuel, **extra)
         opts = dict(self.start_opts)
         try:
             if alt is not None:
@@ -409,14 +465,37 @@ class LiveFlight:
     # ---------------- kalkış görevi (yerden kalkış / hover / iniş) ----------------
 
     TASK_KINDS = ("takeoff", "climb_to", "turn", "move", "bob", "land", "recover")
+    FLIGHT_KINDS = ("cruise", "accel", "stop", "hold")
 
     def _request_task(self, d: dict) -> dict:
         kind = str(d.get("kind") or "")
-        if kind not in self.TASK_KINDS:
+        if kind not in self.TASK_KINDS + (self.FLIGHT_KINDS if self.task == "flight" else ()):
             return dict(ok=False, message="Bilinmeyen görev.")
         try:
             num = lambda k, default=0.0: float(d.get(k, default) if d.get(k, default) not in (None, "") else default)  # noqa: E731
-            if kind in ("takeoff", "climb_to"):
+            if kind == "cruise":                    # ileri uçuşta Δ (ölçülen duruma göre; verilmeyen eksen hedefine devam)
+                task = dict(kind="cruise")
+                for k2, lim in (("du_kt", 60.0), ("dpsi", 360.0), ("dh", 500.0)):
+                    v = num(k2)
+                    if v:
+                        if abs(v) > lim:
+                            return dict(ok=False, message=f"{k2} en fazla ±{lim:.0f}.")
+                        task[k2] = v
+                if len(task) == 1:
+                    return dict(ok=False, message="İleri uçuş: en az bir eksende (Δhız / Δψ / Δh) sıfırdan farklı değer gir.")
+            elif kind == "accel":                   # hover'dan / düşük hızdan ileri uçuşa geçiş
+                task = dict(kind="cruise", u_kt=num("u_kt", 60.0), dh=num("dh", 100.0), accel=True)
+                if not CRUISE_MIN_KT <= task["u_kt"] <= CRUISE_MAX_KT:
+                    return dict(ok=False, message=f"Hızlanma hedefi {CRUISE_MIN_KT:.0f}–{CRUISE_MAX_KT:.0f} kt olmalı.")
+                if not -200.0 <= task["dh"] <= 500.0:
+                    return dict(ok=False, message="Hızlanırken tırmanış −200…+500 ft olmalı.")
+            elif kind == "stop":                    # ileri uçuştan duruş (hover)
+                task = dict(kind="stop", decel=num("decel", 2.5))
+                if not 1.0 <= task["decel"] <= 4.0:
+                    return dict(ok=False, message="Yavaşlama 1–4 ft/s² olmalı.")
+            elif kind == "hold":
+                task = dict(kind="hold")
+            elif kind in ("takeoff", "climb_to"):
                 task = dict(kind=kind, h=num("h"))
                 if not 12.0 <= task["h"] <= 1000.0:
                     return dict(ok=False, message="Hedef irtifa 12–1000 ft (CG, yerden) olmalı.")
@@ -460,13 +539,33 @@ class LiveFlight:
             self._pending_cmds.append(dict(task=task))
             return dict(ok=True, queued=task, message="Görev kuyruğa alındı.")
 
-    def _request_reset_takeoff(self, alt, heading, seed, start, fuel) -> dict:
+    def _request_reset_takeoff(self, alt, heading, seed, start, fuel, speed_kt=None, wind_kt=None, wind_dir=None,
+                               turb=None, gusts=None, **_ignored) -> dict:
         opts = dict(self.start_opts)
+        fl = self.task == "flight"
         try:
             if start is not None:
-                if start not in ("ground", "hover"):
-                    return dict(ok=False, message="Başlangıç: ground (yerde) ya da hover (havada).")
+                if start not in (("ground", "hover", "cruise") if fl else ("ground", "hover")):
+                    return dict(ok=False, message="Başlangıç: ground (yerde), hover (havada)"
+                                + (" ya da cruise (ileri uçuşta)." if fl else "."))
                 opts["start"] = start
+            if fl:
+                if speed_kt is not None:
+                    opts["speed_kt"] = float(speed_kt)
+                if wind_kt is not None:
+                    opts["wind_kt"] = float(wind_kt)
+                if wind_dir is not None:
+                    opts["wind_dir"] = float(wind_dir) % 360.0
+                if turb is not None:
+                    if turb not in ("none", "light", "moderate", "severe"):
+                        return dict(ok=False, message="Türbülans: none / light / moderate / severe.")
+                    opts["turb"] = turb
+                if gusts is not None:
+                    opts["gusts"] = bool(gusts)
+                if not 0.0 <= float(opts.get("wind_kt", 0.0)) <= 40.0:
+                    return dict(ok=False, message="Rüzgâr 0–40 kt olmalı (eğitim 0–25 kt).")
+                if opts.get("start") == "cruise" and not CRUISE_MIN_KT <= float(opts.get("speed_kt", 60.0)) <= CRUISE_MAX_KT:
+                    return dict(ok=False, message=f"İleri uçuşta başlangıç hızı {CRUISE_MIN_KT:.0f}–{CRUISE_MAX_KT:.0f} kt olmalı.")
             if alt is not None:
                 opts["alt"] = float(alt)
             opts["heading"] = None if heading in (None, "", "random") else float(heading) % 360.0
@@ -479,7 +578,7 @@ class LiveFlight:
                 opts["seed"] = int(seed)
         except (TypeError, ValueError):
             return dict(ok=False, message="Başlangıç değerleri sayı olmalı.")
-        if opts.get("start") == "hover" and not 12.0 <= float(opts.get("alt", 100.0)) <= 1000.0:
+        if opts.get("start") in ("hover", "cruise") and not 12.0 <= float(opts.get("alt", 100.0)) <= 1000.0:
             return dict(ok=False, message="Havada başlangıç irtifası 12–1000 ft olmalı.")
         with self.lock:
             self._pending_reset = opts
@@ -502,7 +601,11 @@ class LiveFlight:
                     deadline=w["deadline"], hold_s=w["hold_s"], allow_s=w["allow_s"], target=dict(w["target"]),
                     tol=list(w["tol"]), active=list(w["active"]), h_start=w.get("h_start"), verdict=None,
                     interrupted=False, streak_s=0.0, max_err=None, coupling_ok=True, settle_s=None, on_time=False,
-                    touchdown_vs=None, final_err=None))
+                    touchdown_vs=None, final_err=None, category=w.get("category", w["kind"]),
+                    u_target_kt=(w["u_target"] / 1.6878099 if w.get("u_target") else None),
+                    tol_scale=float(getattr(env, "tol_scale", 1.0)),
+                    stop_t_end=(float(env.track["t_end"]) if w["kind"] == "stop" and env.track and "t_end" in env.track
+                                else None)))
             c = self.commands[w2c[k]]
             st = w["settle_s"]
             c.update(streak_s=float(w["streak"]), max_err=dict(w["max_err"]), coupling_ok=bool(w["coupling_ok"]),
@@ -586,10 +689,19 @@ class LiveFlight:
     def _do_reset(self, opts: dict):
         with self.lock:
             self.state, self.message = "resetting", "Yeniden başlatılıyor…"
-        if self.task == "takeoff":
+        if self.is_to:
             options = dict(tasks=[dict(t) for t in (opts.get("tasks") or [])], episode_s=LIVE_EPISODE_S, live=True,
                            start=opts.get("start", "ground"), start_alt_ft=float(opts.get("alt", 100.0)),
                            fuel=tuple(opts.get("fuel") or (0.0, 0.0)), start_perturb=0.0)
+            if self.task == "flight":
+                options["start_speed_kt"] = float(opts.get("speed_kt", 60.0))
+                if options["start"] == "cruise" and not options["tasks"]:
+                    options["tasks"] = [dict(kind="cruise", hold=True)]    # ileri uçuşta başla: hız / heading / irtifayı tut
+                phys = dict(wind_kt=float(opts.get("wind_kt", 0.0)), wind_dir_deg=float(opts.get("wind_dir", 0.0)),
+                            wind_dir_relative=True, turb_level=str(opts.get("turb", "none")))
+                if opts.get("gusts"):
+                    phys.update(gust_rate_per_min=1.0, gust_kt=(5.0, 12.0))
+                options["physics"] = phys
         else:
             options = dict(commands=[], episode_s=LIVE_EPISODE_S, start_alt_ft=float(opts["alt"]),
                            start_speed_fps=float(opts["speed"]))
@@ -600,7 +712,7 @@ class LiveFlight:
         lat0, lon0 = float(f["position/lat-geod-rad"]), float(f["position/long-gc-rad"])
         ground = float(f["position/h-sl-ft"]) - float(f["position/h-agl-ft"])
         with self.lock:
-            self.start_opts = dict(opts)
+            self.start_opts = {k: v for k, v in opts.items() if k != "tasks"}    # görev listesi yeniden başlatmada tekrarlanmasın
             self._obs = obs
             self._lat0, self._lon0, self._ground_msl = lat0, lon0, ground
             self.flight_id += 1
@@ -613,10 +725,20 @@ class LiveFlight:
                              lat0_deg=math.degrees(lat0), lon0_deg=math.degrees(lon0), ground_msl_ft=ground,
                              setup=dict(mode=info["setup"].get("mode"), heading_deg=info["heading_deg"]),
                              created=datetime.now(timezone.utc).isoformat(timespec="seconds"))
-            if self.task == "takeoff":
+            if self.task == "flight":
+                self.meta.update(physics=dict(self.env.ext.params), fuel0_lbs=info.get("fuel_lbs"),
+                                 tol_scale=float(self.env.tol_scale))
+            if self.is_to:
                 where = ("yerde (rotor warm-up sonrası)" if opts.get("start", "ground") == "ground"
-                         else f"havada {info['altitude']:.0f} ft hover")
+                         else f"ileri uçuşta {info.get('airspeed_kt', 0):.0f} kt, {info['altitude']:.0f} ft"
+                         if opts.get("start") == "cruise" else f"havada {info['altitude']:.0f} ft hover")
                 msg = f"Başladı: {where}, heading {info['heading_deg']:.0f}°, {info.get('weight_lbs', 0):.0f} lbs"
+                if self.task == "flight":
+                    pp = self.env.ext.params
+                    msg += (f", rüzgâr {pp.get('wind_kt', 0):.0f} kt ({pp.get('wind_from_deg', 0):.0f}°'den)"
+                            if pp.get("wind_kt") else ", rüzgâr yok")
+                    if pp.get("turb_level", "none") != "none":
+                        msg += f", türbülans {pp['turb_level']}"
             else:
                 msg = f"Başladı: {opts['alt']:.0f} ft, {opts['speed']:.0f} ft/s, heading {info['heading_deg']:.0f}°"
             self.events.append(dict(t=0.0, type="start", message=msg))
@@ -629,7 +751,7 @@ class LiveFlight:
         with self.lock:
             pending, self._pending_cmds = self._pending_cmds, []
         for d in pending:
-            if self.task == "takeoff":
+            if self.is_to:
                 task = dict(d["task"])
                 if task.get("kind") == "recover" and task.get("dist") == "push":
                     ps = math.radians(env._state()["psi_deg"])      # burun eksenine göre itki → kuzey / doğu
@@ -649,7 +771,7 @@ class LiveFlight:
         with self.lock:
             self._obs = obs
             self.rows.append(self._row(info, np.clip(action, -1, 1), env.filt, info["controls"], reward))
-            self._sync_windows_takeoff() if self.task == "takeoff" else self._sync_windows()
+            self._sync_windows_takeoff() if self.is_to else self._sync_windows()
             if term or trunc:
                 self._done = True
                 self.termination = info.get("termination") or ("time_limit" if trunc else "?")
@@ -659,7 +781,7 @@ class LiveFlight:
                                                 final_err=r.get("final_err"), max_abs_err=r.get("max_abs_err"),
                                                 settle_s=r.get("settle_s"), on_time=r.get("on_time"),
                                                 interrupted=bool(r.get("interrupted")))
-                        if self.task == "takeoff":
+                        if self.is_to:
                             self.commands[k].update(max_err=r.get("max_abs_err"), touchdown_vs=r.get("touchdown_vs"))
                 self.state = "done"
                 self.message = f"Uçuş bitti: {self.termination}"
@@ -689,7 +811,7 @@ class LiveFlight:
                          settle_s=w.get("settle_s"), on_time=w.get("on_time"), interrupted=bool(w.get("interrupted")))
 
     def _row(self, info: dict, action, filt, controls, reward) -> list:
-        if self.task == "takeoff":                         # konum env'in pad çerçevesinde (doğu / kuzey ft)
+        if self.is_to:                                     # konum env'in pad çerçevesinde (doğu / kuzey ft)
             tg = info["target"]
             vals = [info["t"], info["east"], info["north"], info["altitude"], info["heading_deg"], info["speed"],
                     info["lateral_speed"], info["vertical_speed"], info["roll_deg"], info["pitch_deg"],
@@ -697,6 +819,13 @@ class LiveFlight:
                     info["err_heading"], info["err_xy"], info["err_altitude"],
                     *[float(v) for v in action], *[float(v) for v in filt], *[float(v) for v in controls], reward,
                     None, None, tg["e"], tg["n"], info["wow"], info["weight_on_skids"]]
+            if self.task == "flight":
+                f = self.env.fdm
+                vals += [info["airspeed_kt"], info["u_target_kt"] if info.get("cruise") else None, info["trim_speed_kt"],
+                         float(f["atmosphere/total-wind-north-fps"]), float(f["atmosphere/total-wind-east-fps"]),
+                         info["torque_psi"], info["fuel_lbs"], info["lateral_airspeed"], info["err_speed"],
+                         1.0 if info.get("cruise") else 0.0]
+            vals += [None] * (len(COLUMNS) - len(vals))
             return [round(float(v), nd) if _finite(v) else None for v, (_, nd) in zip(vals, COLUMNS)]
         f = self.env.fdm
         lat, lon = float(f["position/lat-geod-rad"]), float(f["position/long-gc-rad"])
@@ -722,7 +851,7 @@ class LiveFlight:
     def run_mission(self, start: dict, schedule: list, duration_s: float) -> dict:
         """Gerçek zamansız: aynı _step yolu, komutlar zamanında kuyruğa girer.
         Kalkış görevi: schedule = görev listesi; env sırayla verir (biri bitince sıradaki, `_frac` → kesme)."""
-        if self.task == "takeoff":
+        if self.is_to:
             self._do_reset(dict(self.start_opts, **start, tasks=[dict(d) for d in schedule]))
             while not self._done and self.env.steps * CONTROL_DT < duration_s - 1e-9:
                 self._step()
@@ -767,7 +896,7 @@ class LiveFlight:
             err = {a: np.asarray([np.nan if r[COLS.index(AXIS_ERR_COL[a])] is None else r[COLS.index(AXIS_ERR_COL[a])]
                                   for r in self.rows], dtype=np.float64) for a in AXES}
             cmds = []
-            for k, c in enumerate(self.commands if self.task != "takeoff" else []):
+            for k, c in enumerate(self.commands if not self.is_to else []):
                 if c["applied"] is None:
                     continue
                 t_end = self.commands[k + 1]["t"] if k + 1 < len(self.commands) else float(t[-1])
@@ -776,7 +905,7 @@ class LiveFlight:
                                     terminated=bool(last and self.termination and self.termination != "time_limit"),
                                     deadline=c.get("deadline"))
                 cmds.append(dict(c, metrics=m))
-            if self.task == "takeoff":                   # görev sonuçları env'den (bant / tutma / kuplaj / temas)
+            if self.is_to:                               # görev sonuçları env'den (bant / tutma / kuplaj / temas)
                 cmds = [dict(c) for c in self.commands]
             return _clean(dict(format=FORMAT, title=title, description=description, cols=COLS,
                                control_dt=CONTROL_DT, every=int(every), meta=self.meta, limits=self.limits,
@@ -989,7 +1118,36 @@ def colab(model: str | Path = DEFAULT_POLICY, env_config: str = "v2", start: dic
 GOREV6 = [(5, {"heading": 90}), (40, {"speed": 8}), (75, {"altitude": 100}),
           (110, {"heading": -45, "altitude": -60}), (145, {"speed": -10}), (180, {"heading": 180})]
 TO = lambda h: dict(kind="takeoff", h=float(h))                                     # noqa: E731
+ACC = lambda kt, dh: dict(kind="cruise", u_kt=float(kt), dh=float(dh), accel=True)  # noqa: E731
+CRZ = lambda **k: dict(kind="cruise", **{a: float(b) for a, b in k.items()})         # noqa: E731
+FL_CHAIN = [TO(40), ACC(70, 150), CRZ(dpsi=90), CRZ(du_kt=-20, dh=100), dict(kind="stop", decel=2.5), dict(kind="land")]
 MISSIONS = [
+    # ---- tek ajan (README 32): kalkış → ileri uçuşa geçiş → Δ komutlar → duruş → iniş; rüzgâr / türbülans / yakıt ----
+    dict(id="fl_zincir_sakin", title="Tek ajan: yerden kalkış → 70 kt → dönüş → yavaşla / tırman → dur → in (sakin)",
+         policy="flight",
+         description="Rotor warm-up'tan sonra 40 ft hover, 70 kt'a hızlanırken +150 ft, +90° dönüş, −20 kt ile +100 ft, "
+                     "duruş (hover) ve pad'e iniş. Tork cezası, güç tavanı (56 psi) ve yakıt tüketimi açık.",
+         start=dict(start="ground", heading=0.0, fuel=[300.0, 300.0], wind_kt=0.0, turb="none"), duration=420.0,
+         schedule=FL_CHAIN),
+    dict(id="fl_zincir_ruzgar", title="Tek ajan: aynı zincir, 15 kt rüzgâr (sağ ön) + hafif türbülans",
+         policy="flight",
+         description="Aynı görev zinciri; 15 kt rüzgâr başlangıç heading'ine göre 45° sağdan, hafif türbülans (Dryden, W20 "
+                     "15 kt). Rüzgârın kendisi gözlemde yok — ajan hava / yer hızı farkından görüyor.",
+         start=dict(start="ground", heading=0.0, fuel=[300.0, 300.0], wind_kt=15.0, wind_dir=45.0, turb="light"),
+         duration=420.0, schedule=FL_CHAIN),
+    dict(id="fl_ileri_ucus", title="Tek ajan: ileri uçuşta Δ komutlar (80 kt, 400 ft), duruş ve iniş",
+         policy="flight",
+         description="80 kt'ta: +20 kt, −180° dönüş, +200 ft, birleşik (−30 kt, +60°, −150 ft); sonra dur ve in.",
+         start=dict(start="cruise", alt=400.0, speed_kt=80.0, heading=0.0, fuel=[300.0, 300.0]), duration=420.0,
+         schedule=[dict(kind="cruise", hold=True), CRZ(du_kt=20), CRZ(dpsi=-180), CRZ(dh=200),
+                   CRZ(du_kt=-30, dpsi=60, dh=-150), dict(kind="stop", decel=2.5), dict(kind="land")]),
+    dict(id="fl_turb_agir", title="Tek ajan: ağır (9700 lbs), 20 kt rüzgâr + orta türbülans: hover → 80 kt → dur → in",
+         policy="flight",
+         description="100 ft hover'dan 80 kt'a (+100 ft), +90°, duruş ve iniş; 20 kt arkadan-yandan rüzgâr, orta türbülans "
+                     "ve gust'lar. Başarı bantları orta türbülansta 2× (ADS-33 'yeterli' gibi).",
+         start=dict(start="hover", alt=100.0, heading=0.0, fuel=[600.0, 600.0], wind_kt=20.0, wind_dir=150.0,
+                    turb="moderate", gusts=True), duration=420.0,
+         schedule=[dict(kind="hold"), ACC(80, 100), CRZ(dpsi=90), dict(kind="stop", decel=2.5), dict(kind="land")]),
     # ---- kalkış görevi (4 kumanda doğrudan, README 30): görevler sırayla, biri bitince (bant + tutma) sıradaki ----
     dict(id="to_kalkis_300", title="Kalkış: yerden 300 ft hover (dört kumanda doğrudan)", policy="takeoff",
          description="Rotor warm-up'tan sonra yerden 300 ft'e; pad'in üstünde, heading'i koruyarak hover. Tork değişimini pedal, "
@@ -1107,7 +1265,8 @@ MISSIONS = [
 
 
 def record_missions(out: Path, every: int = 2, only: list | None = None, maneuver_model: Path | None = None,
-                    robust_model: Path | None = None, takeoff_model: Path | None = None) -> dict:
+                    robust_model: Path | None = None, takeoff_model: Path | None = None,
+                    flight_model: Path | None = None) -> dict:
     flights = []
     cache = {}
     for m in MISSIONS:
@@ -1119,6 +1278,11 @@ def record_missions(out: Path, every: int = 2, only: list | None = None, maneuve
             path = Path(robust_model) if robust_model else ROBUST_POLICY
         elif m["policy"] == "takeoff":
             path = Path(takeoff_model) if takeoff_model else TAKEOFF_POLICY
+        elif m["policy"] == "flight":
+            path = Path(flight_model) if flight_model else FLIGHT_POLICY
+            if not path.exists():
+                print(f"{m['id']:14s} atlandı: {path} yok", flush=True)
+                continue
         else:
             path = REPO_ROOT / "models_command_curriculum" / m["policy"]
         key = (str(path), m.get("env_config", "v2"))
@@ -1158,8 +1322,10 @@ def main(argv=None):
                        help=f"dayanıklılık görevleri için model (varsayılan {ROBUST_POLICY.relative_to(REPO_ROOT)})")
         p.add_argument("--takeoff-model", type=Path, default=None,
                        help=f"kalkış görevleri için model (varsayılan {TAKEOFF_POLICY.relative_to(REPO_ROOT)})")
+        p.add_argument("--flight-model", type=Path, default=None,
+                       help=f"tek ajan görevleri için model (varsayılan {FLIGHT_POLICY.relative_to(REPO_ROOT)})")
         a = p.parse_args(argv[1:])
-        record_missions(a.out, a.every, a.only, a.maneuver_model, a.robust_model, a.takeoff_model)
+        record_missions(a.out, a.every, a.only, a.maneuver_model, a.robust_model, a.takeoff_model, a.flight_model)
         return
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--model", type=Path, default=DEFAULT_POLICY,
@@ -1167,14 +1333,23 @@ def main(argv=None):
     p.add_argument("--env-config", choices=["v2", "v1"], default="v2", help="yalnızca komut görevi")
     p.add_argument("--host", default="127.0.0.1", help="0.0.0.0 = ağdaki diğer cihazlar da erişsin")
     p.add_argument("--port", type=int, default=8765)
-    p.add_argument("--start", choices=["ground", "hover"], default=None, help="kalkış görevi: yerde ya da havada başla")
+    p.add_argument("--start", choices=["ground", "hover", "cruise"], default=None,
+                   help="kalkış / uçuş görevi: yerde, havada (hover) ya da ileri uçuşta (yalnızca uçuş) başla")
     p.add_argument("--start-alt", type=float, default=None, help="ft AGL (varsayılan: manevra 800, komut 300, kalkış hover 100)")
     p.add_argument("--start-speed", type=float, default=None, help="ft/s (varsayılan: manevra 101.3 = 60 kt, komut 15)")
     p.add_argument("--start-heading", type=float, default=None, help="° (varsayılan 0)")
+    p.add_argument("--start-speed-kt", type=float, default=None, help="uçuş görevi, ileri uçuşta başlangıç: hava hızı kt")
+    p.add_argument("--wind-kt", type=float, default=None, help="uçuş görevi: sabit rüzgâr (kt)")
+    p.add_argument("--wind-dir", type=float, default=None, help="uçuş görevi: rüzgârın geldiği yön, başlangıç heading'ine göre °")
+    p.add_argument("--turb", choices=["none", "light", "moderate", "severe"], default=None, help="uçuş görevi: türbülans")
+    p.add_argument("--gusts", action="store_true", help="uçuş görevi: gust'lar (dakikada ~1, 5–12 kt)")
+    p.add_argument("--fuel", type=float, nargs=2, default=None, help="kalkış / uçuş görevi: tank başına yakıt (lbs)")
     p.add_argument("--open", action="store_true", help="tarayıcıyı aç")
     a = p.parse_args(argv)
     flight = LiveFlight(a.model, env_config=a.env_config,
-                        start=dict(alt=a.start_alt, speed=a.start_speed, heading=a.start_heading, start=a.start))
+                        start=dict(alt=a.start_alt, speed=a.start_speed, heading=a.start_heading, start=a.start,
+                                   speed_kt=a.start_speed_kt, wind_kt=a.wind_kt, wind_dir=a.wind_dir, turb=a.turb,
+                                   gusts=True if a.gusts else None, fuel=list(a.fuel) if a.fuel else None))
     serve(flight, a.host, a.port, a.open)
 
 

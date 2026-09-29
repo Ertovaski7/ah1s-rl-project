@@ -70,20 +70,25 @@ class ScriptedPilot:
             vs_des = float(np.clip(0.3 * e["h"], -dn, up))
         evs = vs_des - s["vs"]
         self.I[0] = np.clip(self.I[0] + 0.01 * evs * dt, -0.3, 0.3)
-        coll = ff[0] + 0.03 * evs + self.I[0] - 0.02 * max(0.0, s["torque_psi"] - self.torque_soft)
+        over = max(0.0, s["torque_psi"] - self.torque_soft)
+        if over > 0.0 and evs > 0.0:
+            self.I[0] -= 0.01 * over * dt                             # tork sınırında integral sarmasın
+        coll = ff[0] + 0.03 * evs + self.I[0] - 0.05 * over
 
         # ---------- boylamsal / yanal / yön ----------
         if cruise:
             u_t = env.cruise["u"]
             eu = u_t - air["u_air"]
-            k_u = (1 - x) * 0.004 + x * 0.002
-            self.I[1] = np.clip(self.I[1] - k_u * eu * dt, -0.15, 0.15)
-            lim = 0.12 if x > 0.5 else 0.2
-            th_ref = th_tab + float(np.clip(-((1 - x) * 0.02 + x * 0.012) * eu, -lim, 0.10)) + self.I[1]
+            # hız: istenen ivme (sınırlı) → pitch (ileri besleme −a/g + ivme hatası); integral yalnızca hedefe yakınken
+            a_des = float(np.clip(0.25 * eu, -lv.cruise_decel_fps2, lv.cruise_accel_fps2))
+            if abs(eu) < 8.0:
+                self.I[1] = np.clip(self.I[1] - 0.002 * eu * dt, -0.1, 0.1)
+            th_ref = th_tab - a_des / G - 0.6 * (a_des - env.u_dot) / G + self.I[1]
+            th_ref = float(np.clip(th_ref, th_tab - 0.2, th_tab + 0.15))
             # heading: koordineli dönüş (hızlı) ↔ pedal (yavaş)
             V = max(abs(air["u_air"]), 1.0)
             r_max = cruise_yaw_rate_dps(lv, max(V, abs(u_t)))
-            r_des = float(np.clip(0.6 * e["psi"], -r_max, r_max))            # °/s
+            r_des = float(np.clip(0.35 * e["psi"], -r_max, r_max))           # °/s
             ph_turn = math.atan(math.radians(r_des) * V / G)
             ev_g = -air["v_gnd"]                                             # yavaşken yer izini tut
             self.I[2] = np.clip(self.I[2] + (1 - x) * 0.004 * ev_g * dt, -0.15, 0.15)
@@ -106,9 +111,9 @@ class ScriptedPilot:
             th_ref = th_tab + float(np.clip(-((1 - x) * 0.02 + x * 0.012) * eu, -0.2, 0.15)) + self.I[1]
             ph_ref = ph_tab + float(np.clip(((1 - x) * 0.03 + x * 0.02) * ev, -0.25, 0.25)) + self.I[2]
             r_max = lv.yaw_rate_dps if kind == "turn" else 8.0
-            r_des = float(np.clip(1.0 * e["psi"], -r_max, r_max))
+            r_des = float(np.clip(0.8 * e["psi"], -r_max, r_max))
             self.I[3] = np.clip(self.I[3] - 0.003 * e["psi"] * dt, -0.3, 0.3)
-            ped = ff[3] + 0.014 * (math.degrees(s["r"]) - r_des) + self.I[3]
+            ped = ff[3] + 0.025 * (math.degrees(s["r"]) - r_des) + self.I[3]
         kth, kq = (1 - x) * 3.0 + x * 1.2, (1 - x) * 1.6 + x * 0.6
         lon = ff[1] + kth * (s["theta"] - th_ref) + kq * s["q"]
         lat = ff[2] + 1.5 * (ph_ref - s["phi"]) - 0.5 * s["p"]

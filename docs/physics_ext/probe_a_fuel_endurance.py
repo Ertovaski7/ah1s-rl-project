@@ -139,7 +139,9 @@ def report_and_plot():
            ("hover", 10000.0, 1700.0): manual_endurance(hov, 10000.0, 1700.0),
            ("60kt", 10280.0, 1780.0): manual_endurance(c60, 10280.0, 1780.0),
            ("60kt", 10000.0, 1700.0): manual_endurance(c60, 10000.0, 1700.0)}
-    lines = ["Probe (a) — tam depoyla yakıtın bitme süresi (300 ft AGL, 2 × 890 lbs, eşit çekim, stok uçak)", "",
+    plane = "repo uçağı + 56 psi güç tavanı" if "cap56" in probe_common.SUFFIX else (
+        "repo uçağı" if probe_common.SUFFIX else "stok uçak")
+    lines = [f"Probe (a) — tam depoyla yakıtın bitme süresi (300 ft AGL, 2 × 890 lbs, eşit çekim, {plane})", "",
              "koşul  yakıt modeli | bitiş saat | 56 psi üstü dk | 50 psi üstü dk | tepe psi | olay"]
     for r in summ:
         lines.append(f"{r['cond']:6s} {r['fuel_model']:11s} | {float(r['t_empty_h']):10.2f} | "

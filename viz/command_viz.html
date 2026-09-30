@@ -107,6 +107,18 @@ h2{font-family:var(--font-inst);font-size:12px;letter-spacing:.08em;text-transfo
 .ro .sub{font:12px var(--font-inst);opacity:.85}
 .ro .tgt{font:12px var(--font-inst);color:#ff8ff0}
 .adi{position:absolute;left:10px;top:176px;width:136px;height:136px;border-radius:10px;overflow:hidden}
+/* tek ajan (uçuş): rüzgâr oku, tork ve yakıt göstergeleri */
+.flg{position:absolute;right:10px;top:176px;width:156px;padding:8px 10px;display:grid;gap:9px}
+.flg .lbl{font-size:10px;letter-spacing:.12em;opacity:.8;display:block}
+.flg b{font:700 13px var(--font-inst);font-variant-numeric:tabular-nums}
+.flg small{display:block;font:11px var(--font-inst);opacity:.85}
+.flg .wind{display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center}
+.flg .wind svg{width:44px;height:44px;display:block}
+.gbar{position:relative;height:9px;border-radius:5px;background:rgba(255,255,255,.16);overflow:hidden;margin:3px 0 2px}
+.gbar > i{position:absolute;left:0;top:0;bottom:0;background:#cfe3ee;width:0}
+.gbar.warn > i{background:#fab219} .gbar.over > i{background:#ec5f5f}
+.gbar em{position:absolute;top:-1px;bottom:-1px;width:2px}
+.gbar em.m50{background:#fab219} .gbar em.m56{background:#ec5f5f}
 .adi canvas{width:100%;height:100%;display:block}
 .cmdchip{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);padding:6px 10px;font-size:12px;max-width:44%;display:grid;gap:2px;text-align:center}
 .cmdchip .k{font:700 12px var(--font-inst);color:#ff8ff0}
@@ -155,6 +167,8 @@ details.reset summary{cursor:pointer;font-size:13px;color:var(--ink-2)}
 .toline{display:flex;gap:6px;align-items:center;min-width:0}
 .toline .inwrap{flex:1;min-width:0}
 .toline .btn{flex:none}
+.toline.fl3 .inwrap input{padding:7px 6px}
+.toline.fl3 .inwrap span{padding:0 6px}
 .resetgrid select{width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);font:13px var(--font-ui)}
 
 /* ---------- active command ---------- */
@@ -256,6 +270,8 @@ a{color:var(--s1)}
   .cmdchip{display:none}
   .scaleinfo{display:none}
   .adi{display:none}
+  .flg{top:auto;bottom:118px;width:132px;padding:6px 8px;gap:6px}
+  .flg .wind svg{width:34px;height:34px}
   .axis{grid-template-columns:74px 1fr}
 }
 @media (prefers-reduced-motion: reduce){ .compass svg{transition:none} }
@@ -296,6 +312,16 @@ a{color:var(--s1)}
         <div class="ro left glass"><span class="lbl" id="hudSpdLbl">HIZ</span><span class="val"><span id="hudSpd">—</span><small>ft/s</small></span><span class="sub" id="hudKt">— kt</span><span class="tgt" id="hudSpdT"></span></div>
         <div class="adi glass" id="adiBox" title="Attitude göstergesi: yatış ve yunuslama; magenta = ajanın attitude komutu"><canvas id="adiCanvas"></canvas></div>
         <div class="ro right glass"><span class="lbl" id="hudAltLbl">İRTİFA AGL</span><span class="val"><span id="hudAlt">—</span><small>ft</small></span><span class="sub" id="hudVs">— ft/s</span><span class="tgt" id="hudAltT"></span></div>
+        <div class="flg glass" id="flGauges" hidden>
+          <div class="wind" title="Rüzgâr: ok rüzgârın ESTİĞİ yönü gösterir (yukarı = burun); ince ok ortalama, kalın ok anlık (türbülans + gust dahil)">
+            <svg viewBox="-22 -22 44 44" aria-label="Rüzgâr oku"><circle r="19" fill="none" stroke="rgba(242,246,248,.45)" stroke-width="1"/><path d="M0,-19 L0,-15" stroke="#f2f6f8" stroke-width="1.5"/>
+              <g id="windMean"><path d="M0,13 L0,-11 M-4,-6 L0,-12 L4,-6" fill="none" stroke="rgba(242,246,248,.55)" stroke-width="1.5"/></g>
+              <g id="windNow"><path d="M0,13 L0,-11 M-5,-5 L0,-12 L5,-5" fill="none" stroke="#8fd3ff" stroke-width="2.6" stroke-linecap="round"/></g></svg>
+            <div><span class="lbl">RÜZGÂR</span><b id="windTxt">—</b><small id="turbTxt"></small></div>
+          </div>
+          <div title="Tork göstergesi (modelin kendi psi'si): 50 psi sürekli sınır (sarı), 56 psi = %100 (kırmızı; güç tavanı)"><span class="lbl">TORK</span><div class="gbar" id="tqBar"><i></i><em class="m50"></em><em class="m56"></em></div><b id="tqTxt">— psi</b></div>
+          <div title="Toplam yakıt (iki tank); kalan süre son 30 s'deki tüketimle"><span class="lbl">YAKIT</span><div class="gbar" id="fuelBar"><i></i></div><b id="fuelTxt">— lbs</b><small id="fuelSub"></small></div>
+        </div>
         <div class="cmdchip glass" id="cmdChip" hidden><span class="k" id="cmdChipK"></span><span id="cmdChipTxt"></span></div>
         <div class="cam glass" role="group" aria-label="Kamera">
           <button type="button" data-cam="chase" aria-pressed="true">Takip</button><button type="button" data-cam="free" aria-pressed="false">Serbest</button><button type="button" data-cam="top" aria-pressed="false">Üstten</button><button type="button" data-cam="side" aria-pressed="false">Yandan</button>
@@ -366,6 +392,18 @@ a{color:var(--s1)}
             <label>Bozucu</label>
             <div class="quick" id="toDist"><button type="button" data-dist="kick" data-axis="2" data-mag="0.3">Darbe: yanal cyclic</button><button type="button" data-dist="kick" data-axis="3" data-mag="-0.35">Darbe: pedal</button><button type="button" data-dist="push" data-right="10">İtki: 10 ft/s sağa</button><button type="button" data-dist="tilt" data-dphi="10">Yatış +10°</button></div>
           </div>
+          <div id="flRows" hidden>
+            <div class="axis">
+              <label>İleri uçuş Δ</label>
+              <div class="toline fl3"><div class="inwrap"><input id="flDu" inputmode="decimal" placeholder="Δhız" aria-label="Δ hava hızı (kt)"><span>kt</span></div><div class="inwrap"><input id="flDpsi" inputmode="decimal" placeholder="Δψ" aria-label="Δ heading (°)"><span>°</span></div><div class="inwrap"><input id="flDh" inputmode="decimal" placeholder="Δh" aria-label="Δ irtifa (ft)"><span>ft</span></div></div>
+              <div class="quick" id="flQuick"><button type="button" data-f="flDu" data-v="20">+20 kt</button><button type="button" data-f="flDu" data-v="-20">−20 kt</button><button type="button" data-f="flDpsi" data-v="90">+90°</button><button type="button" data-f="flDpsi" data-v="-90">−90°</button><button type="button" data-f="flDpsi" data-v="180">+180°</button><button type="button" data-f="flDh" data-v="200">+200 ft</button><button type="button" data-f="flDh" data-v="-200">−200 ft</button></div>
+            </div>
+            <div class="axis">
+              <label for="flU">Hızlan</label>
+              <div class="toline"><div class="inwrap"><input id="flU" inputmode="decimal" placeholder="70" aria-label="Hedef hava hızı (kt)"><span>kt</span></div><div class="inwrap"><input id="flAccDh" inputmode="decimal" placeholder="+150" aria-label="Hızlanırken tırmanış (ft)"><span>ft</span></div><button class="btn" type="button" data-task="accel">Hızlan</button></div>
+            </div>
+            <div class="formrow"><button class="btn primary" type="button" data-task="cruise">İleri uçuş Δ gönder</button><button class="btn" type="button" data-task="stop">Dur (hover'a geç)</button><button class="btn" type="button" data-task="hold">Hover tut</button></div>
+          </div>
           <div class="hint" id="toHint" role="status"></div>
           <div class="limits" id="toLimits"></div>
         </form>
@@ -378,6 +416,11 @@ a{color:var(--s1)}
             <label>Heading (°)<input id="rsHdg" inputmode="decimal" value="0" placeholder="rastgele"></label>
             <label id="rsFuelWrap0" hidden>Yakıt tank 1 (lbs)<input id="rsFuel0" inputmode="decimal" value="0"></label>
             <label id="rsFuelWrap1" hidden>Yakıt tank 2 (lbs)<input id="rsFuel1" inputmode="decimal" value="0"></label>
+            <label id="rsSpdKtWrap" hidden>İleri uçuş hızı (kt)<input id="rsSpdKt" inputmode="decimal" value="60"></label>
+            <label id="rsWindWrap" hidden>Rüzgâr (kt)<input id="rsWind" inputmode="decimal" value="0"></label>
+            <label id="rsWindDirWrap" hidden>Rüzgâr yönü (°, buruna göre)<input id="rsWindDir" inputmode="decimal" value="0"></label>
+            <label id="rsTurbWrap" hidden>Türbülans<select id="rsTurb"><option value="none">Yok</option><option value="light">Hafif</option><option value="moderate">Orta</option><option value="severe">Şiddetli (eğitimde yok)</option></select></label>
+            <label id="rsGustWrap" hidden>Gust<select id="rsGust"><option value="0">Yok</option><option value="1">Var (~1/dk, 5–12 kt)</option></select></label>
           </div>
           <div class="formrow" style="margin-top:10px"><button class="btn" id="resetBtn" type="button">Yeniden başlat</button><span class="hint" id="resetHint"></span></div>
         </details>
@@ -472,7 +515,11 @@ function reasonText(code, L) {
     tail_strike: "kuyruk yere çarptı", rollover: `yerdeyken ${g(S.ground_max_att_deg ?? 15)}°'den fazla yatış / yunuslama (devrilme)`,
     hard_landing: `yere ${g(S.crash_vs_fps ?? 10)} ft/s'den hızlı temas (sert iniş)`, rate_limit: `yatış / yunuslama hızı ${g(S.max_roll_rate_dps)}°/s sınırını aştı`,
     position_deviation: `hedeften ${g(S.flyaway_ft ?? 150)} ft'ten fazla uzaklaştı`,
+    // tek ajan (uçuş)
+    ground_contact_at_speed: "hızlıyken yere değdi", low_altitude: "hızlıyken çok alçaldı (kızaklar 8 ft altı)",
+    fuel_exhausted: "yakıt bitti (motor ayrıldı)",
   };
+  if (code === "speed_limit" && L?.task === "flight") return `hız sınırı (hava hızı ${g(S.max_airspeed_kt ?? 130)} kt / hover'da yer hızı ${g(S.max_speed_fps ?? 60)} ft/s) aşıldı`;
   if (code === "altitude_deviation" && L?.task === "takeoff") return `hedefin ${g(S.alt_over_ft ?? 200)} ft'ten fazla üstüne çıktı`;
   return R[code] || code;
 }
@@ -480,7 +527,11 @@ const cmdText = c => AXES.filter(a => c && c[a]).map(a => `${AX[a].d} ${sgn(c[a]
 const G_FPS2 = 32.174;
 const isMan = fl => !!fl && (fl.limits?.task === "maneuver");
 // kalkış görevi (yerden kalkış / hover / iniş; ajan 4 kumandayı doğrudan kullanır)
-const isTO = fl => !!fl && (fl.limits?.task === "takeoff");
+const isTO = fl => !!fl && (fl.limits?.task === "takeoff" || fl.limits?.task === "flight");
+// tek ajan (uçuş): kalkış görevinin yapısı + ileri uçuş (cruise), duruş (stop), rüzgâr / türbülans / yakıt / tork
+const isFL = fl => !!fl && (fl.limits?.task === "flight");
+const taskOfHello = () => app.hello?.task || "command";
+const isTOTask = t => t === "takeoff" || t === "flight";
 const CH_NAME = ["collective", "boylamsal cyclic", "yanal cyclic", "pedal"];
 function taskText(t) {
   if (!t) return "—";
@@ -492,6 +543,16 @@ function taskText(t) {
   if (k === "bob") return `Bob-${t.dh > 0 ? "up" : "down"} ${sgn(t.dh, 0)} ft`;
   if (k === "land") return "İniş (hedef noktaya)";
   if (k === "hold") return "Hover tut";
+  if (k === "stop") return "Dur (ileri uçuştan hover'a)";
+  if (k === "cruise") {
+    if (t.hold) return "İleri uçuşu tut";
+    const p = [];
+    if (fin(t.u_kt)) p.push(`${t.accel ? "hızlan" : "hız"} → ${fmt(t.u_kt, 0)} kt`);
+    if (t.du_kt) p.push(`Δhız ${sgn(t.du_kt, 0)} kt`);
+    if (t.dpsi) p.push(`Δψ ${sgn(t.dpsi, 0)}°`);
+    if (t.dh) p.push(`Δh ${sgn(t.dh, 0)} ft`);
+    return (t.accel ? "Geçiş: " : "İleri uçuş: ") + (p.join(", ") || (t.auto ? "devam" : "—"));
+  }
   if (k === "recover") {
     if (t.dist === "kick") return `Bozucu: ${CH_NAME[t.axis] || "kumanda"} darbesi ${sgn(t.mag, 2)} (${fmt(t.dur, 1)} s)`;
     if (t.dist === "push") return `Bozucu: itki ${fmt(Math.hypot(t.dn || 0, t.de || 0, t.dw || 0), 0)} ft/s`;
@@ -588,7 +649,9 @@ class Flight {
       f: [L("f0"), L("f1"), L("f2"), L("f3")], c: [L("c0"), L("c1"), L("c2"), L("c3")],
       phi_c: this.ix.phi_c != null ? L("phi_c") : NaN, theta_c: this.ix.theta_c != null ? L("theta_c") : NaN,
       tx: this.ix.tx != null ? L("tx") : NaN, ty: this.ix.ty != null ? L("ty") : NaN,
-      wow: this.ix.wow != null ? this.col("wow")[i] : NaN, wf: this.ix.wf != null ? L("wf") : NaN };
+      wow: this.ix.wow != null ? this.col("wow")[i] : NaN, wf: this.ix.wf != null ? L("wf") : NaN,
+      ...(this.ix.ua != null ? { ua: L("ua"), uat: this.col("uat")[i], uff: L("uff"), wn: L("wn"), we: L("we"), tq: L("tq"),
+        fuel: L("fuel"), va: L("va"), esp: L("esp"), cr: this.col("cr")[i] } : {}) };
   }
 }
 
@@ -918,7 +981,42 @@ const hud = {
   tape: $("#tapeCanvas"), hdg: $("#hdgBox"), spd: $("#hudSpd"), kt: $("#hudKt"), spdT: $("#hudSpdT"),
   alt: $("#hudAlt"), vs: $("#hudVs"), altT: $("#hudAltT"), chip: $("#cmdChip"), chipK: $("#cmdChipK"), chipTxt: $("#cmdChipTxt"), compass: $("#compassSvg"),
   spdLbl: $("#hudSpdLbl"), altLbl: $("#hudAltLbl"),
+  flg: $("#flGauges"), windMean: $("#windMean"), windNow: $("#windNow"), windTxt: $("#windTxt"), turbTxt: $("#turbTxt"),
+  tqBar: $("#tqBar"), tqTxt: $("#tqTxt"), fuelBar: $("#fuelBar"), fuelTxt: $("#fuelTxt"), fuelSub: $("#fuelSub"),
 };
+const TURB_TR = { none: "türbülans yok", light: "hafif türbülans", moderate: "orta türbülans", severe: "şiddetli türbülans" };
+// tek ajan: rüzgâr oku (burna göre; rüzgârın ESTİĞİ yön), tork ve yakıt göstergeleri
+function updateFlightGauges(s, fl, T) {
+  const on = isFL(fl); hud.flg.hidden = !on; if (!on) return;
+  const L = fl.limits?.flight || {}, ph = fl.meta?.physics || {}, psiR = (s.psi || 0) * Math.PI / 180;
+  const body = (n, e) => [n * Math.cos(psiR) + e * Math.sin(psiR), -n * Math.sin(psiR) + e * Math.cos(psiR)];
+  const ang = (f, r) => Math.atan2(r, f) * 180 / Math.PI;               // saat yönünde, yukarı = burun
+  const [wf, wr] = body(s.wn || 0, s.we || 0), wNow = Math.hypot(wf, wr);
+  hud.windNow.setAttribute("transform", `rotate(${fin(wf) ? ang(wf, wr) : 0}) scale(${clamp(0.35 + wNow / 40, 0.35, 1.15)})`);
+  hud.windNow.style.opacity = wNow > 0.8 ? 1 : 0.25;
+  const wk = +ph.wind_kt || 0;
+  if (wk > 0 && fin(ph.wind_from_deg)) {                                 // ortalama rüzgâr: geldiği yön (mutlak) → esme yönü
+    const toAbs = (ph.wind_from_deg + 180) * Math.PI / 180, [mf, mr] = body(Math.cos(toAbs), Math.sin(toAbs));
+    hud.windMean.setAttribute("transform", `rotate(${ang(mf, mr)})`); hud.windMean.style.opacity = 1;
+    const rel = wrap180(ph.wind_from_deg - (s.psi || 0));
+    const side = Math.abs(rel) < 20 ? "karşıdan" : Math.abs(rel) > 160 ? "arkadan" : `${rel > 0 ? "sağ" : "sol"} ${Math.abs(rel) < 70 ? "önden" : Math.abs(rel) > 110 ? "arkadan" : "yandan"}`;
+    hud.windTxt.textContent = `${fmt(wk, 0)} kt ${side}`;
+  } else { hud.windMean.style.opacity = 0; hud.windTxt.textContent = wNow > 0.8 ? `anlık ${fmt(wNow * 0.592484, 0)} kt` : "sakin"; }
+  hud.turbTxt.textContent = `${TURB_TR[ph.turb_level || "none"] || ph.turb_level}${ph.gust_rate_per_min > 0 ? " · gust" : ""}`;
+  const q = s.tq, qc = L.torque_cont_psi ?? 50, qm = L.torque_max_psi ?? 56, qTop = 70;
+  hud.tqBar.className = "gbar" + (q > qm ? " over" : q > qc ? " warn" : "");
+  hud.tqBar.firstElementChild.style.width = (100 * clamp((q || 0) / qTop, 0, 1)) + "%";
+  hud.tqBar.querySelector(".m50").style.left = (100 * qc / qTop) + "%"; hud.tqBar.querySelector(".m56").style.left = (100 * qm / qTop) + "%";
+  hud.tqTxt.textContent = `${fmt(q, 1)} psi · %${fmt(100 * (q || 0) / qm, 0)}`;
+  const cap = L.fuel_capacity_lbs || 1780, fuel = s.fuel;
+  hud.fuelBar.className = "gbar" + (fuel < 0.1 * cap ? " over" : fuel < 0.2 * cap ? " warn" : "");
+  hud.fuelBar.firstElementChild.style.width = (100 * clamp((fuel || 0) / cap, 0, 1)) + "%";
+  hud.fuelTxt.textContent = `${fmt(fuel, 0)} lbs · %${fmt(100 * (fuel || 0) / cap, 0)}`;
+  const s0 = fl.sample(Math.max(0, T - 30)), dtb = T - Math.max(0, T - 30);
+  const rate = s0 && dtb > 5 && fin(s0.fuel) && fin(fuel) ? (s0.fuel - fuel) / dtb * 3600 : NaN;   // lb/h
+  const left = fin(rate) && rate > 50 ? fuel / rate : NaN, hh = Math.floor(left), mm = Math.round(60 * (left - hh));
+  hud.fuelSub.textContent = fin(left) ? `${fmt(rate, 0)} lb/h · ~${hh > 0 ? `${hh} sa ${String(mm).padStart(2, "0")} dk` : `${mm} dk`}` : "";
+}
 function drawTape(hdg, tgt, showTgt, track) {
   const cv = hud.tape, dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight;
   if (!W || !H) return;
@@ -989,15 +1087,25 @@ function updateHud(s, fl, T) {
   const hasCmd = fl.commands.some(c => c.t <= T);
   const track = s.u > 2 ? s.psi + Math.atan2(s.v, s.u) * 180 / Math.PI : NaN;
   drawTape(s.psi, s.psi_ref, hasCmd || Math.abs(wrap180(s.psi_ref - s.psi)) > 0.5, track);
-  if (isTO(fl)) {                                        // kalkış: yer hızı, hedefe uzaklık, kızak yüksekliği
+  updateFlightGauges(s, fl, T);
+  if (isFL(fl) && fin(s.ua) && (s.cr > 0 || Math.abs(s.ua) > 20)) {   // uçuş: ileri uçuşta hava hızı (kt), hedef hız
+    const onGround = (s.wow || 0) > 0;
+    hud.spdLbl.textContent = "HAVA HIZI"; hud.altLbl.textContent = onGround ? "YERDE" : "İRTİFA (CG)";
+    hud.spd.textContent = fmt(s.ua, 0); hud.spd.nextElementSibling.textContent = "kt";
+    hud.kt.textContent = `yer ${fmt(Math.hypot(s.u || 0, s.v || 0) * 0.592484, 0)} kt · yana hava ${sgn(s.va, 1)} ft/s`;
+    hud.spdT.textContent = fin(s.uat) ? `hedef ${fmt(s.uat, 0)} kt` : "";
+    hud.alt.textContent = fmt(s.h, 0); hud.vs.textContent = (s.vs >= 0 ? "↑ " : "↓ ") + fmt(Math.abs(s.vs), 1) + " ft/s";
+    hud.altT.textContent = Math.abs(s.e_h) > 1 ? "hedef " + fmt(s.h_ref, 0) : "";
+  } else if (isTO(fl)) {                                 // kalkış: yer hızı, hedefe uzaklık, kızak yüksekliği
     const gs = Math.hypot(s.u || 0, s.v || 0), onGround = (s.wow || 0) > 0;
+    hud.spd.nextElementSibling.textContent = "ft/s";
     hud.spdLbl.textContent = "YER HIZI"; hud.altLbl.textContent = onGround ? "YERDE" : "İRTİFA (CG)";
     hud.spd.textContent = fmt(gs, 1); hud.kt.textContent = `ileri ${sgn(s.u, 1)} · yana ${sgn(s.v, 1)}`;
     hud.spdT.textContent = fin(s.e_u) ? `hedefe ${fmt(s.e_u, 1)} ft` : "";
     hud.alt.textContent = fmt(s.h, 0); hud.vs.textContent = (s.vs >= 0 ? "↑ " : "↓ ") + fmt(Math.abs(s.vs), 1) + " ft/s";
     hud.altT.textContent = onGround ? `${fmt(s.wow, 0)}/4 kızak · ağırlık %${fmt(100 * (s.wf || 0), 0)}` : Math.abs(s.e_h) > 1 ? "hedef " + fmt(s.h_ref, 0) : "";
   } else {
-    hud.spdLbl.textContent = "HIZ"; hud.altLbl.textContent = "İRTİFA AGL";
+    hud.spdLbl.textContent = "HIZ"; hud.altLbl.textContent = "İRTİFA AGL"; hud.spd.nextElementSibling.textContent = "ft/s";
     hud.spd.textContent = fmt(s.u, 1); hud.kt.textContent = `${fmt(s.u * 0.592484, 1)} kt · yanal ${sgn(s.v, 1)}`;
     hud.alt.textContent = fmt(s.h, 0); hud.vs.textContent = (s.vs >= 0 ? "↑ " : "↓ ") + fmt(Math.abs(s.vs), 1) + " ft/s";
     hud.spdT.textContent = Math.abs(s.e_u) > 0.3 ? "hedef " + fmt(s.u_ref, 1) : "";
@@ -1011,6 +1119,23 @@ function updateHud(s, fl, T) {
 // =====================================================================
 function chartSpecs(task) {
   const man = task === "maneuver";
+  if (task === "flight") return [
+    { key: "alt", title: "İrtifa", unit: "CG AGL, ft (yerde 6.3)", kind: "track", axis: "altitude", minSpan: 20, yfmt: v => fmt(v, 0) },
+    { key: "spd", title: "Hava hızı", unit: "kt, gövde ekseninde ileri (hedef: ileri uçuş penceresinde; trim çizelgesi = görevin referans hızı)", kind: "multi",
+      cols: ["ua", "uat", "uff"], names: ["Hava hızı", "Hedef", "Trim çizelgesi"], colors: ["--ink", "--target", "--s4"], widths: [2, 2, 1], alphas: [1, 1, 0.9], minSpan: 10, yfmt: v => fmt(v, 0), nd: 1 },
+    { key: "hdg", title: "Heading", unit: "°", kind: "track", axis: "heading", minSpan: 12, incrs: [1, 2, 5, 10, 15, 30, 45, 90, 180], yfmt: v => pad3(v) + "°" },
+    { key: "pos", title: "Hedefe yatay uzaklık", unit: "ft (hover görevleri; ileri uçuşta hedef helikopteri izler)", kind: "multi", cols: ["e_u", "tolxy"], names: ["Uzaklık", "Bant sınırı"],
+      colors: ["--ink", "--target"], widths: [2, 1], alphas: [1, 0.6], minSpan: 10, yfmt: v => fmt(v, 0), nd: 1 },
+    { key: "tq", title: "Tork", unit: "psi (sarı 50 sürekli, kırmızı 56 = %100, güç tavanı)", kind: "multi", cols: ["tq", "=50", "=56"], names: ["Tork", "50 psi", "56 psi"],
+      colors: ["--ink", "--warning", "--critical"], widths: [2, 1, 1], alphas: [1, 0.9, 0.9], minSpan: 10, yfmt: v => fmt(v, 0), nd: 1 },
+    { key: "fuel", title: "Yakıt", unit: "lbs (iki tank; bitince motor ayrılır)", kind: "multi", cols: ["fuel"], names: ["Yakıt"], colors: ["--s4"], minSpan: 5, yfmt: v => fmt(v, 0), nd: 1 },
+    { key: "vel", title: "Hızlar", unit: "ft/s: yer hızı ileri / yana, yana hava hızı, dikey", kind: "multi", cols: ["u", "v", "va", "vs"], names: ["Yer ileri", "Yer yana", "Yana hava", "Dikey"],
+      colors: ["--s1", "--s3", "--muted", "--s2"], minSpan: 4, yfmt: v => fmt(v, 0), nd: 1 },
+    { key: "ctl", title: "Dört kumanda (ajan, doğrudan)", unit: "−1…+1: 0 = trim çizelgesi, ±1 = tam hareket", kind: "multi",
+      cols: ["f0", "f1", "f2", "f3"], names: ["Collective", "Boylamsal cyclic", "Yanal cyclic", "Pedal"], colors: ["--s1", "--s2", "--s3", "--s4"],
+      range: [-1.05, 1.05], incrs: [0.25, 0.5, 1], yfmt: v => fmt(v, 1), nd: 2 },
+    { key: "att", title: "Yatış ve yunuslama", unit: "°", kind: "multi", cols: ["phi", "theta"], names: ["Roll (yatış)", "Pitch (yunuslama)"], colors: ["--s3", "--s2"], minSpan: 4, yfmt: v => fmt(v, 0), nd: 1 },
+  ];
   if (task === "takeoff") return [
     { key: "alt", title: "İrtifa", unit: "CG AGL, ft (yerde 6.3)", kind: "track", axis: "altitude", minSpan: 20, yfmt: v => fmt(v, 0) },
     { key: "pos", title: "Hedefe yatay uzaklık", unit: "ft (kesikli: bant sınırı)", kind: "multi", cols: ["e_u", "tolxy"], names: ["Uzaklık", "Bant sınırı"],
@@ -1170,6 +1295,7 @@ class Charts {
         const tolAt = v => (to && sp.axis === "altitude" ? toTol(fl.limits, v).h : tol);   // kalkış: bant hedef irtifaya göre
         data = [xs, tgt.map(v => v - tolAt(v)), tgt.map(v => v + tolAt(v)), tgt, meas];
       } else data = [xs, ...sp.cols.map(c => {
+        if (c.startsWith("=")) { const v = +c.slice(1); return idx.map(() => v); }             // sabit çizgi (ör. tork sınırı)
         if (c === "tolxy") { const b = fl.col("h_ref"); return idx.map(i => (fin(b[i]) ? toTol(fl.limits, b[i]).xy : null)); }
         const a = fl.col(c); return idx.map(i => (fin(a[i]) ? a[i] : null)); })];
       it.u.setData(data, true);
@@ -1192,9 +1318,11 @@ function setMode(mode) {
   $("#replayBar").hidden = live;
   $("#scaleSeg").hidden = !live; $("#pauseBtn").hidden = !live;
   $("#toLiveBtn").hidden = live || !app.live;
-  const to = app.hello?.task === "takeoff";
+  const to = isTOTask(app.hello?.task), fly = app.hello?.task === "flight";
   $("#cmdForm").hidden = !live || to; $("#toForm").hidden = !live || !to; $("#resetBox").hidden = !live;
   $("#rsStartWrap").hidden = $("#rsFuelWrap0").hidden = $("#rsFuelWrap1").hidden = !to; $("#rsSpdWrap").hidden = to;
+  $("#flRows").hidden = !fly;
+  ["rsSpdKtWrap", "rsWindWrap", "rsWindDirWrap", "rsTurbWrap", "rsGustWrap"].forEach(id => $("#" + id).hidden = !fly);
   const man = live && app.hello?.task === "maneuver";
   $("#timeRow").hidden = !man; $("#timeHint").hidden = !man;
   const note = $("#replayNote"); note.hidden = live;
@@ -1235,7 +1363,20 @@ function renderNotesTO(L) {
     `yerdeyken ${g(S.ground_max_att_deg)}° (devrilme), ${g(S.crash_vs_fps)} ft/s'den sert temas, kuyruk teması, rotor ${S.rpm_limits.join("–")} rpm, ` +
     `hedeften ${g(S.flyaway_ft)} ft uzaklaşma, hedefin ${g(S.alt_over_ft)} ft üstüne çıkma → uçuş biter.`));
 }
+function renderNotesFL(L) {
+  renderNotesTO(L);
+  const f = L.flight || {}, g = v => fmt(v, 0), cc = f.coupling_cruise || [15, 10, 40], ts = f.tol_turb_scale || {};
+  $("#noteSuccess").append(document.createTextNode(
+    ` İleri uçuş (tek ajan): hava hızı ±${g(f.tol_u_fps)} ft/s (1 s süzülmüş), irtifa ±${g(f.tol_h_cruise_ft)} ft, heading ±${g(f.tol_psi_cruise_deg)}°, ` +
+    `dikey hız ≤ ${g(f.tol_vs_cruise_fps)} ft/s, yana hava hızı ≤ ${g(2 * (f.tol_u_fps || 4))} ft/s; komut verilmeyen eksen hız ${g(cc[0])} ft/s, heading ${g(cc[1])}°, irtifa ${g(cc[2])} ft. ` +
+    `Süre hedefi: tepki + max(|Δu| / ivme, |Δψ| / koordineli dönüş hızı (20° yatış), |Δh| / tırmanış). Duruş: referans noktası yer izi boyunca sabit yavaşlamayla durur, sonra o noktada hover bandı. ` +
+    `Türbülansta bantlar genişler (hafif ×${fmt(ts.light ?? 1.25, 2)}, orta ×${fmt(ts.moderate ?? 2, 1)}; ADS-33 'yeterli' sınırları gibi). ` +
+    `Trim, görevin referans hızına göre çizelgelenir (hover 0, ileri uçuşta hedefe rampa); tork cezası ve güç tavanı (${g(f.power_cap_psi || 56)} psi) açık, yakıt yanıyor.`));
+  $("#noteSafety").append(document.createTextNode(
+    ` İleri uçuş / duruşta: hava hızı ${g(f.max_airspeed_kt)} kt, yatış ${g(f.max_roll_cruise_deg)}° (30 kt üstü), hızlıyken yere değme ya da 8 ft altına inme; yakıt biterse motor ayrılır.`));
+}
 function renderNotes(L) {
+  if (L?.task === "flight") return renderNotesFL(L);
   if (L?.task === "takeoff") return renderNotesTO(L);
   const man = L?.task === "maneuver", tol = L?.tol || DEFAULT_LIMITS.tol, cp = L?.coupling || DEFAULT_LIMITS.coupling, S = safetyOf(L), g = v => fmt(v, 0);
   const tolTxt = `|eψ| ≤ ${fmt(tol.heading, 1)}°, |ev| ≤ ${fmt(tol.speed, 1)} ft/s, |eh| ≤ ${g(tol.altitude)} ft`;
@@ -1292,7 +1433,7 @@ function loadBundle(obj, name) {
 function selectFlight(k, startAt) {
   const fl = app.flights[k]; if (!fl) return;
   app.flight = fl; $("#flightSel").value = k;
-  app.charts?.setTask(isTO(fl) ? "takeoff" : isMan(fl) ? "maneuver" : "command");
+  app.charts?.setTask(isFL(fl) ? "flight" : isTO(fl) ? "takeoff" : isMan(fl) ? "maneuver" : "command");
   setLogHeader(isTO(fl));
   $("#flightDesc").textContent = [fl.description, fl.meta?.model ? `model: ${fl.meta.model}` : "", authText(fl.limits), fl.termination ? `bitiş: ${reasonText(fl.termination, fl.limits)}` : ""].filter(Boolean).join(" · ");
   renderNotes(fl.limits);
@@ -1346,8 +1487,11 @@ function updateSub() {
   if (m.model) parts.push(`model ${m.model}`);
   const au = authText(fl?.limits || app.hello?.limits); if (au) parts.push(au);
   if (isTO(fl)) {
-    parts.push(st.start === "hover" ? `başlangıç havada ${fmt(st.alt, 0)} ft` : "başlangıç yerde (rotor warm-up sonrası)");
+    parts.push(st.start === "hover" ? `başlangıç havada ${fmt(st.alt, 0)} ft` : st.start === "cruise" ? `başlangıç ileri uçuşta ${fmt(st.speed_kt, 0)} kt, ${fmt(st.alt, 0)} ft`
+      : "başlangıç yerde (rotor warm-up sonrası)");
     if (fin(m.weight_lbs)) parts.push(`${fmt(m.weight_lbs, 0)} lbs`);
+    if (isFL(fl)) { const ph = m.physics || {}; parts.push(ph.wind_kt ? `rüzgâr ${fmt(ph.wind_kt, 0)} kt (${pad3(ph.wind_from_deg ?? 0)}°'den)` : "rüzgâr yok");
+      if (ph.turb_level && ph.turb_level !== "none") parts.push(TURB_TR[ph.turb_level] || ph.turb_level); }
     parts.push("4 kumanda doğrudan");
   } else if (fin(st.alt)) parts.push(`başlangıç ${fmt(st.alt, 0)} ft · ${fmt(st.speed, 0)} ft/s`);
   $("#sub").replaceChildren(document.createTextNode(parts.join(" · ")));
@@ -1434,28 +1578,35 @@ function renderActive(fl, T) {
 function toMetrics(fl, c, tEnd) {
   const key = `to:${fl.uid}:${c.id}:${tEnd.toFixed(3)}:${fl.n}`;
   if (METRIC_CACHE.has(key)) return METRIC_CACHE.get(key);
-  const L = fl.limits || {}, tl = L.takeoff || {}, t = fl.col("t"), dt = fl.controlDt;
+  const L = fl.limits || {}, tl = L.takeoff || {}, fc = L.flight || {}, t = fl.col("t"), dt = fl.controlDt;
   const i0 = lowerBound(t, c.t + dt - 1e-9), i1 = upperBound(t, tEnd + 1e-9) - 1;
   const eu = fl.col("e_u"), eh = fl.col("e_h"), ep = fl.col("e_psi"), u = fl.col("u"), v = fl.col("v"), vs = fl.col("vs"), wow = fl.col("wow"), wf = fl.col("wf");
-  const tol = toTol(L, c.target?.h), land = c.kind === "land", hold = c.hold_s ?? L.hold_s ?? 5;
-  const act = new Set(c.active || []), cp = L.coupling || {};
-  const out = { streak_s: 0, settle_s: NaN, on_time: false, done_t: NaN, max: { xy: 0, h: 0, psi: 0 }, coupling_exceeded: false,
-    now: null, tol, land, wow: NaN, wf: NaN, gs: NaN };
+  const esp = fl.col("esp"), va = fl.col("va");
+  // türbülansta bantlar genişler (env: tol_turb_scale; pencerenin kaydında tol_scale)
+  const ks = fin(c.tol_scale) ? c.tol_scale : 1, cruise = c.kind === "cruise", stop = c.kind === "stop";
+  const t0 = toTol(L, c.target?.h), tol = { xy: t0.xy * ks, h: t0.h * ks, psi: (tl.tol_psi_deg ?? 3) * ks, v: (tl.tol_v_fps ?? 2) * ks, vs: (tl.tol_vs_fps ?? 2) * ks,
+    u: (fc.tol_u_fps ?? 4) * ks, hc: (fc.tol_h_cruise_ft ?? 12) * ks, psic: (fc.tol_psi_cruise_deg ?? 3) * ks, vsc: (fc.tol_vs_cruise_fps ?? 4) * ks };
+  const land = c.kind === "land", hold = c.hold_s ?? L.hold_s ?? 5;
+  const act = new Set(c.active || []), cp = L.coupling || {}, cc = (fc.coupling_cruise || [15, 10, 40]).map(x => x * ks);
+  const out = { streak_s: 0, settle_s: NaN, on_time: false, done_t: NaN, max: { xy: 0, h: 0, psi: 0, u: 0 }, coupling_exceeded: false,
+    now: null, tol, land, cruise, stop, wow: NaN, wf: NaN, gs: NaN, lim: cruise ? { u: cc[0], psi: cc[1], h: cc[2] } : { xy: (cp.xy ?? 20) * ks, h: (cp.altitude ?? 15) * ks, psi: (cp.heading ?? 10) * ks } };
   if (i1 < i0) { METRIC_CACHE.set(key, out); return out; }
   let entry = null, streak = 0;
   for (let i = i0; i <= i1; i++) {
     const gs = Math.hypot(u[i] || 0, v[i] || 0);
-    const inside = land
-      ? (wow[i] >= 4 && (!fin(wf[i]) || wf[i] >= tl.land_weight_frac) && gs <= 1.0 && eu[i] <= tl.land_tol_xy_ft && Math.abs(ep[i]) <= tl.land_tol_psi_deg)
-      : ((wow[i] || 0) === 0 && eu[i] <= tol.xy && Math.abs(eh[i]) <= tol.h && Math.abs(ep[i]) <= tl.tol_psi_deg && gs <= tl.tol_v_fps && Math.abs(vs[i]) <= tl.tol_vs_fps);
+    let inside;
+    if (land) inside = wow[i] >= 4 && (!fin(wf[i]) || wf[i] >= tl.land_weight_frac) && gs <= 1.0 && eu[i] <= (tl.land_tol_xy_ft ?? 8) * ks && Math.abs(ep[i]) <= (tl.land_tol_psi_deg ?? 5) * ks;
+    else if (cruise) inside = (wow[i] || 0) === 0 && Math.abs(esp[i]) <= tol.u && Math.abs(eh[i]) <= tol.hc && Math.abs(ep[i]) <= tol.psic && Math.abs(vs[i]) <= tol.vsc && Math.abs(va[i]) <= 2 * tol.u;
+    else inside = (!stop || !fin(c.stop_t_end) || t[i] >= c.stop_t_end - 1e-9) && (wow[i] || 0) === 0 && eu[i] <= tol.xy && Math.abs(eh[i]) <= tol.h && Math.abs(ep[i]) <= tol.psi && gs <= tol.v && Math.abs(vs[i]) <= tol.vs;
     if (inside) { if (entry == null) { entry = t[i]; streak = 0; } streak += dt; } else { entry = null; streak = 0; }
     const onTime = entry != null && (!fin(c.deadline) || entry - c.t <= c.deadline + 1e-9);
     if (!fin(out.done_t) && onTime && streak >= hold - 1e-9) out.done_t = t[i];
-    if (!fin(out.done_t)) { out.max.xy = Math.max(out.max.xy, eu[i] || 0); out.max.h = Math.max(out.max.h, Math.abs(eh[i] || 0)); out.max.psi = Math.max(out.max.psi, Math.abs(ep[i] || 0)); }
+    if (!fin(out.done_t)) { out.max.xy = Math.max(out.max.xy, eu[i] || 0); out.max.h = Math.max(out.max.h, Math.abs(eh[i] || 0)); out.max.psi = Math.max(out.max.psi, Math.abs(ep[i] || 0));
+      if (cruise) out.max.u = Math.max(out.max.u, Math.abs(esp[i] || 0)); }
   }
   if (entry != null) { out.streak_s = streak; out.settle_s = entry - c.t; out.on_time = !fin(c.deadline) || out.settle_s <= c.deadline + 1e-9; }
-  for (const [k, lim] of [["xy", cp.xy], ["h", cp.altitude], ["psi", cp.heading]]) if (!act.has(k) && fin(lim) && out.max[k] > lim) out.coupling_exceeded = true;
-  out.now = { xy: eu[i1], h: eh[i1], psi: ep[i1] }; out.wow = wow[i1]; out.wf = wf[i1]; out.gs = Math.hypot(u[i1] || 0, v[i1] || 0);
+  for (const [k, lim] of Object.entries(out.lim)) if (!act.has(k) && fin(lim) && out.max[k] > lim) out.coupling_exceeded = true;
+  out.now = { xy: eu[i1], h: eh[i1], psi: ep[i1], u: esp[i1] }; out.wow = wow[i1]; out.wf = wf[i1]; out.gs = Math.hypot(u[i1] || 0, v[i1] || 0);
   if (METRIC_CACHE.size > 400) METRIC_CACHE.clear();
   METRIC_CACHE.set(key, out);
   return out;
@@ -1497,12 +1648,17 @@ function renderActiveTO(fl, T) {
       el("span", null, `hedef: ${fmt(c.target?.h, 0)} ft · heading ${pad3(c.target?.psi ?? 0)}°`));
     box.append(row, bar, row2); frag.append(box);
   }
-  const act = new Set(c.active || []), cp = L.coupling || {};
-  const axes = [["xy", "Konum", "ft", cp.xy, m.tol.xy, 1], ["h", "İrtifa", "ft", cp.altitude, m.tol.h, 1], ["psi", "Heading", "°", cp.heading, tl.tol_psi_deg, 1]];
+  const act = new Set(c.active || []);
+  const axes = m.cruise
+    ? [["u", "Hava hızı", "ft/s", m.lim.u, m.tol.u, 1], ["h", "İrtifa", "ft", m.lim.h, m.tol.hc, 1], ["psi", "Heading", "°", m.lim.psi, m.tol.psic, 1]]
+    : [["xy", "Konum", "ft", m.lim.xy, m.tol.xy, 1], ["h", "İrtifa", "ft", m.lim.h, m.tol.h, 1], ["psi", "Heading", "°", m.lim.psi, m.tol.psi, 1]];
+  if (m.cruise && fin(c.u_target_kt)) frag.append(el("div", "hint", `Hedef hava hızı ${fmt(c.u_target_kt, 0)} kt · irtifa ${fmt(c.target?.h, 0)} ft · heading ${pad3(c.target?.psi ?? 0)}°` +
+    (c.category === "cruise_hold" ? " (mevcut değerleri tut)" : "") + (fin(c.tol_scale) && c.tol_scale > 1 ? ` · türbülans: bantlar ×${fmt(c.tol_scale, 2)}` : "")));
+  if (m.stop && fin(c.stop_t_end)) frag.append(el("div", "hint", `Referans noktası ${fmt(c.stop_t_end - c.t, 0)} s'de durur (yer izi boyunca sabit yavaşlama); bant ondan sonra.`));
   for (const [a, name, unit, lim, band, nd] of axes) {
     const row = el("div", "mrow"), ax = el("div", "ax", name), boxv = el("div");
     const now = Math.abs(m.now?.[a] ?? NaN);
-    if (act.has(a) || c.kind === "hold" || c.kind === "recover") {
+    if (act.has(a) || c.kind === "hold" || c.kind === "recover" || c.category === "cruise_hold") {
       ax.append(el("small", null, "komut / bant"));
       const line = el("div", "coup"); line.append(el("span", null, `hata ${fmt(now, nd)} ${unit}`), el("span", "muted", c.kind === "land" && a === "h" ? "yere" : `bant ±${fmt(band, 1)} ${unit}`));
       const meter = el("div", "meter" + (now <= band ? " done" : "")); const fill = el("i"); fill.style.width = (100 * clamp(1 - Math.min(1, (now - band) / Math.max(band * 4, 1e-6)), 0, 1)) + "%";
@@ -1522,7 +1678,7 @@ function renderActiveTO(fl, T) {
     const meter = el("div", "meter" + ((m.wf || 0) >= tl.land_weight_frac ? " done" : "")); const fill = el("i"); fill.style.width = (100 * clamp((m.wf || 0) / (tl.land_weight_frac || 0.7), 0, 1)) + "%"; meter.append(fill);
     box.append(line, meter); row.append(ax, box); frag.append(row);
   }
-  const srow = el("div", "mrow"); const sax = el("div", "ax", "Bant"); sax.append(el("small", null, c.kind === "land" ? "yerde, oturmuş" : "hover: hepsi aynı anda"));
+  const srow = el("div", "mrow"); const sax = el("div", "ax", "Bant"); sax.append(el("small", null, c.kind === "land" ? "yerde, oturmuş" : m.cruise ? "ileri uçuş: hepsi aynı anda" : "hover: hepsi aynı anda"));
   const sbox = el("div"); const sl = el("div", "coup"); sl.append(el("span", null, `${fmt(done ? hold : m.streak_s, 1)} s`), el("span", "muted", `gerekli ${fmt(hold, 0)} s`));
   const sm = el("div", "meter" + (done ? " done" : "")); const sf = el("i"); sf.style.width = (100 * clamp((done ? hold : m.streak_s) / hold, 0, 1)) + "%"; sm.append(sf);
   sbox.append(sl, sm); srow.append(sax, sbox); frag.append(srow);
@@ -1530,7 +1686,8 @@ function renderActiveTO(fl, T) {
     ? (c.interrupted ? `Env kararı: kesildi (görev bitmeden yeni görev) — kuplaj ${c.verdict ? "içinde ✓" : "aşıldı ✗"}` : `Env kararı: ${c.verdict ? "başarılı ✓" : "başarısız ✗"}`)
     : (w.terminated ? "Env kararı: uçuş bitti ✗" : done ? "Görev tamam; env sıradaki görevi bekliyor." : "Görev bandı: " + (c.kind === "land"
       ? `dört kızak yerde, ağırlığın ≥ %${fmt(100 * (tl.land_weight_frac || 0.7), 0)}'i kızaklarda, yer hızı ≤ 1 ft/s, hedefe ≤ ${fmt(tl.land_tol_xy_ft, 0)} ft, ${fmt(hold, 0)} s.`
-      : `konum ±${fmt(m.tol.xy, 1)} ft, irtifa ±${fmt(m.tol.h, 1)} ft, heading ±${fmt(tl.tol_psi_deg, 0)}°, yatay hız ≤ ${fmt(tl.tol_v_fps, 0)}, dikey ≤ ${fmt(tl.tol_vs_fps, 0)} ft/s; ${fmt(hold, 0)} s.`));
+      : m.cruise ? `hava hızı ±${fmt(m.tol.u, 1)} ft/s, irtifa ±${fmt(m.tol.hc, 0)} ft, heading ±${fmt(m.tol.psic, 1)}°, dikey ≤ ${fmt(m.tol.vsc, 1)} ft/s, yana hava hızı ≤ ${fmt(2 * m.tol.u, 0)} ft/s; ${fmt(hold, 0)} s.`
+      : `konum ±${fmt(m.tol.xy, 1)} ft, irtifa ±${fmt(m.tol.h, 1)} ft, heading ±${fmt(m.tol.psi, 1)}°, yatay hız ≤ ${fmt(m.tol.v, 1)}, dikey ≤ ${fmt(m.tol.vs, 1)} ft/s; ${fmt(hold, 0)} s.`));
   frag.append(el("div", "verdict", vtxt));
   body.replaceChildren(frag);
   hud.chip.hidden = false; hud.chipK.textContent = `K${c.id} · ${text}`; hud.chipTxt.textContent = taskText(c.task);
@@ -1542,14 +1699,16 @@ function renderLogTO(fl, T) {
   const rows = [], cp = fl.limits?.coupling || {};
   for (let i = 0; i <= k; i++) {
     const { w, m, cls, icon, text } = statusOfTO(fl, i, T), c = w.c, act = new Set(c.active || []);
-    const coupl = [["xy", "konum", cp.xy], ["h", "h", cp.altitude], ["psi", "ψ", cp.heading]].filter(([a]) => !act.has(a) && c.kind !== "hold" && c.kind !== "recover")
+    const coupl = (m.cruise ? [["u", "v", m.lim.u], ["h", "h", m.lim.h], ["psi", "ψ", m.lim.psi]] : [["xy", "konum", m.lim.xy], ["h", "h", m.lim.h], ["psi", "ψ", m.lim.psi]])
+      .filter(([a]) => !act.has(a) && c.kind !== "hold" && c.kind !== "recover" && c.category !== "cruise_hold")
       .map(([a, n, lim]) => `${n} ${fmt(m.max[a], 0)}/${fmt(lim, 0)}`).join(" · ") || "—";
     const tr = el("tr", i === k ? "active" : null);
     tr.append(el("td", null, "K" + c.id), el("td", null, fmt(c.t, 1)), el("td", "cmd", taskText(c.task)),
       el("td", null, fin(c.T) ? `${fmt(c.T, 1)} s` : "—"),
       el("td", null, c.interrupted && w.closed ? "kesildi" : fin(m.settle_s) ? `${fmt(m.settle_s, 1)} s${m.on_time ? " ✓" : " ⏱"}` : "—"),
       el("td", null, c.kind === "land" && fin(c.touchdown_vs) ? `${fmt(c.touchdown_vs, 1)} ft/s` : "—"),
-      el("td", null, c.interrupted && w.closed ? "—" : `${fmt(m.now?.xy, 1)} ft · ${sgn(m.now?.h, 1)} ft · ${sgn(m.now?.psi, 1)}°`), el("td", null, coupl),
+      el("td", null, c.interrupted && w.closed ? "—" : m.cruise ? `${sgn(m.now?.u, 1)} ft/s · ${sgn(m.now?.h, 1)} ft · ${sgn(m.now?.psi, 1)}°`
+        : `${fmt(m.now?.xy, 1)} ft · ${sgn(m.now?.h, 1)} ft · ${sgn(m.now?.psi, 1)}°`), el("td", null, coupl),
       el("td", cls === "good" ? "res-ok" : cls === "bad" ? "res-bad" : null, `${icon} ${text}`));
     rows.push(tr);
   }
@@ -1579,7 +1738,11 @@ function renderLog(fl, T) {
 }
 function renderTable(fl, T) {
   const head = $("#dtHead"), body = $("#dtBody");
-  const cols = isTO(fl)
+  const cols = isFL(fl)
+    ? [["t", "t (s)", 1], ["h", "irtifa", 1], ["h_ref", "hedef", 1], ["ua", "hava hızı kt", 1], ["uat", "hedef", 1], ["uff", "trim hızı", 1], ["psi", "heading", 1], ["psi_ref", "hedef", 1],
+       ["e_u", "hedefe (ft)", 1], ["vs", "dikey", 2], ["va", "yana hava", 2], ["phi", "roll", 1], ["theta", "pitch", 1], ["tq", "tork psi", 1], ["fuel", "yakıt", 0],
+       ["f0", "coll.", 2], ["f1", "boyl.", 2], ["f2", "yanal", 2], ["f3", "pedal", 2], ["rew", "ödül", 3]]
+    : isTO(fl)
     ? [["t", "t (s)", 1], ["h", "irtifa", 1], ["h_ref", "hedef", 1], ["e_u", "hedefe (ft)", 1], ["psi", "heading", 1], ["psi_ref", "hedef", 1], ["u", "ileri", 2], ["v", "yana", 2],
        ["vs", "dikey", 2], ["phi", "roll", 1], ["theta", "pitch", 1], ["wow", "kızak", 0], ["f0", "coll.", 2], ["f1", "boyl.", 2], ["f2", "yanal", 2], ["f3", "pedal", 2], ["rew", "ödül", 3]]
     : [["t", "t (s)", 1], ["psi", "heading", 1], ["psi_ref", "hedef", 1], ["u", "hız", 2], ["u_ref", "hedef", 2], ["h", "irtifa", 1], ["h_ref", "hedef", 1],
@@ -1621,7 +1784,16 @@ function bindTakeoffForm() {
     if (k === "move") { const dx = num("toDx") || 0, dy = num("toDy") || 0; if (!dx && !dy) return setHint("toHint", "İleri ve / veya sağa kayma gir (ft; geri / sola için eksi).", "err"); return sendTask({ kind: "move", dx, dy }); }
     if (k === "bob") { const d = num("toDh"); if (!fin(d) || !d) return setHint("toHint", "Δh gir (ör. +30).", "err"); return sendTask({ kind: "bob", dh: d }); }
     if (k === "land") return sendTask({ kind: "land" });
+    if (k === "cruise") { const t = { kind: "cruise" }; const du = num("flDu"), dp = num("flDpsi"), dh = num("flDh");
+      if (fin(du) && du) t.du_kt = du; if (fin(dp) && dp) t.dpsi = dp; if (fin(dh) && dh) t.dh = dh;
+      if (Object.keys(t).length === 1) return setHint("toHint", "İleri uçuş: en az bir eksende Δ gir (kt / ° / ft; eksi = azalt, sola, alçal).", "err");
+      ["flDu", "flDpsi", "flDh"].forEach(id => $("#" + id).value = ""); return sendTask(t); }
+    if (k === "accel") { const kt = num("flU"), dh = num("flAccDh"); if (!fin(kt)) return setHint("toHint", "Hedef hava hızı gir (30–110 kt).", "err");
+      return sendTask({ kind: "accel", u_kt: kt, dh: fin(dh) ? dh : 100 }, `Hızlan → ${fmt(kt, 0)} kt${fin(dh) ? `, Δh ${sgn(dh, 0)} ft` : ", Δh +100 ft"}`); }
+    if (k === "stop") return sendTask({ kind: "stop", decel: 2.5 });
+    if (k === "hold") return sendTask({ kind: "hold" });
   }));
+  document.querySelectorAll("#flQuick button").forEach(b => b.addEventListener("click", () => { $("#" + b.dataset.f).value = b.dataset.v; }));
   document.querySelectorAll("#toMoveQuick button").forEach(b => b.addEventListener("click", () => { $("#toDx").value = b.dataset.dx; $("#toDy").value = b.dataset.dy; }));
   document.querySelectorAll("#toDist button").forEach(b => b.addEventListener("click", () => {
     const d = b.dataset, t = { kind: "recover", dist: d.dist };
@@ -1652,7 +1824,9 @@ function bindUi() {
   const doReset = async () => {
     const hv = $("#rsHdg").value.trim();
     const o = { alt: +$("#rsAlt").value, speed: +$("#rsSpd").value, heading: hv === "" ? "random" : +hv };
-    if (app.hello?.task === "takeoff") { o.start = $("#rsStart").value; o.fuel = [+$("#rsFuel0").value || 0, +$("#rsFuel1").value || 0]; delete o.speed; }
+    if (isTOTask(app.hello?.task)) { o.start = $("#rsStart").value; o.fuel = [+$("#rsFuel0").value || 0, +$("#rsFuel1").value || 0]; delete o.speed; }
+    if (app.hello?.task === "flight") Object.assign(o, { speed_kt: +$("#rsSpdKt").value || 60, wind_kt: +$("#rsWind").value || 0,
+      wind_dir: +$("#rsWindDir").value || 0, turb: $("#rsTurb").value, gusts: $("#rsGust").value === "1" });
     if (!fin(o.alt) || (o.speed !== undefined && !fin(o.speed)) || (hv !== "" && !fin(o.heading))) { setHint("resetHint", "Sayı gir.", "err"); return; }
     try { const r = await app.live.reset(o); setHint("resetHint", r.ok ? "Başlatılıyor…" : (r.message || "olmadı"), r.ok ? "ok" : "err"); } catch (err) { setHint("resetHint", err.message, "err"); }
   };
@@ -1660,7 +1834,7 @@ function bindUi() {
   $("#bannerBtn").addEventListener("click", () => { $("#resetBox").open = true; doReset(); });
   document.querySelectorAll("#scaleSeg button").forEach(b => b.addEventListener("click", () => app.live?.control({ time_scale: +b.dataset.scale })));
   $("#pauseBtn").addEventListener("click", () => app.live?.control({ paused: !app.status.paused }));
-  $("#toLiveBtn").addEventListener("click", () => { app.flight = app.liveFlight; app.T = app.latestT; app.charts.setTask(app.hello?.task || "command"); setLogHeader(app.hello?.task === "takeoff"); renderNotes(app.hello?.limits); setMode("live"); updateSub(); });
+  $("#toLiveBtn").addEventListener("click", () => { app.flight = app.liveFlight; app.T = app.latestT; app.charts.setTask(app.hello?.task || "command"); setLogHeader(isTOTask(app.hello?.task)); renderNotes(app.hello?.limits); setMode("live"); updateSub(); });
   document.querySelectorAll(".cam button").forEach(b => b.addEventListener("click", () => {
     document.querySelectorAll(".cam button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); app.scene.setMode(b.dataset.cam);
   }));
@@ -1806,16 +1980,26 @@ async function boot() {
   if (app.live) {
     if (!app.hello) app.hello = await app.live.hello();
     const trn = app.hello.limits?.trained || {};
-    if (app.hello.task !== "takeoff" && Array.isArray(trn.start_alt_ft) && Array.isArray(trn.start_speed_fps))
+    if (!isTOTask(app.hello.task) && Array.isArray(trn.start_alt_ft) && Array.isArray(trn.start_speed_fps))
       $("#limitsTxt").textContent = `Eğitim aralığı: Δψ ±${trn.heading}°, Δv ±${trn.speed} ft/s, Δh ±${trn.altitude} ft · başlangıç ${trn.start_alt_ft.join("–")} ft, ${trn.start_speed_fps.join("–")} ft/s.`;
     const st = app.hello.start || {}; $("#rsAlt").value = st.alt ?? 300; $("#rsSpd").value = st.speed ?? 15; $("#rsHdg").value = st.heading ?? "";
     app.charts.setTask(app.hello.task || "command"); setQuick(app.hello.task || "command"); renderNotes(app.hello.limits);
-    setLogHeader(app.hello.task === "takeoff");
-    if (app.hello.task === "takeoff") {
+    setLogHeader(isTOTask(app.hello.task));
+    if (app.hello.task === "flight" && !$("#rsStart option[value='cruise']")) {
+      const o = document.createElement("option"); o.value = "cruise"; o.textContent = "İleri uçuşta"; $("#rsStart").append(o);
+      $("#cmdTitle").textContent = "Görev ver";
+    }
+    if (isTOTask(app.hello.task)) {
       $("#rsStart").value = st.start || "ground"; $("#rsFuel0").value = (st.fuel || [0, 0])[0]; $("#rsFuel1").value = (st.fuel || [0, 0])[1];
       const tr = app.hello.limits.trained || {};
       $("#toLimits").textContent = `Eğitim aralığı: kalkış ${(tr.takeoff_alt_ft || [12, 1000]).join("–")} ft (CG), dönüş ±${fmt(tr.turn_deg, 0)}°, kayma ${fmt(tr.move_ft, 0)} ft, bob ±${fmt(tr.bob_ft, 0)} ft · ` +
-        `yakıt tank başına 0–${fmt((tr.fuel_lbs || [0, 890])[1], 0)} lbs. Görev bitmeden yeni görev verirsen önceki «kesildi» sayılır.`;
+        `yakıt tank başına ${fmt((tr.fuel_lbs || [0, 890])[0], 0)}–${fmt((tr.fuel_lbs || [0, 890])[1], 0)} lbs` +
+        (app.hello.task === "flight" ? ` · ileri uçuş ${(tr.cruise_kt || [30, 110]).join("–")} kt, ${(tr.cruise_alt_ft || [100, 1000]).join("–")} ft, Δhız ±${fmt(tr.du_kt, 0)} kt, Δψ ±${fmt(tr.dpsi_deg, 0)}°, Δh ±${fmt(tr.dh_ft, 0)} ft · rüzgâr ${(tr.wind_kt || [0, 25]).join("–")} kt, türbülans yok / hafif / orta` : "") +
+        `. Görev bitmeden yeni görev verirsen önceki «kesildi» sayılır.`;
+    }
+    if (app.hello.task === "flight") {
+      $("#rsSpdKt").value = st.speed_kt ?? 60; $("#rsWind").value = st.wind_kt ?? 0; $("#rsWindDir").value = st.wind_dir ?? 0;
+      $("#rsTurb").value = st.turb || "none"; $("#rsGust").value = st.gusts ? "1" : "0";
     }
     if (app.hello.task === "maneuver") { buildPresets(); const tr = app.hello.limits.trained;
       $("#limitsTxt").textContent = `Eğitim aralığı: Δψ ±${tr.heading}°, Δv ±${tr.speed} ft/s, Δh ±${tr.altitude} ft · başlangıç 0–100 kt, ${tr.start_alt_ft.join("–")} ft · süre hedefi: boş → seçili çeviklikten.`; }

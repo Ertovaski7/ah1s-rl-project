@@ -13,6 +13,9 @@ canlı sayfa env'i bu ayarlarla kurar.
 Kullanım
   python widen_takeoff_obs.py --model models_takeoff/takeoff_final.zip --out runs/tq/init_torque.zip \\
       --env '{"aircraft": "repo", "ground_effect": "calibrated", "power_cap_psi": 56, "torque_obs": true}'
+  # manevra modeli (2026-09-29, yedek plan: iki ajanlı zincir için tork gözlemi, obs 24 → 25):
+  python widen_takeoff_obs.py --task maneuver --model models_maneuver/maneuver_robust_final.zip --out runs/mq/init.zip \\
+      --env '{"aircraft": "repo", "power_cap_psi": 56, "torque_obs": true}'
 """
 
 import argparse
@@ -29,15 +32,19 @@ if str(REPO_ROOT) not in sys.path:
 ENV_OVERRIDES_ATTR = "ah1s_env_overrides"
 
 
-def widen(model_path, out_path, env_overrides: dict, check: int = 200, seed: int = 0) -> dict:
+def widen(model_path, out_path, env_overrides: dict, check: int = 200, seed: int = 0, task: str = "takeoff") -> dict:
     import torch
     from stable_baselines3 import PPO
-    from helicopter_env_takeoff import HelicopterEnvTakeoff, TakeoffEnvConfig
 
     old = PPO.load(str(model_path), device="cpu")
     ov = dict(getattr(old, ENV_OVERRIDES_ATTR, None) or {})
     ov.update(env_overrides)
-    env = HelicopterEnvTakeoff(level="K9", config=TakeoffEnvConfig(**ov))
+    if task == "maneuver":
+        from helicopter_env_maneuver import HelicopterEnvManeuver, ManeuverEnvConfig
+        env = HelicopterEnvManeuver(level="M5", config=ManeuverEnvConfig(**ov))
+    else:
+        from helicopter_env_takeoff import HelicopterEnvTakeoff, TakeoffEnvConfig
+        env = HelicopterEnvTakeoff(level="K9", config=TakeoffEnvConfig(**ov))
     n_old, n_new = old.observation_space.shape[0], env.observation_space.shape[0]
     if n_new < n_old:
         raise SystemExit(f"yeni gözlem boyutu ({n_new}) eskisinden ({n_old}) küçük")
@@ -82,8 +89,9 @@ def main(argv=None):
     ap.add_argument("--model", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--env", default="{}", help="env ayarları (JSON), modelinkilerin üstüne")
+    ap.add_argument("--task", choices=["takeoff", "maneuver"], default="takeoff")
     args = ap.parse_args(argv)
-    info = widen(args.model, args.out, json.loads(args.env))
+    info = widen(args.model, args.out, json.loads(args.env), task=args.task)
     print(json.dumps(info, indent=1, ensure_ascii=False))
     if info["max_action_diff"] > 1e-5 or info["max_value_diff"] > 1e-4:
         raise SystemExit("[hata] genişletilmiş model eskisiyle aynı davranmıyor")

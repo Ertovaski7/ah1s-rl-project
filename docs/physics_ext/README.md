@@ -4,29 +4,34 @@ Kalkış ve manevra env'lerinin (ve Aşama 2'deki tek ajan env'inin) ortak kulla
 beş probe (a–e). **Her özellik config ile açılır, varsayılan kapalıdır** → eski modeller aynı davranır. Model zip'inde
 env ayarı olarak taşınır: `ah1s_env_overrides = {"physics": PhysicsExtConfig(...).to_dict()}`.
 
-> Durum (2026-09-29): `ground-effect-torque` branch'i GitHub'da yok → tork kısmı branch'teki uygulamayla hizalanmadı,
-> env entegrasyonu ve probe'ların kalibre yer etkili / güç tavanlı uçakla (`aircraft="repo"`) tekrarı branch gelince.
-> Aşağıdaki sayılar **stok JSBSim 1.3.1 AH-1S** ile (300 ft AGL'de yer etkisi zaten ~0; fark yalnızca 56 psi güç
-> tavanının ağır hover'da devri düşürmesi olur).
+> Durum (2026-09-29): `physics-ext` branch'i `ground-effect-torque`'un (kullanıcının bundle'ı) üstüne taşındı. Tork
+> göstergesi / güç tavanı / tork cezası branch'teki uygulamanın aynısı (fonksiyonlar `physics_ext`'e taşındı, kalkış
+> env'i oradan alıyor). Katman kalkış ve manevra env'lerine bağlandı (`physics` config alanı, varsayılan None); eski
+> modellerin değerlendirmeleri birebir aynı (kalkış 28 senaryo × 2 model, manevra dayanıklılık 49 koşu: JSON'larda 0
+> fark). Probe'lar iki uçakla koşuldu: **stok JSBSim 1.3.1 AH-1S** (dosya adında ek yok; aşağıdaki bölüm 4) ve
+> **repo uçağı + 56 psi güç tavanı** (`--aircraft repo --power-cap 56`, dosya eki `_repo_cap56`; bölüm 4b — Aşama 2'nin
+> tek ajan env'i bu fizikle ve `trim_table_airspeed_repo_cap56.json` ile çalışıyor).
 
 ## 1. Modül: `physics_ext.py`
 
 ```python
-from physics_ext import PhysicsExt, PhysicsExtConfig
-cfg = PhysicsExtConfig.from_dict({"fuel": {"enable": True},
-                                  "wind": {"enable": True, "speed_kt": [0, 20], "dir_deg": [0, 360]},
-                                  "turb": {"enable": True, "levels": ["none", "light", "moderate"]}})
-ext = PhysicsExt(cfg)
-ext.reset(fdm, rng, heading_deg)     # FDM kurulunca: bölüm parametreleri, sabit rüzgâr
-ext.start_disturbances(fdm)          # handover: türbülans + gust başlar
-ext.before_step(fdm); ...; events = ext.after_step(fdm)   # her kontrol adımı
-pen, parts = ext.penalty(fdm)        # tork cezası (torque.enable)
-ext.summary()                        # tepe psi, 50/56 psi üstü süre, yakıt, olaylar (fuel_exhausted, gust)
+# env'de: TakeoffEnvConfig(physics={...}) / ManeuverEnvConfig(physics={...}); FlightEnvConfig'te yakıt varsayılan açık
+from physics_ext import PhysicsExt, torque_penalty, torque_psi
+ext = PhysicsExt({"fuel": {"enable": True},
+                  "wind": {"enable": True, "speed_kt": [0, 20], "dir_deg": [0, 360]},
+                  "turb": {"enable": True, "levels": ["none", "light", "moderate"]}}, control_dt=0.075)
+ext.begin_episode(env.np_random, heading_deg, options)   # reset başı: bölüm parametreleri (kapalıyken RNG'ye dokunmaz)
+ext.attach(fdm)                      # her FDM kurulumunda: önceki bölümün rüzgâr / gust / türbülansını temizle, rüzgârı yaz
+ext.start_disturbances(fdm)          # handover: türbülans + gust + yakıt / tork sayacı başlar
+ext.before_step(fdm)                 # her kontrol adımından önce (env._run_plain): rüzgâr (run_ic siliyor), türbülans, gust
+events = ext.after_step(fdm)         # sonra: tork istatistiği, yakıt yakma, yakıt bitince motor ayrılması
+ext.info(fdm); ext.summary()         # adım bilgisi · bölüm özeti (tepe psi, 50 / 56 psi üstü süre, yakıt, olaylar)
+# options (değerlendirme / canlı, config'i ezer): wind_kt, wind_dir_deg, wind_dir_relative, turb_level, gusts, gust_rate_per_min, gust_kt
 ```
 
 | bölüm | ne yapar | varsayılan |
 |---|---|---|
-| `torque` | psi = `propulsion/engine/bell-torque-sensor-psi` (ah1s.xml: 0.00416·Q − 7.33); ceza: 50–56 psi doğrusal rampa (0.3), 56 üstü `2·min(((psi−56)/3)², 9)`, rotor < 314 rpm; istatistik | kapalı |
+| tork (fonksiyonlar) | psi = 0.00416·Q − 7.33 (ah1s.xml'deki gösterge); `torque_penalty`: 50–56 psi `pen_cont·((psi−50)/6)²`, 56 üstü `pen_over·min(((psi−56)/3)², 9)`, rotor < 314 rpm `pen_rpm_low·((314−rpm)/10)²` (katsayılar env config'inde; kalkış env'inin 2026-09-28 uygulamasıyla aynı); güç tavanı `psi_to_throttle` (repo uçağının governor'ında); istatistik katmanda | env'de 0 |
 | `fuel` | her kontrol adımında W_f·dt tanklardan; tanklar bitince motor ayrılır (`fcs/rpm-governor-active-norm = 0`) + `fuel_exhausted` olayı | kapalı |
 | `wind` | sabit rüzgâr (hız / yön aralığı, heading'e göre ya da mutlak), isteğe bağlı MIL-F-8785C log kesmesi | kapalı |
 | `gust` | JSBSim 1−cos gust'ı (yerel NED), Poisson ya da sabit liste | kapalı |
@@ -152,6 +157,24 @@ düzeltmesi). u_air = 0'da sabit hover trimine eşit (8500 lbs: 0.605 / −0.151
 - Yana hava hızı ±20 kt (hover yakını): aileron ±0.15, pedal ±0.24…0.50, collective −0.05 → tablo 1B (ileri hız)
   tutuldu; yana trimi ajan gözlemdeki v_air ile karşılamalı (gerekirse 2B tablo).
 
+## 4b. Repo uçağı (kalibre yer etkisi) + 56 psi güç tavanı — `*_repo_cap56.*`
+
+Aynı probe'lar `--aircraft repo --power-cap 56` ile (300 ft AGL'de yer etkisi ~0; fark güç tavanından):
+
+- **(a)** Tam depo (10,280 lbs) OGE hover **2.38 h**, 60 kt **3.48 h** (stokla aynı; chart modeli psi'yi okuyor). Hover
+  ilk 16.9 dk 56 psi'nin, 78 dk 50 psi'nin üstünde; tepe 64.7 psi — tavanda devir düşüyor, gösterge Q = P/Ω ile
+  artıyor. Model ↔ el kitabı hover torku 9000–10,200 lbs'de 0.3–2.3 psi.
+- **(b)** Rüzgârda hover ↔ rüzgârsız aynı hava hızı: iki tutucunun oturduğu çiftlerde en büyük fark ≤ 0.0002 (stokla
+  aynı sonuç). Sağdan 30, arkadan 30 ve soldan 10–30 kt'ta tutucu oturmuyor (zarf kenarı / downwash sınır çevrimi).
+- **(c)** Türbülans: stokla aynı tablo (hafif: hover bandında %99–100, orta: %79–89, şiddetli: %55–68; F60'ta ±2 ft/s
+  hız bandı tutulamıyor).
+- **(d)** Hover trimi: `elevator = −0.1507 + 0.0109·(CGx − 172) − 0.0049·ΔW/1000`, `collective = 0.5927 + 0.0774·ΔW/1000`
+  (stokta 0.0557 — tavana yaklaştıkça devir düşüyor, aynı taşıma için daha çok collective); eşit çekimde elevator yine
+  yalnızca 0.003 değişiyor.
+- **(e)** Trim tablosu: 8500–9686 lbs'de stokla ±0.003; **10,280 lbs OGE hover 59.6 psi (tavanın üstü), collective
+  0.772** (10 kt'ta 0.691) → tam yakıtla OGE hover güç tavanının ötesinde. Aşama 2 curriculum'u bu yüzden 8800–9700 lbs
+  kullanıyor (OGE hover ≤ ~53 psi); ağır kalkış yer etkisi + ETL gerektirir (kalkış env'inin `depart` görevi).
+
 ## 5. Beklenmedik bulgular
 
 1. **`run_ic()` rüzgârı siliyor:** `FGFDMExec::Initialize` → `Winds->SetWindNED(IC rüzgârı)`; env'ler teleport /
@@ -163,10 +186,11 @@ düzeltmesi). u_air = 0'da sabit hover trimine eşit (8500 lbs: 0.605 / −0.151
 6. Modelin psi'si el kitabının hover ve seyir grafikleriyle ~1 psi içinde örtüşüyor (10,280 lbs hover'da model
    +1…2.5 psi yüksek; 10,280 lbs gerçek azami ağırlığın üstünde).
 
-## 6. Açık (branch'e bağlı)
+## 6. Durum / açık
 
-- Tork cezası / gözlemi `ground-effect-torque`'daki kalkış env'i uygulamasıyla hizalanacak (şimdiki şekil handoff'taki
-  tarife göre); `power_cap_psi` o branch'teki `Systems/rpm_governor.xml`'e bağlanacak.
-- Env entegrasyonu (kalkış + manevra; `physics` config alanı, varsayılan None) ve eski modellerin birebir aynı
-  sonuç verdiğinin testi (evaluate_takeoff 28 senaryo, evaluate_robustness 49 koşu).
-- Probe'ların `--aircraft repo` ile tekrarı (özellikle trim tablosu ve ağır hover — güç tavanı).
+- Yapıldı: tork fonksiyonlarının branch'teki uygulamayla birleştirilmesi, env entegrasyonu (kalkış + manevra; `physics`
+  varsayılan None), eski modellerin birebir aynı sonuç verdiğinin testi (evaluate_takeoff 28 senaryo × takeoff_final /
+  takeoff_torque, evaluate_robustness 49 koşu: 0 fark), probe'ların repo uçağı + güç tavanıyla tekrarı (4b).
+- Manevra env'inde yakıt katmanı desteklenmiyor (FDM her bölümde yeniden kullanılıyor; `physics.fuel` → hata).
+- Yakıt akışı el kitabının seyir grafiğinden; hover'da (yer etkisi / ağır) doğrusal uzatma — doğrulanmadı.
+- Motor gücü sıcaklık / irtifayla düşmüyor (elektrik motoru; 56 psi tavanı sabit).

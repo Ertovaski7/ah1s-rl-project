@@ -1,0 +1,288 @@
+{
+ "model": "models_flight/flight_final.zip",
+ "levels": {
+  "F3": {
+   "episode": 0.7,
+   "n": 20,
+   "termination": {
+    "time_limit": 20
+   },
+   "env_stages": {
+    "E0": 9,
+    "E1": 11
+   },
+   "categories": {
+    "bob": [
+     1.0,
+     1
+    ],
+    "cruise_h": [
+     0.8333333333333334,
+     6
+    ],
+    "cruise_hold": [
+     1.0,
+     14
+    ],
+    "cruise_mix": [
+     0.9,
+     10
+    ],
+    "cruise_psi": [
+     0.7,
+     10
+    ],
+    "cruise_u": [
+     1.0,
+     9
+    ],
+    "hold": [
+     1.0,
+     4
+    ],
+    "interrupted": [
+     1.0,
+     8
+    ],
+    "move": [
+     0.75,
+     4
+    ],
+    "takeoff": [
+     1.0,
+     2
+    ],
+    "turn": [
+     1.0,
+     5
+    ]
+   }
+  },
+  "F5": {
+   "episode": 1.0,
+   "n": 20,
+   "termination": {
+    "time_limit": 20
+   },
+   "env_stages": {
+    "E1": 10,
+    "E0": 10
+   },
+   "categories": {
+    "accel": [
+     1.0,
+     20
+    ],
+    "cruise_h": [
+     1.0,
+     10
+    ],
+    "cruise_mix": [
+     1.0,
+     8
+    ],
+    "cruise_psi": [
+     1.0,
+     8
+    ],
+    "cruise_u": [
+     1.0,
+     11
+    ],
+    "stop": [
+     1.0,
+     20
+    ],
+    "takeoff": [
+     1.0,
+     20
+    ]
+   }
+  },
+  "F6": {
+   "episode": 0.95,
+   "n": 20,
+   "termination": {
+    "time_limit": 20
+   },
+   "env_stages": {
+    "E0": 12,
+    "E1": 8
+   },
+   "categories": {
+    "bob": [
+     1.0,
+     1
+    ],
+    "hold": [
+     1.0,
+     8
+    ],
+    "land": [
+     1.0,
+     20
+    ],
+    "move": [
+     0.6666666666666666,
+     3
+    ],
+    "takeoff": [
+     1.0,
+     7
+    ],
+    "turn": [
+     1.0,
+     2
+    ]
+   }
+  },
+  "F7": {
+   "episode": 0.85,
+   "n": 20,
+   "termination": {
+    "time_limit": 20
+   },
+   "env_stages": {
+    "E1": 9,
+    "E2": 11
+   },
+   "categories": {
+    "accel": [
+     1.0,
+     5
+    ],
+    "bob": [
+     1.0,
+     6
+    ],
+    "climb_to": [
+     1.0,
+     3
+    ],
+    "cruise_h": [
+     0.75,
+     4
+    ],
+    "cruise_hold": [
+     1.0,
+     8
+    ],
+    "cruise_mix": [
+     1.0,
+     7
+    ],
+    "cruise_psi": [
+     1.0,
+     11
+    ],
+    "cruise_u": [
+     1.0,
+     5
+    ],
+    "hold": [
+     1.0,
+     4
+    ],
+    "interrupted": [
+     1.0,
+     9
+    ],
+    "land": [
+     0.0,
+     1
+    ],
+    "move": [
+     1.0,
+     4
+    ],
+    "stop": [
+     1.0,
+     9
+    ],
+    "takeoff": [
+     1.0,
+     5
+    ],
+    "turn": [
+     0.8,
+     5
+    ]
+   }
+  },
+  "F8": {
+   "episode": 0.8,
+   "n": 20,
+   "termination": {
+    "time_limit": 20
+   },
+   "env_stages": {
+    "E1": 7,
+    "E2": 6,
+    "E3": 7
+   },
+   "categories": {
+    "accel": [
+     1.0,
+     5
+    ],
+    "bob": [
+     1.0,
+     6
+    ],
+    "climb_to": [
+     1.0,
+     3
+    ],
+    "cruise_h": [
+     0.75,
+     4
+    ],
+    "cruise_hold": [
+     1.0,
+     6
+    ],
+    "cruise_mix": [
+     1.0,
+     4
+    ],
+    "cruise_psi": [
+     0.9090909090909091,
+     11
+    ],
+    "cruise_u": [
+     1.0,
+     4
+    ],
+    "hold": [
+     1.0,
+     3
+    ],
+    "interrupted": [
+     1.0,
+     7
+    ],
+    "land": [
+     0.8,
+     5
+    ],
+    "move": [
+     1.0,
+     4
+    ],
+    "stop": [
+     1.0,
+     8
+    ],
+    "takeoff": [
+     1.0,
+     7
+    ],
+    "turn": [
+     0.8,
+     5
+    ]
+   }
+  }
+ },
+ "env": null
+}

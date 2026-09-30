@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<system name="RPM Governor (AH1S)">
+
+<!--  =================================================================
+
+       RPM governor for the ah1s model (Adjusted for electric engines,
+       and rather 'crisp').
+
+       A more basic/lazy PID might use the following values:
+         <kp> 0.0035 </kp>
+         <ki> 0.001  </ki>
+         <kd> 0.0    </kd>
+
+       ah1s-rl-project (2026-09-28): power cap for torque limits.
+         The model flies with an electric 1500 hp substitute for the T53, so without a cap
+         the rotor could absorb ~100 psi on the model's own torque gauge (~180% torque).
+         fcs/throttle-max-norm (RW, default 1.0 = stock behaviour) caps the governor output,
+         i.e. the power available = throttle-max-norm * 1500 hp. Demanding more makes the
+         rotor RPM droop, as with a power-limited turboshaft. While the throttle sits on the
+         cap and the RPM is still low, the PID integrator is held (anti-windup).
+         Example: 56 psi (100% torque) at 324 rpm = 15224 lbsft * 33.93 rad/s = 939 hp -> 0.626.
+
+       Note:
+         When developing a new helicopter fdm you should run the rotor
+         in constant-speed mode (by setting ExternalRPM to -1 and 
+         manipulate propulsion/engine[x]/x-rpm-dict accordingly).
+         Implement the governor as last step, otherwise chances are high 
+         that a bad governor might spoil a good model.
+
+      =================================================================  -->
+
+
+  <property value="0.0">fcs/rpm-governor-active-norm</property>
+  <property value="324.0"> fcs/nominal-rpm </property>
+  <property value="1.0"> fcs/throttle-max-norm </property>
+
+  <channel name="RPM-Governor">
+    <fcs_function name="fcs/throttle-cap-hold-norm">
+      <function>
+        <difference>
+          <property> fcs/throttle-max-norm </property>
+          <value> 0.0005 </value>
+        </difference>
+      </function>
+    </fcs_function>
+    <switch name="fcs/rpm-governor-pid-inhibit">
+      <default value="-1.0"/>
+      <!-- anti-windup: hold the integrator while the output sits on the power cap -->
+      <test logic="AND" value="1.0">
+        fcs/rpm-governor-active-norm GT 0.0
+        fcs/throttle-pos-norm GE fcs/throttle-cap-hold-norm
+        fcs/rpm-delta GT 0.0
+      </test>
+      <test value="0.0"> fcs/rpm-governor-active-norm GT 0.0 </test>
+    </switch>
+    <fcs_function name="fcs/rpm-delta">
+      <function>
+        <product>
+          <property> fcs/rpm-governor-active-norm </property>
+          <difference>
+            <property> fcs/nominal-rpm </property>
+            <property> propulsion/engine/rotor-rpm </property>
+          </difference>
+        </product>
+      </function>
+      <clipto>
+        <min> -50.0 </min>
+        <max>  50.0 </max>
+      </clipto>
+    </fcs_function>
+    <pid name="fcs/throttle-pid">
+      <input>fcs/rpm-delta</input>
+      <kp>  0.07   </kp>
+      <ki>  0.0012 </ki>
+      <kd> -0.0008 </kd>
+      <trigger> fcs/rpm-governor-pid-inhibit </trigger>
+      <clipto>
+        <min>  0.00 </min>
+        <max>  fcs/throttle-max-norm </max>
+      </clipto>
+      <output>fcs/throttle-pos-norm</output> 
+    </pid>
+  </channel>
+
+</system>

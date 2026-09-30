@@ -21,6 +21,10 @@ Kullanım
   python evaluate_takeoff.py --model models_takeoff/takeoff_final.zip
   python evaluate_takeoff.py --model runs/to/models/latest.zip --only kalkis_1000 inis_300 --json out.json
   python evaluate_takeoff.py --model ... --levels K2,K5,K7,K9 --episodes 50      # seviyelerden rastgele episode
+  python evaluate_takeoff.py --model ... --env '{"aircraft": "repo", "power_cap_psi": 56}'   # env ayarı (modelinkinin üstüne)
+
+Env ayarları: modelin zip'inde taşıdığı `ah1s_env_overrides` (ör. kalibre yer etkisi, güç tavanı, tork gözlemi) +
+`--env`. Tork: modelin kendi göstergesi (psi), el kitabı sürekli 50 / %100 56 psi.
 """
 
 import argparse
@@ -90,14 +94,36 @@ SCENARIOS = [
     ("bozucu_burun", "bozucu", "100 ft hover: 8° burun yukarı bozucusu", "K8", "hover",
      [HOLD, dict(kind="recover", dist="tilt", dphi=0.0, dtheta=8.0)], (0, 0)),
 ]
-GROUPS = ("kalkış", "manevra", "hedef", "iniş", "ağırlık", "bozucu")
+# ileri kalkış (departure, 2026-09-28; --depart ile): yerden ileri uçuşa geç — hareketli hedef noktası + irtifa hedefi.
+# Güç tavanıyla (%100 tork) 10280 lbs'de OGE hover sınırın üstünde → ağır helikopter yer etkisi + ETL kullanmalı.
+DEP = lambda h, v, a=2.5: dict(kind="depart", h=float(h), v_kt=float(v), accel=float(a))   # noqa: E731
+SCENARIOS_DEPART = [
+    ("ileri_hafif", "ileri kalkış", "8500 lbs: yerden 200 ft / 50 kt ileri uçuşa", "K11", "ground", [DEP(200, 50)], (0, 0)),
+    ("ileri_orta", "ileri kalkış", "9400 lbs: yerden 150 ft / 45 kt ileri uçuşa", "K11", "ground", [DEP(150, 45)], (450, 450)),
+    ("ileri_agir", "ileri kalkış", "10280 lbs (tam yakıt): yerden 200 ft / 50 kt ileri uçuşa", "K11", "ground",
+     [DEP(200, 50)], (890, 890)),
+    ("ileri_agir_yavas", "ileri kalkış", "10280 lbs: yerden 100 ft / 40 kt, yavaş ivme (1.5 ft/s²)", "K11", "ground",
+     [DEP(100, 40, 1.5)], (890, 890)),
+]
+GROUPS = ("kalkış", "manevra", "hedef", "iniş", "ağırlık", "bozucu", "ileri kalkış")
 CH = ("collective", "long. cyclic", "lat. cyclic", "pedal")
 
 
-def load(path):
+def load(path, with_overrides: bool = False):
     from stable_baselines3 import PPO
     m = PPO.load(str(path), device="cpu")
-    return lambda o: m.predict(o, deterministic=True)[0]
+    fn = lambda o: m.predict(o, deterministic=True)[0]              # noqa: E731
+    if with_overrides:
+        return fn, dict(getattr(m, "ah1s_env_overrides", None) or {})
+    return fn
+
+
+def make_env(model_path, env_overrides: dict | None = None, level="K9"):
+    """(env, policy): env modelin eğitildiği ayarlarla (+ env_overrides) kurulur."""
+    from helicopter_env_takeoff import HelicopterEnvTakeoff, TakeoffEnvConfig
+    pol, ov = load(model_path, with_overrides=True)
+    ov.update(env_overrides or {})
+    return HelicopterEnvTakeoff(level=level, config=TakeoffEnvConfig(**ov)), pol, ov
 
 
 def run_one(env, policy, sc, seed=0):
@@ -113,7 +139,8 @@ def run_one(env, policy, sc, seed=0):
     while not done:
         obs, r, term, trunc, info = env.step(policy(obs))
         rows.append((info["t"], info["altitude"], info["err_xy"], info["err_heading"], info["roll_deg"],
-                     info["pitch_deg"], info["vertical_speed"], info["ground_speed"], info["wow"], *info["controls"]))
+                     info["pitch_deg"], info["vertical_speed"], info["ground_speed"], info["wow"], *info["controls"],
+                     info["torque_psi"], info["rotor_rpm"]))
         done = term or trunc
     a = np.array(rows)
     res = info.get("command_results") or []
@@ -126,6 +153,15 @@ def run_one(env, policy, sc, seed=0):
         if k.sum() > 10 and np.std(a[k, 9]) > 1e-4 and np.std(a[k, 12]) > 1e-4:
             corr = float(np.corrcoef(a[k, 9], a[k, 12])[0, 1])
     td = [c["touchdown_vs"] for c in res if c["kind"] == "land" and c["touchdown_vs"] is not None]
+    q, rpm = a[:, 13], a[:, 14]
+    # ileri kalkış tekniği: yer hızı ETL'e (20 kt) ulaştığında kızak yüksekliği — dikey tırmanıp sonra hızlanan ajanda
+    # yüksek, yer etkisinde hızlanıp sonra tırmananda alçak
+    etl = np.flatnonzero(a[:, 7] >= 20.0 * 1.68781)
+    hs_at_etl = float(a[etl[0], 1] - 6.3) if etl.size else None
+    over, run_, longest = q > 56.0, 0, 0
+    for o in over:
+        run_ = run_ + 1 if o else 0
+        longest = max(longest, run_)
     return dict(
         id=sid, group=group, title=title, level=level, safe=info.get("termination") == "time_limit",
         termination=info.get("termination"), episode_ok=bool(info.get("episode_success")),
@@ -139,7 +175,10 @@ def run_one(env, policy, sc, seed=0):
         max_pitch=float(np.abs(a[:, 5]).max()), max_climb=float(a[:, 6].max()), max_sink=float(-a[:, 6].min()),
         touchdown_vs=td[0] if td else None,
         ctrl_max=[float(x) for x in np.abs(ctrl).max(axis=0)], ctrl_rms=[float(x) for x in np.sqrt((ctrl ** 2).mean(axis=0))],
-        coll_pedal_corr=corr, duration=float(a[-1, 0]))
+        coll_pedal_corr=corr, duration=float(a[-1, 0]),
+        torque_max=float(q.max()), torque_p95=float(np.percentile(q, 95)), t_over50_s=float((q > 50.0).sum() * 0.075),
+        t_over56_s=float(over.sum() * 0.075), longest_over56_s=float(longest * 0.075), rpm_min=float(rpm.min()),
+        hs_at_20kt=hs_at_etl)
 
 
 def summarize(results):
@@ -154,6 +193,11 @@ def summarize(results):
     s["kumanda_max"] = dict(zip(CH, np.max([r["ctrl_max"] for r in results], axis=0).round(3).tolist()))
     corr = [r["coll_pedal_corr"] for r in results if r["coll_pedal_corr"] is not None]
     s["kalkis_coll_pedal_corr"] = float(np.mean(corr)) if corr else None
+    s["tork"] = dict(senaryo_56_ustu=[sum(r["t_over56_s"] > 0 for r in results), len(results)],
+                     maks_psi=float(max(r["torque_max"] for r in results)),
+                     sure_56_ustu_s=float(sum(r["t_over56_s"] for r in results)),
+                     sure_toplam_s=float(sum(r["duration"] for r in results)),
+                     rpm_min=float(min(r["rpm_min"] for r in results)))
     return s
 
 
@@ -167,22 +211,23 @@ def fmt(r):
     lift = f"{r['liftoff_s']:.1f}" if r["liftoff_s"] is not None else "—"
     return (f"{r['id']:18s} {tick(r['safe']):>3s} {tick(r['episode_ok']):>3s} {r['n_ok']:>2d}/{r['n']:<2d} {lift:>5s} "
             f"{r['max_drift']:5.1f} {r['max_roll']:4.0f}° {r['max_pitch']:3.0f}° {r['max_climb']:5.1f} {td:>5s}  "
-            f"{' '.join(f'{x:.2f}' for x in r['ctrl_max'])}  {tasks}  {'' if r['safe'] else r['termination']}")
+            f"{' '.join(f'{x:.2f}' for x in r['ctrl_max'])}  {r['torque_max']:5.1f} {r['t_over56_s']:5.1f} {r['rpm_min']:4.0f}  "
+            f"{tasks}  {'' if r['safe'] else r['termination']}"
+            + (f"  [20 kt'ta kızak {r['hs_at_20kt']:.0f} ft]" if r.get("hs_at_20kt") is not None and r["group"] == "ileri kalkış" else ""))
 
 
 HEADER = (f"{'senaryo':18s} {'güv':>3s} {'tüm':>3s} {'görev':>5s} {'kalk':>5s} {'drift':>5s} {'maxφ':>5s} {'maxθ':>4s} "
-          f"{'tırm':>5s} {'temas':>5s}  {'kumanda max |Δ| (coll lon lat ped)':34s}  görevler (oturma/son sınır s)")
+          f"{'tırm':>5s} {'temas':>5s}  {'kumanda max |Δ| (coll lon lat ped)':34s} {'psi':>5s} {'>56s':>5s} {'rpm':>4s}  "
+          f"görevler (oturma/son sınır s)")
 
 
-def evaluate(model_path, only=None, verbose=True):
-    from helicopter_env_takeoff import HelicopterEnvTakeoff
-    env = HelicopterEnvTakeoff(level="K9")
-    pol = load(model_path)
+def evaluate(model_path, only=None, verbose=True, env_overrides=None, depart=False):
+    env, pol, ov = make_env(model_path, env_overrides)
     results = []
     if verbose:
-        print(f"\nKALKIŞ / HOVER / İNİŞ — model {Path(model_path).name}")
+        print(f"\nKALKIŞ / HOVER / İNİŞ — model {Path(model_path).name}  env {ov or 'varsayılan (stok JSBSim ah1s)'}")
         print(HEADER)
-    for sc in SCENARIOS:
+    for sc in SCENARIOS + (SCENARIOS_DEPART if depart else []):
         if only and sc[0] not in only:
             continue
         r = run_one(env, pol, sc)
@@ -200,13 +245,15 @@ def evaluate(model_path, only=None, verbose=True):
             f"{c} {s['kumanda_rms'][c]:.3f}/{s['kumanda_max'][c]:.2f}" for c in CH))
         if s["kalkis_coll_pedal_corr"] is not None:
             print(f"  kalkışta collective–pedal korelasyonu (tork telafisi): {s['kalkis_coll_pedal_corr']:+.2f}")
+        tq = s["tork"]
+        print(f"  tork: {tq['senaryo_56_ustu'][0]}/{tq['senaryo_56_ustu'][1]} senaryoda 56 psi (%100) aşıldı, toplam "
+              f"{tq['sure_56_ustu_s']:.0f} s / {tq['sure_toplam_s']:.0f} s; en yüksek {tq['maks_psi']:.1f} psi; "
+              f"en düşük rotor devri {tq['rpm_min']:.0f}")
     return results, s
 
 
-def level_stats(model_path, levels, n, seed0=70000):
-    from helicopter_env_takeoff import HelicopterEnvTakeoff
-    env = HelicopterEnvTakeoff(level=levels[0])
-    pol = load(model_path)
+def level_stats(model_path, levels, n, seed0=70000, env_overrides=None):
+    env, pol, _ = make_env(model_path, env_overrides, level=levels[0])
     out = {}
     for lvl in levels:
         ok, term, cats = [], Counter(), defaultdict(list)
@@ -235,15 +282,20 @@ def main(argv=None):
     ap.add_argument("--episodes", type=int, default=30)
     ap.add_argument("--no-scenarios", action="store_true")
     ap.add_argument("--json", default=None)
+    ap.add_argument("--env", default=None, help="env ayarları (JSON), modelin taşıdıklarının üstüne yazılır")
+    ap.add_argument("--depart", action="store_true", help="ileri kalkış senaryolarını da koş (4)")
     args = ap.parse_args(argv)
+    env_ov = json.loads(args.env) if args.env else None
     t0 = time.time()
     out = dict(model=str(args.model))
     if not args.no_scenarios:
-        res, summ = evaluate(args.model, args.only)
+        res, summ = evaluate(args.model, args.only, env_overrides=env_ov, depart=args.depart)
         out.update(results=res, summary=summ)
     if args.levels:
         print()
-        out["levels"] = level_stats(args.model, [x.strip() for x in args.levels.split(",") if x.strip()], args.episodes)
+        out["levels"] = level_stats(args.model, [x.strip() for x in args.levels.split(",") if x.strip()], args.episodes,
+                                    env_overrides=env_ov)
+    out["env"] = env_ov
     print(f"\n({time.time() - t0:.0f} s)")
     if args.json:
         Path(args.json).write_text(json.dumps(out, indent=1, ensure_ascii=False, default=float), encoding="utf-8")

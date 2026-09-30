@@ -410,6 +410,9 @@ def parse_args(argv=None):
     p.add_argument("--eval-levels", default=None,
                    help="değerlendirme seviyeleri (virgülle; varsayılan manevra M5,S2,S3 · kalkış K2,K4,K9)")
     p.add_argument("--eval-episodes", type=int, default=30, help="seviye başına değerlendirme episode'u")
+    p.add_argument("--env-overrides", dest="env_overrides_cli", default=None,
+                   help="env ayarları (JSON; kalkış / manevra), init / resume modelinin taşıdıklarının üstüne yazılır ve "
+                        "modelle kaydedilir. Ör. kalkış: '{\"aircraft\": \"repo\", \"power_cap_psi\": 56, \"torque_obs\": true}'")
     p.add_argument("--smoke", action="store_true", help="çok kısa deneme koşusu")
     return p.parse_args(argv)
 
@@ -476,6 +479,23 @@ def main(argv=None):
             print(f"[env] ayarlar: {args.env_overrides} (modelle birlikte kaydedilir)")
     elif args.coll_scale is not None:
         raise SystemExit("--coll-scale yalnızca --task maneuver için")
+    if args.task == "takeoff":
+        # kalkış env ayarları (2026-09-28: repo uçağı / kalibre yer etkisi / güç tavanı / tork gözlemi ve cezası):
+        # modelin taşıdığı + --env-overrides. Model bu ayarlarla kaydedilir (evaluate_takeoff, command_viz okur).
+        from helicopter_env_maneuver import read_env_overrides
+        from helicopter_env_takeoff import TakeoffEnvConfig
+        args.env_overrides = dict(read_env_overrides(model_path)) if model_path is not None else {}
+    cli_ov = json.loads(args.env_overrides_cli) if args.env_overrides_cli else {}
+    if cli_ov:
+        if args.task not in ("takeoff", "maneuver"):
+            raise SystemExit("--env-overrides yalnızca --task takeoff / maneuver için")
+        args.env_overrides.update(cli_ov)
+    if args.task == "takeoff":
+        unknown = [k for k in args.env_overrides if k not in TakeoffEnvConfig.__dataclass_fields__]
+        if unknown:
+            raise SystemExit(f"bilinmeyen kalkış env ayarı: {unknown}")
+        if args.env_overrides:
+            print(f"[env] kalkış ayarları: {args.env_overrides} (modelle birlikte kaydedilir)")
     venv = build_vec_env(args.n_envs, level_index, args.vec, args.env_config, args.task, args.env_overrides)
     from dataclasses import asdict
     env_config = asdict(make_config(args.env_config, args.task, args.env_overrides))
@@ -513,7 +533,7 @@ def main(argv=None):
                                log_std_init=args.log_std_init),
             tensorboard_log=tb, seed=args.seed, verbose=0, device="cpu")
         print(f"[model] yeni PPO (rastgele ağırlıklar) — ağ {net}, σ0={np.exp(args.log_std_init):.2f}")
-    if args.task == "maneuver":
+    if args.task in ("maneuver", "takeoff"):
         from helicopter_env_maneuver import ENV_OVERRIDES_ATTR
         setattr(model, ENV_OVERRIDES_ATTR, dict(args.env_overrides))      # her kayıtta zip'e girer
 

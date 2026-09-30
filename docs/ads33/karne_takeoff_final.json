@@ -1,0 +1,239 @@
+{
+ "model": "models_takeoff/takeoff_final.zip",
+ "env": null,
+ "standards": {
+  "hover": {
+   "desired": {
+    "lon": 3.0,
+    "lat": 3.0,
+    "alt": 2.0,
+    "hdg": 5.0,
+    "t": 5.0
+   },
+   "adequate": {
+    "lon": 6.0,
+    "lat": 6.0,
+    "alt": 4.0,
+    "hdg": 10.0,
+    "t": 8.0
+   },
+   "hold_s": 30.0,
+   "speed_kt": 8.0,
+   "hs_ft": 10.0,
+   "approach_ft": 25.0,
+   "source": "NASA Ames 2023 (Altamirano vd., ADS-33 MTE tablosu)"
+  },
+  "turn": {
+   "desired": {
+    "lon": 3.0,
+    "lat": 3.0,
+    "alt": 3.0,
+    "hdg": 3.0,
+    "t": 10.0
+   },
+   "adequate": {
+    "lon": 6.0,
+    "lat": 6.0,
+    "alt": 5.0,
+    "hdg": 5.0,
+    "t": 15.0
+   },
+   "hold_s": 5.0,
+   "hs_ft": 10.0,
+   "source": "ADS-33E-PRF hovering turn (değerler hatırlanan — doğrulanmalı)"
+  },
+  "vertical": {
+   "desired": {
+    "lon": 3.0,
+    "lat": 3.0,
+    "alt": 3.0,
+    "hdg": 5.0,
+    "t": 13.0
+   },
+   "adequate": {
+    "lon": 6.0,
+    "lat": 6.0,
+    "alt": 6.0,
+    "hdg": 10.0,
+    "t": 18.0
+   },
+   "hs_ft": 15.0,
+   "dh_ft": 25.0,
+   "source": "NASA Ames 2023 (Altamirano vd., ADS-33 MTE tablosu); yukarı + aşağı tek süre (varsayım — doğrulanmalı)"
+  },
+  "pirouette": {
+   "desired": {
+    "radial": 10.0,
+    "alt": 3.0,
+    "hdg": 10.0,
+    "t": 45.0,
+    "stab": 5.0
+   },
+   "adequate": {
+    "radial": 15.0,
+    "alt": 10.0,
+    "hdg": 15.0,
+    "t": 60.0,
+    "stab": 10.0
+   },
+   "hold_s": 5.0,
+   "radius_ft": 100.0,
+   "hs_ft": 10.0,
+   "circle_s": 38.0,
+   "source": "DLR CH-53G ADS-33E değerlendirmesi (Höfinger vd.) (+ hatırlanan süreler — doğrulanmalı)"
+  },
+  "landing": {
+   "desired": {
+    "lon": 1.0,
+    "lat": 0.5,
+    "hdg": 5.0,
+    "t": 10.0
+   },
+   "adequate": {
+    "lon": 3.0,
+    "lat": 3.0,
+    "hdg": 10.0,
+    "t": 15.0
+   },
+   "hs_ft": 20.0,
+   "source": "DLR CH-53G ADS-33E değerlendirmesi (Höfinger vd.) (adequate süre varsayım)"
+  }
+ },
+ "results": [
+  {
+   "mte": "hover",
+   "side": "sağ",
+   "weight": 8500.0,
+   "crashed": false,
+   "t_stab_desired": 3.6,
+   "ok_desired": true,
+   "t_stab_adequate": 2.33,
+   "ok_adequate": true,
+   "hold_lon": 1.82,
+   "hold_lat": 6.0,
+   "hold_alt": 1.08,
+   "hold_hdg": 0.72,
+   "overshoot_ft": 0.11,
+   "torque_max": 50.37,
+   "rating": "desired"
+  },
+  {
+   "mte": "hover",
+   "side": "sol",
+   "weight": 8500.0,
+   "crashed": false,
+   "t_stab_desired": 2.17,
+   "ok_desired": true,
+   "t_stab_adequate": 1.42,
+   "ok_adequate": true,
+   "hold_lon": 5.96,
+   "hold_lat": 5.29,
+   "hold_alt": 1.84,
+   "hold_hdg": 1.05,
+   "overshoot_ft": 0.5,
+   "torque_max": 52.95,
+   "rating": "desired"
+  },
+  {
+   "mte": "turn",
+   "side": "+180°",
+   "weight": 8500.0,
+   "crashed": false,
+   "t_stab_desired": 4.72,
+   "ok_desired": false,
+   "t_stab_adequate": 4.65,
+   "ok_adequate": true,
+   "max_lon": 2.45,
+   "max_lat": 3.73,
+   "max_alt": 2.62,
+   "torque_max": 47.36,
+   "rating": "adequate"
+  },
+  {
+   "mte": "turn",
+   "side": "-180°",
+   "weight": 8500.0,
+   "crashed": false,
+   "t_stab_desired": 7.28,
+   "ok_desired": false,
+   "t_stab_adequate": 7.2,
+   "ok_adequate": false,
+   "max_lon": 9.2,
+   "max_lat": 4.92,
+   "max_alt": 4.49,
+   "torque_max": 48.74,
+   "rating": "yetersiz"
+  },
+  {
+   "mte": "vertical",
+   "side": "+25/−25 ft",
+   "weight": 8500.0,
+   "crashed": false,
+   "t_top": 5.62,
+   "top_err": 0.55,
+   "t_done_desired": 12.7,
+   "ok_desired": true,
+   "t_done_adequate": 12.7,
+   "ok_adequate": true,
+   "max_lon": 0.76,
+   "max_lat": 0.97,
+   "max_hdg": 1.58,
+   "max_climb": 14.55,
+   "max_sink": 9.23,
+   "torque_max": 99.66,
+   "rating": "desired"
+  },
+  {
+   "mte": "pirouette",
+   "side": "saat yönü",
+   "weight": 8500.0,
+   "crashed": false,
+   "t_arrive_desired": 43.65,
+   "ok_desired": false,
+   "t_arrive_adequate": 42.6,
+   "ok_adequate": false,
+   "max_radial": 72.08,
+   "max_alt": 2.65,
+   "max_hdg": 93.91,
+   "circle_s": 38.0,
+   "torque_max": 51.66,
+   "rating": "yetersiz"
+  },
+  {
+   "mte": "pirouette",
+   "side": "saat tersi",
+   "weight": 8500.0,
+   "crashed": false,
+   "t_arrive_desired": 42.38,
+   "ok_desired": false,
+   "t_arrive_adequate": 40.57,
+   "ok_adequate": false,
+   "max_radial": 51.34,
+   "max_alt": 2.2,
+   "max_hdg": 51.23,
+   "circle_s": 38.0,
+   "torque_max": 47.0,
+   "rating": "yetersiz"
+  },
+  {
+   "mte": "landing",
+   "side": "—",
+   "weight": 8500.0,
+   "crashed": false,
+   "t_from_10ft": 4.2,
+   "lon": -3.52,
+   "lat": 3.05,
+   "hdg": 0.91,
+   "touchdown_vs": -0.3,
+   "ok_desired": false,
+   "ok_adequate": false,
+   "torque_max": 44.39,
+   "rating": "yetersiz"
+  }
+ ],
+ "summary": {
+  "desired": 3,
+  "adequate": 1,
+  "yetersiz": 4
+ }
+}

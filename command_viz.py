@@ -301,8 +301,10 @@ class LiveFlight:
         obs_dim, self.env_overrides = None, {}
         if policy is None:
             policy, obs_dim, self.env_overrides = load_policy(self.policy_path, with_obs_dim=True)
-        # görev modelin observation boyutundan anlaşılır (komut 19, manevra 24, kalkış 29)
-        self.task = task or {OBS_DIM_M: "maneuver", OBS_DIM_T: "takeoff"}.get(obs_dim, "command")
+        # görev modelin observation boyutundan anlaşılır (komut 19, manevra 24, kalkış 29; kalkışa 2026-09-28'de
+        # tork (+1) ve hareketli hedef hızı (+2) eklendi → 30 / 31 / 32)
+        takeoff_dims = {OBS_DIM_T, OBS_DIM_T + 1, OBS_DIM_T + 2, OBS_DIM_T + 3}
+        self.task = task or ("takeoff" if obs_dim in takeoff_dims else {OBS_DIM_M: "maneuver"}.get(obs_dim, "command"))
         if self.task == "takeoff":
             cfg = TakeoffEnvConfig(**self.env_overrides)
             self.env = HelicopterEnvTakeoff(level=level or "K9", config=cfg)
@@ -487,15 +489,21 @@ class LiveFlight:
 
     def _sync_windows_takeoff(self):
         env = self.env
+        w2c = self.__dict__.setdefault("_win2cmd", {})
+        if not self.commands:
+            w2c.clear()                                  # yeni uçuş
         for k, w in enumerate(env.windows):
-            if k >= len(self.commands):
+            if w["task"].get("auto"):                    # görev bitince env'in açtığı "hedefte kal" penceresi (komut değil)
+                continue
+            if k not in w2c:
+                w2c[k] = len(self.commands)
                 self.commands.append(dict(
-                    id=k + 1, t=float(w["t"]), kind=w["kind"], task=dict(w["task"], kind=w["kind"]), T=w["T"],
+                    id=len(self.commands) + 1, t=float(w["t"]), kind=w["kind"], task=dict(w["task"], kind=w["kind"]), T=w["T"],
                     deadline=w["deadline"], hold_s=w["hold_s"], allow_s=w["allow_s"], target=dict(w["target"]),
                     tol=list(w["tol"]), active=list(w["active"]), h_start=w.get("h_start"), verdict=None,
                     interrupted=False, streak_s=0.0, max_err=None, coupling_ok=True, settle_s=None, on_time=False,
                     touchdown_vs=None, final_err=None))
-            c = self.commands[k]
+            c = self.commands[w2c[k]]
             st = w["settle_s"]
             c.update(streak_s=float(w["streak"]), max_err=dict(w["max_err"]), coupling_ok=bool(w["coupling_ok"]),
                      settle_s=float(st) if _finite(st) else None, on_time=bool(w["on_time"]),

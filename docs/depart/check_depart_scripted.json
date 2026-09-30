@@ -1,0 +1,182 @@
+[
+ {
+  "seed": 5,
+  "mode": "policy",
+  "task": {
+   "kind": "depart",
+   "h": 79.01678465039984,
+   "v_kt": 9.339619255330305,
+   "accel": 0.5487577107271681,
+   "v0_kt": 16.4341153772814
+  },
+  "success": false,
+  "reward": 46.7,
+  "end_speed_fps": 2.4,
+  "termination": "time_limit",
+  "parts": {
+   "track": 104.9,
+   "guide": 62.2,
+   "progress": -40.2,
+   "schedule": 65.9,
+   "late": 0.1,
+   "attitude": 0.8,
+   "rate": 0.1,
+   "smooth": 0.3,
+   "coupling": 0.0,
+   "ground": 0.0,
+   "sink": 0.0,
+   "coll_down": 0.0,
+   "torque": -13.0
+  }
+ },
+ {
+  "seed": 5,
+  "mode": "scripted",
+  "task": {
+   "kind": "depart",
+   "h": 79.01678465039984,
+   "v_kt": 9.339619255330305,
+   "accel": 0.5487577107271681,
+   "v0_kt": 16.4341153772814
+  },
+  "success": true,
+  "reward": 70.1,
+  "end_speed_fps": 19.1,
+  "termination": "time_limit",
+  "parts": {
+   "track": 40.4,
+   "guide": 31.7,
+   "progress": 0.3,
+   "schedule": 2.6,
+   "late": 0.0,
+   "attitude": 0.0,
+   "rate": 0.0,
+   "smooth": 0.0,
+   "coupling": 0.0,
+   "ground": 0.0,
+   "sink": 0.0,
+   "coll_down": 0.0,
+   "torque": -2.7
+  }
+ },
+ {
+  "seed": 8,
+  "mode": "policy",
+  "task": {
+   "kind": "depart",
+   "h": 82.54582477473585,
+   "v_kt": 16.058843805649325,
+   "accel": 0.6069535964727744,
+   "v0_kt": 16.603865743862265
+  },
+  "success": false,
+  "reward": 4.6,
+  "end_speed_fps": 2.4,
+  "termination": "time_limit",
+  "parts": {
+   "track": 50.7,
+   "guide": 29.3,
+   "progress": -31.1,
+   "schedule": 30.9,
+   "late": 0.1,
+   "attitude": 0.9,
+   "rate": 0.1,
+   "smooth": 0.3,
+   "coupling": 0.0,
+   "ground": 0.0,
+   "sink": 0.0,
+   "coll_down": 0.0,
+   "torque": -12.1
+  }
+ },
+ {
+  "seed": 8,
+  "mode": "scripted",
+  "task": {
+   "kind": "depart",
+   "h": 82.54582477473585,
+   "v_kt": 16.058843805649325,
+   "accel": 0.6069535964727744,
+   "v0_kt": 16.603865743862265
+  },
+  "success": true,
+  "reward": 70.6,
+  "end_speed_fps": 28.3,
+  "termination": "time_limit",
+  "parts": {
+   "track": 40.2,
+   "guide": 33.1,
+   "progress": 0.6,
+   "schedule": 1.8,
+   "late": 0.0,
+   "attitude": 0.0,
+   "rate": 0.0,
+   "smooth": 0.0,
+   "coupling": 0.0,
+   "ground": 0.0,
+   "sink": 0.0,
+   "coll_down": 0.0,
+   "torque": -4.5
+  }
+ },
+ {
+  "seed": 11,
+  "mode": "policy",
+  "task": {
+   "kind": "depart",
+   "h": 38.45046913850362,
+   "v_kt": 23.01612149311409,
+   "accel": 1.448328453291775,
+   "v0_kt": 28.42064250512813
+  },
+  "success": false,
+  "reward": -20.2,
+  "end_speed_fps": 2.1,
+  "termination": "time_limit",
+  "parts": {
+   "track": 53.3,
+   "guide": 28.1,
+   "progress": -52.8,
+   "schedule": 35.5,
+   "late": 0.1,
+   "attitude": 9.9,
+   "rate": 0.3,
+   "smooth": 0.4,
+   "coupling": 0.0,
+   "ground": 0.0,
+   "sink": -0.0,
+   "coll_down": 0.0,
+   "torque": -2.8
+  }
+ },
+ {
+  "seed": 11,
+  "mode": "scripted",
+  "task": {
+   "kind": "depart",
+   "h": 38.45046913850362,
+   "v_kt": 23.01612149311409,
+   "accel": 1.448328453291775,
+   "v0_kt": 28.42064250512813
+  },
+  "success": false,
+  "reward": 63.2,
+  "end_speed_fps": 27.4,
+  "termination": "time_limit",
+  "parts": {
+   "track": 56.1,
+   "guide": 36.4,
+   "progress": -2.8,
+   "schedule": 26.4,
+   "late": 0.1,
+   "attitude": 0.0,
+   "rate": 0.0,
+   "smooth": 0.0,
+   "coupling": 0.0,
+   "ground": 0.0,
+   "sink": 0.0,
+   "coll_down": 0.0,
+   "torque": 0.0
+  }
+ }
+]

@@ -1,0 +1,7 @@
+cond,fuel_model,t_empty_h,fuel_used,t_over_56_min,t_over_50_min,peak_psi,min_rpm,events,wall_s
+hover,chart,2.38483,1780,15.8038,77.9737,64.4433,315.383,fuel_exhausted,55.1836
+hover,sfc_gauge,2.68694,1780,17.0725,85.9775,64.4433,315.383,fuel_exhausted,60.5888
+hover,sfc_rotor,3.42327,1780,22.0613,110.304,64.4434,315.383,fuel_exhausted,74.0578
+60kt,chart,3.482,1780,0,0,32.1309,319.845,fuel_exhausted,77.5336
+60kt,sfc_gauge,5.28379,1780,0,0,32.1332,319.845,fuel_exhausted,114.101
+60kt,sfc_rotor,6.16113,1780,0,0,32.1341,319.845,fuel_exhausted,129.692

@@ -53,6 +53,8 @@ import numpy as np
 from gymnasium import spaces
 
 from helicopter_env_command import CONTROL_DT, AfcsMode, HelicopterEnvCommand, wrap_deg
+# tork göstergesi / güç tavanı / tork cezası ortak fizik katmanında (2026-09-29; ifadeler aynı, sonuçlar birebir)
+from physics_ext import PhysicsExt, psi_to_throttle, torque_penalty, torque_psi  # noqa: F401  (dışarıya da açık)
 from takeoff_curriculum import (DEFAULT_TAKEOFF_LEVELS, GROUND_H_FT, LAND_PROFILE_K, LAND_PROFILE_MIN_FPS, MAX_HOVER_H_FT,
                                 depart_time_target,
                                 MIN_HOVER_H_FT, TakeoffLevel, deadline_of, find_takeoff_level)
@@ -65,17 +67,6 @@ GE_MODELS = {"calibrated": 1.0, "stock": 0.0}     # "off": ge/enable = 0
 ELECTRIC_HP = 1500.0                              # Engines/electric_1500hp.xml (T53 yerine)
 KT_FPS = 1.68781
 NOMINAL_RPM = 324.0
-
-
-def torque_psi(q_lbsft):
-    """Modelin kendi tork göstergesi (ah1s.xml 'bell instruments'): el kitabı sürekli 50 psi, %100 (30 dk) 56 psi."""
-    return 0.00416 * q_lbsft - 7.33
-
-
-def psi_to_throttle(psi: float) -> float:
-    """Bu tork (nominal devirde) kadar güç → governor gaz tavanı (elektrik motoru: güç = gaz · 1500 hp)."""
-    q = (psi + 7.33) / 0.00416
-    return q * (NOMINAL_RPM * 2.0 * math.pi / 60.0) / 550.0 / ELECTRIC_HP
 HOVER_TRIM = (0.603, -0.151, 0.192, 0.410)       # OGE hover, 8500 lbs, SAS (probe 2026-09-24)
 CTRL_LO = np.array([0.0, -1.0, -1.0, -1.0])
 CTRL_HI = np.array([1.0, 1.0, 1.0, 1.0])
@@ -230,6 +221,11 @@ class TakeoffEnvConfig:
     kernel_v_track: tuple = (3.0, 20.0)           # depart: hız rehberliği çekirdeği (geniş: 20–30 ft/s farkta da eğim)
     w_v_track: float = 1.0                        # depart: hız rehberliği ağırlığı (w_v yerine)
     w_track_lag: float = 5.0                      # depart: profil noktasına göre gerideliğin azalması / artması (ft / 10)
+    # --- ortak fizik katmanı (2026-09-29, physics_ext.py): yakıt tüketimi, rüzgâr / gust / türbülans ------------------
+    # None → kapalı (eski modeller birebir). Ör. {"fuel": {"enable": True}, "wind": {"enable": True, "speed_kt": [0, 15]},
+    # "turb": {"enable": True, "levels": ["none", "light"]}} — PhysicsExtConfig.from_dict; modelle birlikte kaydedilir.
+    physics: dict | None = None
+    fuel_exhausted_ends: bool = True              # yakıt bitip motor ayrılınca bölüm biter (kesme, başarısızlık cezası yok)
 
 
 class HelicopterEnvTakeoff(HelicopterEnvCommand):
@@ -251,6 +247,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         if self.cfg.aircraft == "stock" and self.cfg.power_cap_psi > 0.0:
             raise ValueError("power_cap_psi yalnızca aircraft='repo' ile (governor gaz tavanı repo kopyasında)")
         self.obs_dim = OBS_DIM_T + int(bool(self.cfg.torque_obs)) + 2 * int(bool(self.cfg.track_obs))
+        self.ext = PhysicsExt(self.cfg.physics, CONTROL_DT)     # kapalıyken hiçbir şey yapmaz (RNG'ye de dokunmaz)
         self.observation_space = spaces.Box(-5.0, 5.0, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
         self.fdm = None
@@ -337,6 +334,12 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             return 0.0
         return {"calibrated": -0.04, "stock": 0.0, "off": 0.045}.get(self.cfg.ground_effect, 0.0)
 
+    def _ige_coll(self, weight: float) -> float:
+        """Yere çok yakın hover'ın collective'i (iniş ödülünde collective'i bunun altına indirme): OGE hover trimi − 0.04,
+        ağırlıkla +0.057 / 1000 lbs (probe), kalibre yer etkisi farkı. (Alt sınıf trimi hava hızı / ağırlık tablosundan
+        alıyorsa bunu ezer.)"""
+        return self.trim[0] - 0.04 + 0.057 * (weight - 8500.0) / 1000.0 + self._ige_coll_offset()
+
     def _set_sas(self, psi_deg: float):
         """AFCS: roll / pitch yalnızca oran sönümleme, yaw sönümleme; attitude ve heading hold kapalı."""
         f = self.fdm
@@ -346,6 +349,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         f["fcs/automatic/steady-flight-data-enable"] = 0.0
 
     def _run_plain(self) -> bool:
+        self.ext.before_step(self.fdm)                         # rüzgâr (run_ic siliyor) / türbülans / gust
         return self._run_physics()
 
     def _nav(self) -> dict:
@@ -510,11 +514,13 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         if start == "touch":                                    # yerde kısmen kalkık collective (ağırlığa göre)
             c_touch = (float(options.get("touch_coll", rng.uniform(*lv.touch_coll))) + 0.057 * sum(fuel) / 1000.0
                        + self._ige_coll_offset())
+        self.ext.begin_episode(rng, psi0, options.get("physics"))
         errors, info = [], {}
         for attempt in range(3):
             try:
                 self._create_fdm()
                 self._set_fuel(fuel)
+                self.ext.attach(self.fdm)
                 self._warmup_rotor()
                 f = self.fdm
                 self._lat0, self._lon0 = float(f["position/lat-geod-rad"]), float(f["position/long-gc-rad"])
@@ -574,6 +580,9 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         self.target = dict(n=s["n"], e=s["e"], h=s["h"] if start in ("hover", "low") else GROUND_H_FT, psi=self.psi_unwrap)
         self.steps = 0
         self.windows, self.failure = [], None
+        self.ext.start_disturbances(self.fdm)                   # fizik katmanı: türbülans / gust / yakıt sayacı başlar
+        if self.ext.armed:
+            self.setup_info["physics"] = dict(self.ext.params)
         if "tasks" in options:                                   # sabit görev listesi (değerlendirme / canlı)
             self.fixed_schedule = any("_t" in d for d in options["tasks"])
             self.pending = [dict(d) for d in options["tasks"]]
@@ -615,79 +624,14 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         return float(np.clip(a + b * hh, a, c)), float(np.clip(x + y * hh, x, z))
 
     def _issue_due_tasks(self, t: float, s: dict):
-        cfg, lv = self.cfg, self.ep_level
         while self.pending and t >= self.next_issue_t - 1e-9:
             d = self.pending.pop(0)
             if self.windows and not self.windows[-1]["closed"]:
                 self._close_window(self.windows[-1], interrupt_t=t)
-            kind = d["kind"]
-            tg = self.target
-            ps = math.radians(s["psi_deg"])
-            allow = 0.0
-            if kind != "recover":
-                self.track = None                               # yeni görev hareketli hedefi bitirir
-            if kind == "hold":
-                if not d.get("keep"):                           # keep: hedefte kal (canlı: görev bitince otomatik)
-                    tg.update(n=s["n"], e=s["e"], h=float(np.clip(s["h"], MIN_HOVER_H_FT, MAX_HOVER_H_FT)),
-                              psi=self.psi_unwrap)
-                amount = 0.0
-            elif kind in ("takeoff", "climb_to"):
-                tg["h"] = float(np.clip(d["h"], MIN_HOVER_H_FT, MAX_HOVER_H_FT))
-                amount = tg["h"] - s["h"]
-                if kind == "climb_to" and s["vs"] * amount < 0.0 and abs(s["vs"]) > 2.0:
-                    allow = abs(s["vs"]) / 10.0 + s["vs"] ** 2 / 20.0 / max(1.0, lv.climb_fps)   # önce dur
-            elif kind == "turn":
-                tg["psi"] = self.psi_unwrap + float(d["dpsi"])
-                amount = float(d["dpsi"])
-            elif kind == "move":
-                dx, dy = float(d.get("dx", 0.0)), float(d.get("dy", 0.0))
-                tg["n"] = s["n"] + dx * math.cos(ps) - dy * math.sin(ps)
-                tg["e"] = s["e"] + dx * math.sin(ps) + dy * math.cos(ps)
-                amount = math.hypot(dx, dy)
-            elif kind == "bob":
-                dh = float(d["dh"])
-                if not MIN_HOVER_H_FT <= s["h"] + dh <= MAX_HOVER_H_FT:
-                    dh = -dh
-                tg["h"] = float(np.clip(s["h"] + dh, MIN_HOVER_H_FT, MAX_HOVER_H_FT))
-                amount = tg["h"] - s["h"]
-            elif kind == "land":
-                tg["h"] = GROUND_H_FT
-                amount = max(0.0, s["h"] - GROUND_H_FT)
-            elif kind == "recover":
-                self._apply_disturbance(d, t)
-                amount = 0.0
-            elif kind == "depart":
-                # hedef noktası rota (şimdiki heading) boyunca 0'dan v'ye sabit ivmeyle ilerler; irtifa hedefi h
-                v = float(d.get("v_kt", 40.0)) * KT_FPS
-                acc = float(d.get("accel", 2.5))
-                tg["h"] = float(np.clip(d["h"], MIN_HOVER_H_FT, MAX_HOVER_H_FT))
-                tg.update(n=s["n"], e=s["e"], psi=self.psi_unwrap)
-                v0 = float(d.get("v0_kt", 0.0)) * KT_FPS
-                self.track = dict(n0=s["n"], e0=s["e"], c=ps, v=v, v0=v0, a=acc, t0=t, lag_ft=0.0, prev_lag=0.0)
-                amount = tg["h"] - s["h"]
-            else:
-                raise ValueError(f"bilinmeyen görev: {kind}")
-            if d.get("T"):
-                T = float(d["T"])
-            elif kind == "depart":
-                T = depart_time_target(amount, self.track["v"], self.track["a"], lv, self.track["v0"])
-            elif kind in ("takeoff", "climb_to", "bob") and amount > 0.0 and cfg.torque_aware_climb:
-                T = lv.lag_s + amount / self.climb_fps(lv) + allow
-            else:
-                T = lv.time_target(kind, amount) + allow
-            first = not self.windows
-            hold = cfg.land_hold_s if kind == "land" else (lv.hold_first_s if first else lv.hold_s)
-            e = self._errors(s)
-            w = dict(t=t, kind=kind, task={k: v for k, v in d.items() if not k.startswith("_")}, T=T, h_start=s["h"],
-                     deadline=deadline_of(T), allow_s=allow, hold_s=hold, active=ACTIVE_AXES[kind],
-                     target=dict(tg), e0={"xy": e["xy"], "h": abs(e["h"]), "psi": abs(e["psi"])},
-                     streak=0.0, entry_t=None, settle_s=float("nan"), on_time=False, success=False, closed=False,
-                     complete=False, interrupted=False, coupling_ok=True, max_err={"xy": 0.0, "h": 0.0, "psi": 0.0},
-                     touchdown_vs=0.0 if kind == "land" and s["wow"] > 0 else None,    # zaten yerde → temas yok
-                     final_err=None, tol=self._tol(tg["h"]))
+            w = self._new_window(d, t, s)
+            T = w["T"]
             self.windows.append(w)
-            e2 = self._errors(s)
-            self.prev_abs_err = {"xy": e2["xy"], "h": abs(e2["h"]), "psi": abs(e2["psi"])}
+            self._init_progress(s)
             if self.pending:
                 nxt = self.pending[0]
                 if "_t" in nxt:
@@ -698,6 +642,81 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
                     self.next_issue_t = np.inf                  # pencere bitince (başarı ya da süre aşımı)
             else:
                 self.next_issue_t = np.inf
+
+    def _init_progress(self, s: dict):
+        """İlerleme ödülünün başlangıç hataları (yeni görev penceresi açılınca)."""
+        e2 = self._errors(s)
+        self.prev_abs_err = {"xy": e2["xy"], "h": abs(e2["h"]), "psi": abs(e2["psi"])}
+
+    def _new_window(self, d: dict, t: float, s: dict) -> dict:
+        """Görevi hedefe çevirir ve görev penceresini (süre hedefi, bant, kuplaj) kurar."""
+        cfg, lv = self.cfg, self.ep_level
+        kind = d["kind"]
+        tg = self.target
+        ps = math.radians(s["psi_deg"])
+        allow = 0.0
+        if kind != "recover":
+            self.track = None                               # yeni görev hareketli hedefi bitirir
+        if kind == "hold":
+            if not d.get("keep"):                           # keep: hedefte kal (canlı: görev bitince otomatik)
+                tg.update(n=s["n"], e=s["e"], h=float(np.clip(s["h"], MIN_HOVER_H_FT, MAX_HOVER_H_FT)),
+                          psi=self.psi_unwrap)
+            amount = 0.0
+        elif kind in ("takeoff", "climb_to"):
+            tg["h"] = float(np.clip(d["h"], MIN_HOVER_H_FT, MAX_HOVER_H_FT))
+            amount = tg["h"] - s["h"]
+            if kind == "climb_to" and s["vs"] * amount < 0.0 and abs(s["vs"]) > 2.0:
+                allow = abs(s["vs"]) / 10.0 + s["vs"] ** 2 / 20.0 / max(1.0, lv.climb_fps)   # önce dur
+        elif kind == "turn":
+            tg["psi"] = self.psi_unwrap + float(d["dpsi"])
+            amount = float(d["dpsi"])
+        elif kind == "move":
+            dx, dy = float(d.get("dx", 0.0)), float(d.get("dy", 0.0))
+            tg["n"] = s["n"] + dx * math.cos(ps) - dy * math.sin(ps)
+            tg["e"] = s["e"] + dx * math.sin(ps) + dy * math.cos(ps)
+            amount = math.hypot(dx, dy)
+        elif kind == "bob":
+            dh = float(d["dh"])
+            if not MIN_HOVER_H_FT <= s["h"] + dh <= MAX_HOVER_H_FT:
+                dh = -dh
+            tg["h"] = float(np.clip(s["h"] + dh, MIN_HOVER_H_FT, MAX_HOVER_H_FT))
+            amount = tg["h"] - s["h"]
+        elif kind == "land":
+            tg["h"] = GROUND_H_FT
+            amount = max(0.0, s["h"] - GROUND_H_FT)
+        elif kind == "recover":
+            self._apply_disturbance(d, t)
+            amount = 0.0
+        elif kind == "depart":
+            # hedef noktası rota (şimdiki heading) boyunca 0'dan v'ye sabit ivmeyle ilerler; irtifa hedefi h
+            v = float(d.get("v_kt", 40.0)) * KT_FPS
+            acc = float(d.get("accel", 2.5))
+            tg["h"] = float(np.clip(d["h"], MIN_HOVER_H_FT, MAX_HOVER_H_FT))
+            tg.update(n=s["n"], e=s["e"], psi=self.psi_unwrap)
+            v0 = float(d.get("v0_kt", 0.0)) * KT_FPS
+            self.track = dict(n0=s["n"], e0=s["e"], c=ps, v=v, v0=v0, a=acc, t0=t, lag_ft=0.0, prev_lag=0.0)
+            amount = tg["h"] - s["h"]
+        else:
+            raise ValueError(f"bilinmeyen görev: {kind}")
+        if d.get("T"):
+            T = float(d["T"])
+        elif kind == "depart":
+            T = depart_time_target(amount, self.track["v"], self.track["a"], lv, self.track["v0"])
+        elif kind in ("takeoff", "climb_to", "bob") and amount > 0.0 and cfg.torque_aware_climb:
+            T = lv.lag_s + amount / self.climb_fps(lv) + allow
+        else:
+            T = lv.time_target(kind, amount) + allow
+        first = not self.windows
+        hold = cfg.land_hold_s if kind == "land" else (lv.hold_first_s if first else lv.hold_s)
+        e = self._errors(s)
+        w = dict(t=t, kind=kind, task={k: v for k, v in d.items() if not k.startswith("_")}, T=T, h_start=s["h"],
+                 deadline=deadline_of(T), allow_s=allow, hold_s=hold, active=ACTIVE_AXES[kind],
+                 target=dict(tg), e0={"xy": e["xy"], "h": abs(e["h"]), "psi": abs(e["psi"])},
+                 streak=0.0, entry_t=None, settle_s=float("nan"), on_time=False, success=False, closed=False,
+                 complete=False, interrupted=False, coupling_ok=True, max_err={"xy": 0.0, "h": 0.0, "psi": 0.0},
+                 touchdown_vs=0.0 if kind == "land" and s["wow"] > 0 else None,    # zaten yerde → temas yok
+                 final_err=None, tol=self._tol(tg["h"]))
+        return w
 
     def _track_ref(self, t: float) -> tuple[float, float, float, float]:
         """Hareketli hedef (n, e, v_n, v_e): 0'dan v'ye a ivmesiyle, sonra sabit hız."""
@@ -915,6 +934,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
 
         ok = self._run_plain()
         self.steps += 1
+        ext_events = self.ext.after_step(self.fdm)             # yakıt / motor / tork istatistiği (kapalıyken [])
         t_after = self.steps * CONTROL_DT
         s = self._state()
         self._update_track(t_after, s)
@@ -942,11 +962,17 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
                 reward += cfg.w_task_success * cfg.reward_scale         # görev başarıyla tamamlandı
         self._prev_wow, self._prev_vs = s["wow"], s["vs"]
 
-        truncated = (not terminated) and (self.steps >= self.max_steps or t_after >= self.episode_end_t - 1e-9)
+        fuel_out = self.ext.engine_is_out and cfg.fuel_exhausted_ends
+        truncated = (not terminated) and (self.steps >= self.max_steps or t_after >= self.episode_end_t - 1e-9
+                                          or fuel_out)
         # seviye = episode'un başladığı seviye: atlama episode ortasında olursa eski seviyenin görevleri yeni seviyeye
         # sayılmasın (curriculum kapıları görev türüne göre bakıyor)
         info = dict(level=self.levels[self._ep_level].name, level_index=self._ep_level, reward_parts=parts,
                     controls=[float(x) for x in out], failure=self.failure, **self._info_state(s, e))
+        if self.ext.armed:
+            info["physics"] = self.ext.info(self.fdm)
+            if ext_events:
+                info["physics_events"] = ext_events
         if self.windows:
             w = self.windows[-1]
             info.update(task_kind=w["kind"], cmd_T=w["T"], cmd_deadline=w["deadline"], cmd_elapsed=t_after - w["t"])
@@ -959,7 +985,9 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             info["commands_ok"] = n_ok
             info["commands_total"] = len(self.windows) + len(self.pending)
             info["command_results"] = [self._result(w) for w in self.windows]
-            info["termination"] = self.failure or "time_limit"
+            info["termination"] = self.failure or ("fuel_exhausted" if fuel_out else "time_limit")
+            if self.ext.armed:
+                info["physics_summary"] = self.ext.summary()
         self.prev_action = a
         obs = self._obs(s, e) if finite else np.zeros(self.obs_dim, dtype=np.float32)
         return obs, float(reward), bool(terminated), bool(truncated), info
@@ -1075,20 +1103,13 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             ground -= soft * cfg.w_land * (0.3 * float(s["wow"] == 4) + 0.4 * min(1.0, s["wfrac"]) + 0.3 * inside)
         cdown = 0.0
         if kind == "land" and s["wow"] > 0 and e["xy"] <= 10.0:
-            c_ige = (self.trim[0] - 0.04 + 0.057 * (s["weight"] - 8500.0) / 1000.0     # IGE hover trimi (probe)
-                     + self._ige_coll_offset())
+            c_ige = self._ige_coll(s["weight"])                                        # IGE hover trimi (probe)
             a_ige, a_set = expo_inv(np.clip((np.array([c_ige, cfg.coll_flat]) - self.trim[0]) / self.rng_ctrl[0],
                                             -1.0, 1.0), cfg.expo)
             cdown = soft * cfg.w_coll_down * float(np.clip((a_ige - self.filt[0]) / max(1e-3, a_ige - a_set), 0.0, 1.0))
         # tork (modelin kendi göstergesi): 50–56 psi kalkış gücü bölgesi hafif, 56 psi (%100) üstü güçlü ceza
-        torque = 0.0
-        if cfg.pen_torque_cont > 0.0 or cfg.pen_torque_over > 0.0:
-            q = s["torque_psi"]
-            span = max(1e-6, cfg.torque_max_psi - cfg.torque_cont_psi)
-            torque = (cfg.pen_torque_cont * min(1.0, max(0.0, q - cfg.torque_cont_psi) / span) ** 2
-                      + cfg.pen_torque_over * min(9.0, (max(0.0, q - cfg.torque_max_psi) / 3.0) ** 2))
-        if cfg.pen_rpm_low > 0.0 and s["rpm"] < cfg.rpm_low_warn:
-            torque += cfg.pen_rpm_low * ((cfg.rpm_low_warn - s["rpm"]) / 10.0) ** 2
+        torque = torque_penalty(s["torque_psi"], s["rpm"], cfg.pen_torque_cont, cfg.pen_torque_over, cfg.pen_rpm_low,
+                                cfg.torque_cont_psi, cfg.torque_max_psi, cfg.rpm_low_warn)
         r = track + guide + progress - sched - late - att - rate - smooth - couple - ground - sink + cdown - torque
         return float(r), dict(track=track, guide=guide, progress=progress, schedule=sched, late=late, attitude=att,
                               rate=rate, smooth=smooth, coupling=couple, ground=-ground, sink=-sink, coll_down=cdown,

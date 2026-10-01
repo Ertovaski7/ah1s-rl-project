@@ -1,0 +1,289 @@
+{
+  "level_index": 13,
+  "level": "F13",
+  "timesteps": 1507328,
+  "history": [],
+  "args": {
+    "task": "flight",
+    "out": "/home/claude/runs/fl15",
+    "total_steps": 1500000,
+    "level": "F13",
+    "stop_after": null,
+    "promote": false,
+    "window": 100,
+    "min_episodes": 100,
+    "threshold": 0.8,
+    "axis_gate": true,
+    "axis_min_commands": 30,
+    "resume": false,
+    "init_model": "/home/claude/runs/fl14/models/final_02007k.zip",
+    "n_envs": 2,
+    "vec": "dummy",
+    "env_config": "v2",
+    "coll_scale": null,
+    "seed": 42,
+    "lr": 0.0003,
+    "n_steps": 4096,
+    "batch_size": 512,
+    "n_epochs": 10,
+    "gamma": 0.995,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.0,
+    "target_kl": null,
+    "log_std_init": -1.2,
+    "fine_from": "F6a",
+    "fine_lr": 0.0001,
+    "fine_kl": 0.02,
+    "promote_on_eval": false,
+    "net": "256,256",
+    "save_freq": 100000,
+    "snapshot_freq": 500000,
+    "eval_freq": 1500000,
+    "eval_levels": "F13,F10,F6",
+    "eval_episodes": 10,
+    "env_overrides_cli": "{\"pen_turn_rate\": 2.0, \"torque_feedback_climb\": true, \"torque_density_climb\": true}",
+    "rehearsal": true,
+    "smoke": false,
+    "env_overrides": {
+      "density_obs": true,
+      "pen_turn_rate": 2.0,
+      "torque_feedback_climb": true,
+      "torque_density_climb": true
+    }
+  },
+  "env_config": {
+    "hover_trim": [
+      0.603,
+      -0.151,
+      0.192,
+      0.41
+    ],
+    "ctrl_range": [
+      0.6,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "expo": 0.8,
+    "action_filter_alpha": 0.5,
+    "rate_limit": [
+      0.6,
+      3.0,
+      3.0,
+      3.0
+    ],
+    "tol_h": [
+      3.0,
+      0.01,
+      10.0
+    ],
+    "tol_xy": [
+      6.0,
+      0.007,
+      12.0
+    ],
+    "tol_psi_deg": 3.0,
+    "tol_v_fps": 2.0,
+    "tol_vs_fps": 2.0,
+    "land_tol_xy_ft": 8.0,
+    "land_tol_psi_deg": 5.0,
+    "land_weight_frac": 0.7,
+    "land_hold_s": 3.0,
+    "touchdown_ok_fps": 4.0,
+    "coupling_limits": [
+      20.0,
+      15.0,
+      10.0
+    ],
+    "gap_s": [
+      0.5,
+      1.5
+    ],
+    "end_margin_s": 1.0,
+    "max_episode_s": 600.0,
+    "w_xy": 1.0,
+    "w_h": 1.0,
+    "w_psi": 0.7,
+    "w_v": 0.5,
+    "w_vs": 0.5,
+    "w_r": 0.3,
+    "kernel_xy": [
+      3.0,
+      25.0
+    ],
+    "kernel_h": [
+      3.0,
+      30.0
+    ],
+    "kernel_psi": [
+      2.0,
+      15.0
+    ],
+    "kernel_v": [
+      1.5,
+      6.0
+    ],
+    "kernel_vs": [
+      1.5,
+      6.0
+    ],
+    "kernel_r": [
+      3.0,
+      15.0
+    ],
+    "guide_k_xy": 0.25,
+    "guide_k_h": 0.3,
+    "guide_k_psi": 0.6,
+    "hold_v_max": 3.0,
+    "progress_weight": 10.0,
+    "progress_min_scale": [
+      10.0,
+      10.0,
+      10.0
+    ],
+    "pen_sched": 1.0,
+    "sched_scale": [
+      20.0,
+      20.0,
+      20.0
+    ],
+    "pen_late": 0.5,
+    "pen_att": 1.0,
+    "pen_rate": 0.05,
+    "pen_dctrl": 2.0,
+    "pen_sat": 0.5,
+    "sat_threshold": 0.95,
+    "pen_couple": 3.0,
+    "couple_soft_frac": 0.25,
+    "pen_touchdown": 25.0,
+    "touchdown_free_fps": 2.0,
+    "w_task_success": 30.0,
+    "pen_sink": 3.0,
+    "sink_base_fps": 1.5,
+    "sink_slope": 0.2,
+    "pen_land_sink": 3.0,
+    "pen_land_xy": 0.5,
+    "w_land": 2.5,
+    "soft_full_fps": 3.0,
+    "soft_zero_fps": 5.0,
+    "w_coll_down": 1.5,
+    "coll_flat": 0.05,
+    "pen_slide": 0.2,
+    "pen_turn_rate": 2.0,
+    "turn_rate_cap_frac": 1.5,
+    "fail_penalty": 50.0,
+    "reward_scale": 0.1,
+    "max_roll_deg": 45.0,
+    "max_pitch_deg": 40.0,
+    "max_rate_dps": 100.0,
+    "max_yaw_rate_dps": 90.0,
+    "ground_max_att_deg": 15.0,
+    "crash_vs_fps": 10.0,
+    "flyaway_ft": 150.0,
+    "alt_over_ft": 200.0,
+    "max_speed_fps": 60.0,
+    "rpm_limits": [
+      280.0,
+      380.0
+    ],
+    "settle_max_s": 60.0,
+    "settle_hold_s": 2.0,
+    "ground_settle_s": 1.0,
+    "aircraft": "repo",
+    "ground_effect": "calibrated",
+    "power_cap_psi": 56.0,
+    "torque_obs": true,
+    "torque_cont_psi": 50.0,
+    "torque_max_psi": 56.0,
+    "pen_torque_cont": 0.3,
+    "pen_torque_over": 2.0,
+    "rpm_low_warn": 314.0,
+    "pen_rpm_low": 1.0,
+    "torque_aware_climb": true,
+    "torque_density_climb": true,
+    "torque_feedback_climb": true,
+    "track_obs": false,
+    "track_tol_xy": 25.0,
+    "track_tol_v": 4.0,
+    "max_speed_track_fps": 130.0,
+    "flyaway_track_ft": 300.0,
+    "track_lead_ft": 60.0,
+    "kernel_v_track": [
+      3.0,
+      20.0
+    ],
+    "w_v_track": 1.0,
+    "w_track_lag": 5.0,
+    "physics": {
+      "fuel": {
+        "enable": true
+      }
+    },
+    "fuel_exhausted_ends": true,
+    "pen_torque_over_lin": 1.0,
+    "trim_table": "docs/physics_ext/trim_table_airspeed_repo_cap56.json",
+    "trim_schedule": "command",
+    "trim_u_tau_s": 2.0,
+    "u_meas_tau_s": 1.0,
+    "tol_u_fps": 4.0,
+    "tol_psi_cruise_deg": 3.0,
+    "tol_h_cruise_ft": 12.0,
+    "tol_vs_cruise_fps": 4.0,
+    "coupling_cruise": [
+      15.0,
+      10.0,
+      40.0
+    ],
+    "tol_turb_scale": {
+      "none": 1.0,
+      "light": 1.25,
+      "moderate": 2.0,
+      "severe": 2.5
+    },
+    "w_u": 1.0,
+    "kernel_u": [
+      2.0,
+      15.0
+    ],
+    "kernel_h_cruise": [
+      5.0,
+      40.0
+    ],
+    "kernel_psi_cruise": [
+      2.0,
+      15.0
+    ],
+    "w_accel": 0.4,
+    "guide_k_u": 0.3,
+    "kernel_accel": [
+      1.0,
+      4.0
+    ],
+    "w_bank": 0.3,
+    "kernel_bank": [
+      5.0,
+      20.0
+    ],
+    "progress_min_scale_u": 10.0,
+    "sched_scale_u": 15.0,
+    "pen_side": 0.3,
+    "cruise_att_roll_deg": 35.0,
+    "cruise_att_pitch_deg": 20.0,
+    "w_coll_down_air": 1.0,
+    "coll_down_air_hs_ft": [
+      1.0,
+      3.0
+    ],
+    "w_coll_down_act": 1.0,
+    "coll_down_act_hi": 0.5,
+    "max_roll_cruise_deg": 60.0,
+    "max_airspeed_kt": 170.0,
+    "min_hs_at_speed_ft": 8.0,
+    "cruise_settle_max_s": 90.0,
+    "end_at_deadline": true,
+    "power_aware_climb": true,
+    "density_obs": true
+  },
+  "saved_at": "2026-10-01 18:15:36"
+}

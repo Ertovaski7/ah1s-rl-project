@@ -91,6 +91,96 @@ SCENARIOS += [
 ]
 GROUPS = ("zincir/kisa", "zincir/uzun", "öğe")
 
+# ---------------------------------------------------------------------------------------------------------------------
+# AYRI TEST TAKIMI (held-out, 2026-10-01): yukarıdaki takım ara modeller arasından SEÇİMDE de kullanıldı (sayıları biraz
+# iyimser). Bu takımın senaryoları, çevreleri, ağırlıkları ve görev büyüklükleri yukarıdakilerden ve eğitimdeki sabit
+# değerlendirmelerden farklı; model seçiminde KULLANILMAZ, yalnızca son rapor için. Gruplar:
+#   test/zincir : eğitim zarfı içinde yeni zincirler (farklı rüzgâr yönleri, 9100–9500 lbs)
+#   test/öğe    : eğitim zarfı içinde yeni tekil görevler
+#   test/doğal  : doğal komut zarfı (10–130 kt, 50–1500 ft, büyük dönüşler) ve pirouette — F1–F9 bunları görmedi
+#   test/sıcak  : sıcak / soğuk gün (ΔT −10…+30 °C; yoğunluk irtifası ~1300–5400 ft) — F1–F9 standart günde eğitildi
+# Rastgele seviye episode'ları için seed 500000+ (eğitim içi değerlendirme 90000+, seviye istatistikleri 70000+).
+# ---------------------------------------------------------------------------------------------------------------------
+PIR = lambda d=1.0, r=100.0, t=45.0: dict(kind="pirouette", radius=float(r), circle_s=float(t), direction=float(d))  # noqa: E731
+CHAIN_T1 = [TO(80), ACC(70, 150), CR(dpsi=-135), CR(du_kt=-25, dh=200), STOP, LAND]
+CHAIN_T2 = [TO(25), ACC(50, 80), CR(du_kt=35), CR(dh=250), CR(dpsi=160), CR(du_kt=-30, dpsi=-45), STOP, LAND]
+CHAIN_T3 = [TO(40), ACC(60, 100), STOP, LAND]
+TEST_ENVS = {
+    "t_sakin": dict(wind_kt=0.0, wind_dir_deg=0.0, turb_level="none"),
+    "t_ruzgar": dict(wind_kt=12.0, wind_dir_deg=135.0, turb_level="none"),
+    "t_turb": dict(wind_kt=20.0, wind_dir_deg=0.0, turb_level="light", gust_rate_per_min=0.5, gust_kt=(3.0, 8.0)),
+    "t_sicak15r": dict(wind_kt=12.0, wind_dir_deg=-60.0, turb_level="none", delta_T_C=15.0),
+    "t_sicak25": dict(wind_kt=0.0, wind_dir_deg=0.0, turb_level="none", delta_T_C=25.0),
+    "t_sicak30": dict(wind_kt=0.0, wind_dir_deg=0.0, turb_level="none", delta_T_C=30.0),
+    "t_soguk": dict(wind_kt=8.0, wind_dir_deg=30.0, turb_level="none", delta_T_C=-10.0),
+}
+W_T = {"9100": (300.0, 300.0), "9300": (400.0, 400.0), "9500": (500.0, 500.0), "9700": (600.0, 600.0)}
+TEST_SCENARIOS = []
+for _en in ("t_sakin", "t_ruzgar", "t_turb"):
+    for _wn in ("9100", "9500"):
+        TEST_SCENARIOS.append((f"T1_{_en}_{_wn}", "test/zincir", f"zincir T1 (80 ft → 70 kt → −135° → −25 kt +200 ft → dur → "
+                               f"in), {_en}, {_wn} lbs", "ground", CHAIN_T1, W_T[_wn], _en, 600.0))
+for _en in ("t_sakin", "t_turb"):
+    TEST_SCENARIOS.append((f"T2_{_en}_9300", "test/zincir", f"zincir T2 (8 görev), {_en}, 9300 lbs", "ground", CHAIN_T2,
+                           W_T["9300"], _en, 600.0))
+TEST_SCENARIOS += [
+    ("t_hover_arka", "test/öğe", "60 ft hover, 20 kt arkadan rüzgâr, 30 s", "hover60", [HOLD], W_T["9300"],
+     dict(wind_kt=20.0, wind_dir_deg=180.0, turb_level="none"), 40.0),
+    ("t_donus270", "test/öğe", "20 ft hover, yerinde +270° dönüş", "hover20", [HOLD, dict(kind="turn", dpsi=270.0)],
+     W_T["9100"], "t_sakin", 60.0),
+    ("t_kayma_yan", "test/öğe", "30 ft hover, 40 ft sağa kayma, 15 kt soldan rüzgâr", "hover30",
+     [HOLD, dict(kind="move", dx=0.0, dy=40.0)], W_T["9300"], dict(wind_kt=15.0, wind_dir_deg=-90.0, turb_level="none"),
+     60.0),
+    ("t_bob", "test/öğe", "30 ft hover, +30 ft, −30 ft", "hover30", [HOLD, dict(kind="bob", dh=30.0), dict(kind="bob", dh=-30.0)],
+     W_T["9500"], "t_sakin", 70.0),
+    ("t_inis150", "test/öğe", "150 ft hover → iniş, 15 kt rüzgâr (sağ ön)", "hover150", [HOLD, LAND], W_T["9300"],
+     dict(wind_kt=15.0, wind_dir_deg=45.0, turb_level="none"), 150.0),
+    ("t_donus90kt", "test/öğe", "400 ft / 90 kt: −120°", "cruise90@400", [CHOLD, CR(dpsi=-120)], W_T["9300"], "t_sakin",
+     120.0),
+    ("t_karma50", "test/öğe", "200 ft / 50 kt: +40 kt ve +150 ft", "cruise50@200", [CHOLD, CR(du_kt=40, dh=150)],
+     W_T["9500"], "t_sakin", 120.0),
+    ("t_durus_arka", "test/öğe", "300 ft / 70 kt → duruş, 15 kt arkadan rüzgâr", "cruise70@300", [CHOLD, STOP],
+     W_T["9300"], dict(wind_kt=15.0, wind_dir_deg=180.0, turb_level="none"), 120.0),
+    ("t_hizlan90", "test/öğe", "40 ft hover → 90 kt (+120 ft), 18 kt sağdan rüzgâr + hafif türbülans", "hover40",
+     [HOLD, ACC(90, 120)], W_T["9300"], dict(wind_kt=18.0, wind_dir_deg=90.0, turb_level="light"), 150.0),
+    # doğal sınırlar (F1–F9 görmedi)
+    ("d_130kt", "test/doğal", "400 ft / 100 kt → 130 kt", "cruise100@400", [CHOLD, CR(u_kt=130)], W_T["9300"], "t_sakin",
+     120.0),
+    ("d_15kt", "test/doğal", "300 ft / 40 kt → 15 kt → +90°", "cruise40@300", [CHOLD, CR(u_kt=15), CR(dpsi=90)],
+     W_T["9300"], "t_sakin", 150.0),
+    ("d_1500_ileri", "test/doğal", "1000 ft / 80 kt → +500 ft (1500 ft)", "cruise80@1000", [CHOLD, CR(dh=500)],
+     W_T["9300"], "t_sakin", 120.0),
+    ("d_1500_hover", "test/doğal", "1000 ft hover → 1500 ft", "hover1000", [HOLD, dict(kind="climb_to", h=1500.0)],
+     W_T["9100"], "t_sakin", 200.0),
+    ("d_tirmanis1400", "test/doğal", "100 ft / 80 kt → +1400 ft", "cruise80@100", [CHOLD, CR(dh=1400)], W_T["9300"],
+     "t_sakin", 240.0),
+    ("d_alcak50", "test/doğal", "300 ft / 80 kt → 50 ft", "cruise80@300", [CHOLD, CR(h=50)], W_T["9300"], "t_sakin", 120.0),
+    ("d_hizlan20", "test/doğal", "100 ft hover → 20 kt", "hover100", [HOLD, ACC(20, 0)], W_T["9300"], "t_sakin", 90.0),
+    ("d_donus120kt", "test/doğal", "500 ft / 120 kt: +180°", "cruise120@500", [CHOLD, CR(dpsi=180)], W_T["9100"],
+     "t_sakin", 120.0),
+    ("d_donus360", "test/doğal", "20 ft hover, yerinde 360° dönüş", "hover20", [HOLD, dict(kind="turn", dpsi=-360.0)],
+     W_T["9300"], "t_sakin", 80.0),
+    ("d_pirouette_sag", "test/doğal", "pirouette, 100 ft yarıçap, 45 s, saat yönü (16 ft)", "hover16.3", [HOLD, PIR(1.0)],
+     W_T["9100"], "t_sakin", 90.0),
+    ("d_pirouette_sol", "test/doğal", "pirouette, 100 ft, 45 s, saat tersi, 10 kt rüzgâr", "hover16.3", [HOLD, PIR(-1.0)],
+     W_T["9500"], dict(wind_kt=10.0, wind_dir_deg=60.0, turb_level="none"), 90.0),
+    # sıcak / soğuk gün
+    ("s_T1_sicak25_9300", "test/sıcak", "zincir T1, +25 °C, sakin, 9300 lbs", "ground", CHAIN_T1, W_T["9300"], "t_sicak25",
+     600.0),
+    ("s_T1_sicak30_9700", "test/sıcak", "zincir T1, +30 °C, sakin, 9700 lbs", "ground", CHAIN_T1, W_T["9700"], "t_sicak30",
+     600.0),
+    ("s_T1_sicak15r_9500", "test/sıcak", "zincir T1, +15 °C, 12 kt rüzgâr, 9500 lbs", "ground", CHAIN_T1, W_T["9500"],
+     "t_sicak15r", 600.0),
+    ("s_T3_sicak30_9100", "test/sıcak", "zincir T3 (40 ft → 60 kt → dur → in), +30 °C, 9100 lbs", "ground", CHAIN_T3,
+     W_T["9100"], "t_sicak30", 400.0),
+    ("s_inis_sicak30", "test/sıcak", "100 ft hover → iniş, +30 °C, 9700 lbs", "hover100", [HOLD, LAND], W_T["9700"],
+     "t_sicak30", 120.0),
+    ("s_kalkis_sicak30", "test/sıcak", "kalkış 60 ft, +30 °C, 9700 lbs", "ground", [TO(60)], W_T["9700"], "t_sicak30", 60.0),
+    ("s_T1_soguk_9500", "test/sıcak", "zincir T1, −10 °C, 8 kt rüzgâr, 9500 lbs", "ground", CHAIN_T1, W_T["9500"], "t_soguk",
+     600.0),
+]
+TEST_GROUPS = ("test/zincir", "test/öğe", "test/doğal", "test/sıcak")
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 def load_policy(model_path):
@@ -121,7 +211,7 @@ def _start_opts(start: str) -> dict:
     if start == "ground":
         return dict(start="ground")
     if start.startswith("hover"):
-        return dict(start="hover", start_alt_ft=float(start[5:] or 100.0))
+        return dict(start="hover", start_alt_ft=float(start[5:] or 100.0))      # CG AGL (16.3 → kızaklar 10 ft)
     kt, h = start[6:].split("@")
     return dict(start="cruise", start_speed_kt=float(kt), start_alt_ft=float(h))
 
@@ -137,7 +227,7 @@ def _x2_cfg(env, k=2.0):
 
 def run_one(env, policy, sc, seed=0):
     sid, group, title, start, tasks, fuel, env_name, episode_s = sc
-    phys = dict(ENVS[env_name] if isinstance(env_name, str) else env_name)
+    phys = dict((TEST_ENVS.get(env_name) or ENVS[env_name]) if isinstance(env_name, str) else env_name)
     phys.setdefault("wind_dir_relative", True)
     opts = dict(level="F8", tasks=[dict(t) for t in tasks], fuel=fuel, start_heading_deg=0.0, start_perturb=0.0,
                 physics=phys, episode_s=episode_s, live=episode_s <= 40.0, **_start_opts(start))
@@ -204,7 +294,10 @@ def run_one(env, policy, sc, seed=0):
             max_err={k2: round(float(v), 1) for k2, v in c["max_abs_err"].items()},
             hold_err=None if not tail.size else dict(xy=round(float(tail[:, 3].max()), 1), h=round(float(tail[:, 4].max()), 1),
                                                     psi=round(float(tail[:, 5].max()), 1),
-                                                    u_fps=round(float(tail[:, 6].max()), 1))))
+                                                    u_fps=round(float(tail[:, 6].max()), 1)),
+            # pencere başına tork (2026-10-01): aşımın hangi görevde olduğu
+            torque_max=None if not seg.size else round(float(seg[:, 11].max()), 1),
+            t_over56_s=None if not seg.size else round(float((seg[:, 11] > 56.0).sum() * CONTROL_DT), 2)))
     q, rpm = a[:, 11], a[:, 12]
     over = q > 56.0
     run_, longest = 0, 0
@@ -230,7 +323,7 @@ def run_one(env, policy, sc, seed=0):
 
 def summarize(results):
     s = {}
-    for g in GROUPS + (None,):
+    for g in GROUPS + TEST_GROUPS + (None,):
         rs = [r for r in results if g is None or r["group"] == g]
         if not rs:
             continue
@@ -260,11 +353,18 @@ def summarize(results):
                      rpm_min=float(min(r["rpm_min"] for r in results)))
     s["yakit"] = dict(harcanan_lbs=float(sum(r["fuel_used_lbs"] for r in results)),
                       ort_akis_lbh=float(np.mean([r["fuel_flow_lbh"] for r in results])))
+    # hover hassasiyeti: yerinde dönüşlerde en büyük konum kayması, pirouette'te hareketli hedeften en büyük uzaklık (ft)
+    turns = [w["max_err"].get("xy", 0.0) for r in results for w in r["windows"] if w["category"] == "turn"]
+    pirs = [w["max_err"].get("xy", 0.0) for r in results for w in r["windows"] if w["category"] == "pirouette"]
+    s["hassasiyet"] = dict(donus_kayma_ft=[float(np.max(turns)) if turns else None, float(np.mean(turns)) if turns else None,
+                                           len(turns)],
+                           pirouette_uzaklik_ft=[float(np.max(pirs)) if pirs else None, len(pirs)])
     return s
 
 
 SHORT = {"takeoff": "kalk", "accel": "hızl", "cruise_u": "hız", "cruise_psi": "dön", "cruise_h": "irt", "cruise_mix": "kar",
-         "cruise_hold": "tut", "stop": "dur", "land": "iniş", "hold": "hovr", "interrupted": "kes"}
+         "cruise_hold": "tut", "stop": "dur", "land": "iniş", "hold": "hovr", "interrupted": "kes", "pirouette": "pir",
+         "climb_to": "çık", "turn": "ydön", "move": "kay", "bob": "bob"}
 
 
 def fmt(r):
@@ -283,23 +383,29 @@ HEADER = (f"{'senaryo':22s} {'güv':>3s} {'tüm':>3s} {'görev':>5s} {'yet':>2s}
           f"görevler (✓ istenen, ~ yeterli, ✗, · kesildi; oturma/son sınır s)")
 
 
-def evaluate(model_path=None, only=None, verbose=True, env_overrides=None, scripted=False, seed=0):
+def evaluate(model_path=None, only=None, verbose=True, env_overrides=None, scripted=False, seed=0, suite="secim"):
     env, pol, ov = make_env(model_path, env_overrides, scripted=scripted)
+    scenarios = {"secim": SCENARIOS, "test": TEST_SCENARIOS, "hepsi": SCENARIOS + TEST_SCENARIOS}[suite]
     results = []
     if verbose:
         who = "kural tabanlı PID pilot (RL değil)" if scripted else f"model {Path(model_path).name}"
         print(f"\nTEK AJANLI UÇUŞ — {who}  env ayarları {ov or 'varsayılan (FlightEnvConfig)'}")
         print(HEADER)
-    for sc in SCENARIOS:
+    for sc in scenarios:
         if only and sc[0] not in only:
             continue
-        r = run_one(env, pol, sc, seed=seed)
+        try:
+            r = run_one(env, pol, sc, seed=seed)
+        except RuntimeError as exc:                    # başlangıç kurulamadı (reset PID'i; modelden bağımsız) → atla
+            if verbose:
+                print(f"{sc[0]:22s} başlangıç kurulamadı, atlandı: {str(exc)[:90]}", flush=True)
+            continue
         results.append(r)
         if verbose:
             print(fmt(r), flush=True)
     s = summarize(results)
     if verbose:
-        for g in GROUPS + tuple(f"zincir_{e}" for e in ENVS) + ("toplam",):
+        for g in GROUPS + TEST_GROUPS + tuple(f"zincir_{e}" for e in ENVS) + ("toplam",):
             if g in s:
                 x = s[g]
                 print(f"  {g:14s} güvenli {x['safe'][0]}/{x['safe'][1]}   tüm görevler {x['episode_ok'][0]}/{x['episode_ok'][1]}   "
@@ -312,6 +418,12 @@ def evaluate(model_path=None, only=None, verbose=True, env_overrides=None, scrip
               f"{tq['sure_50_ustu_s']:.0f} s, 56 üstü {tq['sure_56_ustu_s']:.0f} s / {tq['sure_toplam_s']:.0f} s (en uzun "
               f"kesintisiz {tq['en_uzun_56_ustu_s']:.1f} s); en yüksek {tq['maks_psi']:.1f} psi; en düşük devir {tq['rpm_min']:.0f}")
         print(f"  yakıt: toplam {s['yakit']['harcanan_lbs']:.0f} lbs, ortalama akış {s['yakit']['ort_akis_lbh']:.0f} lb/h")
+        hs = s["hassasiyet"]
+        if hs["donus_kayma_ft"][2]:
+            print(f"  hassasiyet: yerinde dönüşte en büyük konum kayması {hs['donus_kayma_ft'][0]:.1f} ft (ortalama "
+                  f"{hs['donus_kayma_ft'][1]:.1f}, {hs['donus_kayma_ft'][2]} dönüş)" + (
+                      f"; pirouette'te hedeften en büyük uzaklık {hs['pirouette_uzaklik_ft'][0]:.1f} ft"
+                      if hs["pirouette_uzaklik_ft"][1] else ""))
     return results, s
 
 
@@ -348,6 +460,9 @@ def main(argv=None):
     ap.add_argument("--levels", default=None, help="ayrıca bu seviyelerden rastgele episode (virgülle, ör. F2,F5,F8)")
     ap.add_argument("--episodes", type=int, default=20)
     ap.add_argument("--no-scenarios", action="store_true")
+    ap.add_argument("--suite", choices=["secim", "test", "hepsi"], default="secim",
+                    help="secim: model seçiminde de kullanılan takım (eski); test: ayrı test takımı (held-out, 2026-10-01)")
+    ap.add_argument("--seed0", type=int, default=70000, help="seviye episode'larının ilk seed'i (test için 500000)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--json", default=None)
     ap.add_argument("--env", default=None, help="env ayarları (JSON), modelin taşıdıklarının üstüne yazılır")
@@ -358,12 +473,13 @@ def main(argv=None):
     t0 = time.time()
     out = dict(model=str(args.model) if not args.scripted else "scripted_pilot")
     if not args.no_scenarios:
-        res, summ = evaluate(args.model, args.only, env_overrides=env_ov, scripted=args.scripted, seed=args.seed)
+        res, summ = evaluate(args.model, args.only, env_overrides=env_ov, scripted=args.scripted, seed=args.seed,
+                             suite=args.suite)
         out.update(results=res, summary=summ)
     if args.levels:
         print()
         out["levels"] = level_stats(args.model, [x.strip() for x in args.levels.split(",") if x.strip()], args.episodes,
-                                    env_overrides=env_ov, scripted=args.scripted)
+                                    seed0=args.seed0, env_overrides=env_ov, scripted=args.scripted)
     out["env"] = env_ov
     print(f"\n({time.time() - t0:.0f} s)")
     if args.json:

@@ -56,7 +56,7 @@ from helicopter_env_command import CONTROL_DT, AfcsMode, HelicopterEnvCommand, w
 # tork göstergesi / güç tavanı / tork cezası ortak fizik katmanında (2026-09-29; ifadeler aynı, sonuçlar birebir)
 from physics_ext import PhysicsExt, psi_to_throttle, torque_penalty, torque_psi  # noqa: F401  (dışarıya da açık)
 from takeoff_curriculum import (DEFAULT_TAKEOFF_LEVELS, GROUND_H_FT, LAND_PROFILE_K, LAND_PROFILE_MIN_FPS, MAX_HOVER_H_FT,
-                                depart_time_target,
+                                MAX_TARGET_H_FT, depart_time_target,
                                 MIN_HOVER_H_FT, TakeoffLevel, deadline_of, find_takeoff_level)
 
 OBS_DIM_T = 29                                    # + 1 (tork göstergesi) TakeoffEnvConfig.torque_obs ile
@@ -174,6 +174,12 @@ class TakeoffEnvConfig:
     # helikopterde %70 ağırlık için bu yetmiyor, ajan collective'i 20 s boyunca yavaşça indirip son sınırı kaçırıyordu.
     coll_flat: float = 0.05
     pen_slide: float = 0.2                        # yerdeyken yatay hız (ft/s)
+    # yerinde dönüşte yaw hızı sınırı (2026-10-01): |r| > turn_rate_cap_frac · 1.25 · seviyenin yaw_rate_dps'i (F: 15 → 28 °/s)
+    # üstü · pen_turn_rate · ((|r| − sınır) / 10)². Neden: dönüş ödülü (indirimli ilerleme + heading çekirdeği) hızlı dönmeyi
+    # kârlı kılıyordu; ajan 180°'yi ~5 s'de 40–44 °/s ile dönüp konumu 15–25 ft kaydırıyordu (ADS-33 istenen 180°/10 s,
+    # ±3 ft). 0 → kapalı (eski modeller).
+    pen_turn_rate: float = 0.0
+    turn_rate_cap_frac: float = 1.5
     fail_penalty: float = 50.0
     reward_scale: float = 0.1
     # --- güvenlik ------------------------------------------------------------------------------
@@ -208,6 +214,15 @@ class TakeoffEnvConfig:
     # tırmanış süre hedefi ve yönlendirmesi ağırlığa göre (güç payı): v_max ≈ 0.8 · (56 − psi_hover(W)) / 0.62 ft/s,
     # psi_hover(W) = 44.6 + 7.5 · (W − 8500) / 1000 (OGE hover, ölçüldü 2026-09-28; +0.62 psi / (ft/s) tırmanış)
     torque_aware_climb: bool = False
+    # 2026-10-01 (F10 ölçümü: 1000 → 1500 ft hover tırmanışında 56 psi üstü 25 s; hover gücü irtifa / sıcaklıkla artıyor,
+    # yönlendirme 1.25 × %80 pay = payın %100'ünü istiyordu):
+    #   torque_density_climb: tırmanış hızı tahmininde hover torku hava yoğunluğuyla düzeltilir (+15 psi · (σ_ref − σ)/σ_ref;
+    #     σ_ref = Edwards standart günü 0.935; ölçüm: 9700 lbs'de yoğunluk irtifası 2290 → 5373 ft için +1.3 psi)
+    #   torque_feedback_climb: istenen tırmanış hızı ölçülen torkun (1 s süzülmüş) payıyla da sınırlı:
+    #     ḣ_istenen ≤ ḣ + (56 − 1.5 − psi_süzülmüş)/0.62 — denge 54.5 psi; tork sınıra yaklaşınca yönlendirme tırmanışı
+    #     azaltmayı ister (ilk denemede 0.8·(56 − psi) ile zayıftı: 56.5 psi'de istenen yalnızca 0.65 ft/s daha az)
+    torque_density_climb: bool = False
+    torque_feedback_climb: bool = False
     # --- hareketli hedef (ileri kalkış "depart", 2026-09-28) ------------------------------------------------------
     track_obs: bool = False                       # obs'un sonuna hedefin hızı (burun ekseninde ileri / sağa, /20) → +2
     track_tol_xy: float = 25.0                    # depart bandı: hareketli hedef noktasına uzaklık
@@ -307,8 +322,29 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         if not self.cfg.torque_aware_climb:
             return lv.climb_fps
         w = float(self.setup_info.get("weight", 8500.0)) if self.setup_info else 8500.0
-        psi_hover = 44.6 + 7.5 * (w - 8500.0) / 1000.0
+        psi_hover = 44.6 + 7.5 * (w - 8500.0) / 1000.0 + self._density_psi()
         return float(np.clip(0.8 * (self.cfg.torque_max_psi - psi_hover) / 0.62, 1.5, lv.climb_fps))
+
+    def _density_psi(self) -> float:
+        """Hover torkunun hava yoğunluğu düzeltmesi (psi; torque_density_climb kapalıyken 0)."""
+        if not self.cfg.torque_density_climb or self.fdm is None:
+            return 0.0
+        sigma = float(self.fdm["atmosphere/rho-slugs_ft3"]) / 0.0023769
+        return 15.0 * (0.935 - sigma) / 0.935
+
+    def _update_psi_f(self, s: dict):
+        a = 1.0 - math.exp(-CONTROL_DT / 1.0)
+        psi_f = getattr(self, "_psi_f", None)
+        self._psi_f = s["torque_psi"] if psi_f is None else psi_f + a * (s["torque_psi"] - psi_f)
+
+    def _climb_feedback_cap(self, s: dict, up: float) -> float:
+        """torque_feedback_climb: istenen tırmanışın üst sınırı, ölçülen torkun (1 s süzülmüş) payıyla."""
+        if not self.cfg.torque_feedback_climb:
+            return up
+        psi_f = getattr(self, "_psi_f", None)
+        psi_f = s["torque_psi"] if psi_f is None else psi_f
+        # denge: süzülmüş tork sınırın 1.5 psi altında (56 → 54.5); üstündeyse mevcut tırmanıştan daha azını ister
+        return min(up, max(1.5, s["vs"] + (self.cfg.torque_max_psi - 1.5 - psi_f) / 0.62))
 
     # =================================================================
     # JSBSim yardımcıları
@@ -451,7 +487,14 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         self._set_sas(psi0)
         integ = np.zeros(4)
         t, hold = 0.0, 0.0
-        while t < cfg.settle_max_s:
+        # 2. evre (2026-10-01; yalnızca 1. evre başarısızsa, yani eskiden kurulamayan başlangıçlarda): güçlü yan rüzgârda
+        # pedal integratörü ±0.3'te doyuyor (25 kt'ta 2.7–3.5° kalıcı heading hatası) ya da yanal döngü ~1 ft/s'lik yavaş
+        # salınımda kalıyor (15 kt soldan) → integratör ±0.6, ölçütler rüzgârla gevşer, 30 s daha. 1. evre birebir eski.
+        wind = float(self.ext.params.get("wind_kt", 0.0)) if self.ext.armed else 0.0
+        t_end, relaxed = cfg.settle_max_s, False
+        while t < t_end or (not relaxed and wind > 0.0):
+            if t >= t_end:
+                relaxed, t_end, hold = True, t_end + 30.0, 0.0
             s = self._state()
             ps = math.radians(s["psi_deg"])
             dn, de = -s["n"], -s["e"]
@@ -463,7 +506,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             integ[0] = np.clip(integ[0] + 0.01 * evs * CONTROL_DT, -0.3, 0.3)
             integ[1] = np.clip(integ[1] - 0.004 * eu * CONTROL_DT, -0.3, 0.3)
             integ[2] = np.clip(integ[2] + 0.004 * ev * CONTROL_DT, -0.3, 0.3)
-            integ[3] = np.clip(integ[3] - 0.003 * eps * CONTROL_DT, -0.3, 0.3)
+            integ[3] = np.clip(integ[3] - 0.003 * eps * CONTROL_DT, -(0.6 if relaxed else 0.3), 0.6 if relaxed else 0.3)
             th_ref = float(np.clip(-0.02 * eu, -0.25, 0.25)) + integ[1]
             ph_ref = float(np.clip(0.03 * ev, -0.25, 0.25)) + integ[2]
             c = np.array([coll0 + 0.03 * evs + integ[0],
@@ -475,13 +518,14 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             if not self._run_plain():
                 return False, dict(reason="jsbsim_stopped")
             t += CONTROL_DT
-            ok = (abs(h0 - s["h"]) < 1.5 and abs(s["vs"]) < 0.5 and s["vh"] < 0.5 and math.hypot(s["n"], s["e"]) < 2.0
-                  and abs(eps) < 1.0 and max(abs(s["p"]), abs(s["q"]), abs(s["r"])) < 0.02 and s["wow"] == 0)
+            v_tol, p_tol, psi_tol = (0.5 + 0.04 * wind, 2.0 + 0.1 * wind, 2.0) if relaxed else (0.5, 2.0, 1.0)
+            ok = (abs(h0 - s["h"]) < 1.5 and abs(s["vs"]) < 0.5 and s["vh"] < v_tol and math.hypot(s["n"], s["e"]) < p_tol
+                  and abs(eps) < psi_tol and max(abs(s["p"]), abs(s["q"]), abs(s["r"])) < 0.02 and s["wow"] == 0)
             hold = hold + CONTROL_DT if ok else 0.0
             if hold >= cfg.settle_hold_s:
-                return True, dict(settle_s=t, ctrl=c.copy())
+                return True, dict(settle_s=t, ctrl=c.copy(), relaxed=relaxed)
         s = self._state()
-        return False, dict(reason=f"hover kurulamadı ({cfg.settle_max_s:.0f} s): h={s['h']:.1f} v={s['vh']:.1f}")
+        return False, dict(reason=f"hover kurulamadı ({t:.0f} s): h={s['h']:.1f} v={s['vh']:.1f}")
 
     # =================================================================
     # RESET
@@ -596,6 +640,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         e = self._errors(s)
         self.prev_abs_err = {"xy": e["xy"], "h": abs(e["h"]), "psi": abs(e["psi"])}
         self._last_err = dict(e)
+        self._psi_f = None                                       # torque_feedback_climb süzgeci
         self._issue_due_tasks(0.0, s)
         e = self._errors(s)
         self.prev_abs_err = {"xy": e["xy"], "h": abs(e["h"]), "psi": abs(e["psi"])}
@@ -659,11 +704,11 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             self.track = None                               # yeni görev hareketli hedefi bitirir
         if kind == "hold":
             if not d.get("keep"):                           # keep: hedefte kal (canlı: görev bitince otomatik)
-                tg.update(n=s["n"], e=s["e"], h=float(np.clip(s["h"], MIN_HOVER_H_FT, MAX_HOVER_H_FT)),
+                tg.update(n=s["n"], e=s["e"], h=float(np.clip(s["h"], MIN_HOVER_H_FT, MAX_TARGET_H_FT)),
                           psi=self.psi_unwrap)
             amount = 0.0
         elif kind in ("takeoff", "climb_to"):
-            tg["h"] = float(np.clip(d["h"], MIN_HOVER_H_FT, MAX_HOVER_H_FT))
+            tg["h"] = float(np.clip(d["h"], MIN_HOVER_H_FT, MAX_TARGET_H_FT))
             amount = tg["h"] - s["h"]
             if kind == "climb_to" and s["vs"] * amount < 0.0 and abs(s["vs"]) > 2.0:
                 allow = abs(s["vs"]) / 10.0 + s["vs"] ** 2 / 20.0 / max(1.0, lv.climb_fps)   # önce dur
@@ -677,9 +722,11 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             amount = math.hypot(dx, dy)
         elif kind == "bob":
             dh = float(d["dh"])
-            if not MIN_HOVER_H_FT <= s["h"] + dh <= MAX_HOVER_H_FT:
+            # eğitimde örneklenen görev (_flip) zarf dışına düşerse ters yöne (eski davranış birebir); canlı / arayüz
+            # komutu ters ÇEVRİLMEZ, doğal sınıra kırpılır (2026-10-01: 30 ft'te −25 ft komutu 55 ft'e çıkarıyordu)
+            if d.get("_flip") and not MIN_HOVER_H_FT <= s["h"] + dh <= MAX_HOVER_H_FT:
                 dh = -dh
-            tg["h"] = float(np.clip(s["h"] + dh, MIN_HOVER_H_FT, MAX_HOVER_H_FT))
+            tg["h"] = float(np.clip(s["h"] + dh, MIN_HOVER_H_FT, MAX_HOVER_H_FT if d.get("_flip") else MAX_TARGET_H_FT))
             amount = tg["h"] - s["h"]
         elif kind == "land":
             tg["h"] = GROUND_H_FT
@@ -691,7 +738,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             # hedef noktası rota (şimdiki heading) boyunca 0'dan v'ye sabit ivmeyle ilerler; irtifa hedefi h
             v = float(d.get("v_kt", 40.0)) * KT_FPS
             acc = float(d.get("accel", 2.5))
-            tg["h"] = float(np.clip(d["h"], MIN_HOVER_H_FT, MAX_HOVER_H_FT))
+            tg["h"] = float(np.clip(d["h"], MIN_HOVER_H_FT, MAX_TARGET_H_FT))
             tg.update(n=s["n"], e=s["e"], psi=self.psi_unwrap)
             v0 = float(d.get("v0_kt", 0.0)) * KT_FPS
             self.track = dict(n0=s["n"], e0=s["e"], c=ps, v=v, v0=v0, a=acc, t0=t, lag_ft=0.0, prev_lag=0.0)
@@ -749,6 +796,10 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         tr["pn"], tr["pe"] = n, e                               # profil noktası (başarı bandı buna göre)
         self.target["n"], self.target["e"] = tr["n0"] + along * math.cos(c), tr["e0"] + along * math.sin(c)
 
+    def _yaw_ff(self) -> float:
+        """Hedef heading'in değişim hızı (°/s): yönlendirmede istenen yaw hızına eklenir (sabit hedefte 0)."""
+        return 0.0
+
     def _target_vel_body(self, s: dict) -> tuple[float, float]:
         """Hareketli hedefin hızı burun ekseninde (ileri, sağa) ft/s; hedef sabitse (0, 0)."""
         if self.track is None:
@@ -802,7 +853,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         w = self.windows[-1]
         if w["closed"]:
             return
-        for k, lim in zip(("xy", "h", "psi"), cfg.coupling_limits):
+        for k, lim in zip(("xy", "h", "psi"), w.get("coupling_lim") or cfg.coupling_limits):
             val = e["xy"] if k == "xy" else abs(e[k])
             w["max_err"][k] = max(w["max_err"][k], val)
             if k not in w["active"] and val > lim:
@@ -876,7 +927,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         tau = (t - w["t"]) / max(w["T"], 1e-6)
         lag = np.zeros(3)
         for k, a in enumerate(("xy", "h", "psi")):
-            if a not in w["active"] or w["kind"] in ("hold", "recover"):
+            if a not in w["active"] or w["kind"] in ("hold", "recover", "pirouette"):
                 continue
             cur = e["xy"] if a == "xy" else e[a]
             sched = w["e0"][a] * max(0.0, 1.0 - max(0.0, tau))
@@ -948,6 +999,8 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         if finite:
             self._last_err = dict(e)
 
+        if finite and self.cfg.torque_feedback_climb:            # tırmanış yönlendirmesi için süzülmüş tork (1 s)
+            self._update_psi_f(s)
         reward, parts = self._reward(s, e, a) if finite else (0.0, {})
         self.failure = self._safety(s, e, ok, finite)
         terminated = self.failure is not None
@@ -1019,7 +1072,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         track = (cfg.w_xy * K(e_xy_tr, cfg.kernel_xy) + cfg.w_h * K(e["h"], cfg.kernel_h)
                  + cfg.w_psi * K(e["psi"], cfg.kernel_psi))
         # yönlendirme: hedefe doğru istenen hızlar (yaklaştıkça azalan)
-        v_max = lv.move_fps * 1.25 if kind in ("move", "depart") else cfg.hold_v_max
+        v_max = lv.move_fps * 1.25 if kind in ("move", "depart", "pirouette") else cfg.hold_v_max
         vx, vy = cfg.guide_k_xy * e["fwd"], cfg.guide_k_xy * e["right"]
         vn = math.hypot(vx, vy)
         if vn > v_max:
@@ -1034,10 +1087,11 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
                                                              lv.descent_fps))
         else:
             up = self.climb_fps(lv) * 1.25 if kind in ("takeoff", "climb_to", "bob") else 3.0
+            up = self._climb_feedback_cap(s, up)
             dn = lv.descent_fps * 1.25 if kind in ("climb_to", "bob") else 3.0
             vs_des = float(np.clip(cfg.guide_k_h * e["h"], -dn, up))
         r_max = lv.yaw_rate_dps * 1.25 if kind == "turn" else 5.0
-        r_des = float(np.clip(cfg.guide_k_psi * e["psi"], -r_max, r_max))
+        r_des = float(np.clip(cfg.guide_k_psi * e["psi"], -r_max, r_max)) + self._yaw_ff()
         guide = ((cfg.w_v_track if self.track is not None else cfg.w_v)
                  * K(math.hypot(s["ug"] - vx, s["vg"] - vy), cfg.kernel_v_track if self.track is not None else cfg.kernel_v)
                  + cfg.w_vs * K(s["vs"] - vs_des, cfg.kernel_vs)
@@ -1068,7 +1122,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
                   + cfg.pen_sat * float(np.mean(np.maximum(np.abs(a) - cfg.sat_threshold, 0.0))))
         couple = 0.0
         if w is not None and not w["closed"]:
-            for k, lim in zip(("xy", "h", "psi"), cfg.coupling_limits):
+            for k, lim in zip(("xy", "h", "psi"), w.get("coupling_lim") or cfg.coupling_limits):
                 if k in w["active"]:
                     continue
                 val = e["xy"] if k == "xy" else abs(e[k])
@@ -1078,6 +1132,9 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         if 0.0 < s["hs"] < 60.0 and s["wow"] == 0:
             allow = cfg.sink_base_fps + cfg.sink_slope * s["hs"]
             sink = cfg.pen_sink * (max(0.0, -s["vs"] - allow) / 3.0) ** 2
+        if kind == "turn" and cfg.pen_turn_rate > 0.0:            # yerinde dönüşte aşırı yaw hızı
+            r_cap = cfg.turn_rate_cap_frac * lv.yaw_rate_dps * 1.25
+            rate += cfg.pen_turn_rate * (max(0.0, abs(math.degrees(s["r"])) - r_cap) / 10.0) ** 2
         if kind == "land" and s["wow"] == 0:
             sink += cfg.pen_land_sink * (max(0.0, -s["vs"] - (abs(vs_des) + 2.0)) / 3.0) ** 2
             couple += cfg.pen_land_xy * (max(0.0, e["xy"] - 2.0) / 4.0) ** 2

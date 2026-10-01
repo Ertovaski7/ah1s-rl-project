@@ -69,9 +69,9 @@ class Runner:
         # model gözlem boyutu 42 → tek ajanlı uçuş env'i (helicopter_env_flight; sakin hava, yakıt tüketimi açık),
         # yoksa kalkış env'i (modelin env ayarlarıyla)
         from stable_baselines3 import PPO
-        from helicopter_env_flight import OBS_DIM_F, FlightEnvConfig, HelicopterEnvFlight
+        from helicopter_env_flight import FLIGHT_OBS_DIMS, FlightEnvConfig, HelicopterEnvFlight
         m = PPO.load(str(model_path), device="cpu")
-        self.flight = int(m.observation_space.shape[0]) == OBS_DIM_F
+        self.flight = int(m.observation_space.shape[0]) in FLIGHT_OBS_DIMS
         if self.flight:
             ov = dict(getattr(m, "ah1s_env_overrides", None) or {})
             ov.update(env_overrides or {})
@@ -277,9 +277,12 @@ def mte_vertical(R: Runner, fuel=(0.0, 0.0)) -> dict:
     return res
 
 
-def mte_pirouette(R: Runner, direction: int = 1, fuel=(0.0, 0.0), circle_s: float | None = None, lead_deg=8.0) -> dict:
-    """100 ft yarıçaplı çember: burun merkeze, yana uçuş; hedef noktası çember üzerinde sabit açısal hızla ilerler
-    (ajan eğitimde hareketli hedef görmedi — hedef her adımda env.target'a yazılır)."""
+def mte_pirouette(R: Runner, direction: int = 1, fuel=(0.0, 0.0), circle_s: float | None = None, lead_deg=8.0,
+                  use_task: bool | None = None) -> dict:
+    """100 ft yarıçaplı çember: burun merkeze, yana uçuş; hedef noktası çember üzerinde sabit açısal hızla ilerler.
+    use_task (varsayılan: tek ajanlı uçuş modellerinde açık, 2026-10-01): env'in "pirouette" görevi — hedefin hızı gözlemde
+    (38–39) ve yaw yönlendirmesinde ileri besleme. Kapalıyken eski protokol: "hover tut" görevinde hedef her adımda dışarıdan
+    yazılır (8° önde "havuç"; ajan hedefin hızını görmez). karne_flight_final.json eski protokolle."""
     S = MTE_STANDARDS["pirouette"]
     env = R.env
     R.reset(S["hs_ft"], fuel=fuel)
@@ -298,7 +301,15 @@ def mte_pirouette(R: Runner, direction: int = 1, fuel=(0.0, 0.0), circle_s: floa
         env.target["n"], env.target["e"] = cn + rad * math.cos(a), ce + rad * math.sin(a)
         env.target["psi"] = psi0 + ang                                    # burun merkeze (açı kadar döner)
 
-    done, _ = R.run(T + S["adequate"]["stab"] + S["hold_s"] + 10.0, on_step=carrot)
+    if use_task is None:
+        use_task = bool(getattr(R, "flight", False))
+    if use_task:
+        # env görevinde açısal hız başta / sonda rampa (ramp_s): tur t_c + ramp_s'de biter (38 + 4 = 42 s ≤ 45 s istenen);
+        # tur boyunca ölçüm (k_circ) ve dönüş varışı bu toplam süreyle
+        ramp = min(4.0, 0.4 * T)
+        env.queue_task(dict(kind="pirouette", radius=rad, circle_s=T, direction=float(direction), ramp_s=ramp))
+        T = T + ramp
+    done, _ = R.run(T + S["adequate"]["stab"] + S["hold_s"] + 10.0, on_step=None if use_task else carrot)
     rows = R.rows
     t = np.array([r["t"] for r in rows]) - t_start
     n = np.array([r["n"] for r in rows])

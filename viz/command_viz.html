@@ -394,6 +394,11 @@ a{color:var(--s1)}
           </div>
           <div id="flRows" hidden>
             <div class="axis">
+              <label>Komut (rejimden bağımsız; boş = değişmez)</label>
+              <div class="toline fl3"><div class="inwrap"><input id="cmSpd" inputmode="decimal" placeholder="hız / +Δ" aria-label="Hava hızı (kt; +/− ile Δ)"><span>kt</span></div><div class="inwrap"><input id="cmHdg" inputmode="decimal" placeholder="heading / +Δ" aria-label="Heading (°; +/− ile Δ)"><span>°</span></div><div class="inwrap"><input id="cmAlt" inputmode="decimal" placeholder="irtifa / +Δ" aria-label="İrtifa (ft; +/− ile Δ)"><span>ft</span></div></div>
+              <div class="formrow"><button class="btn primary" type="button" data-task="komut">Komutu gönder</button><button class="btn" type="button" data-task="pirouette">Pirouette (100 ft, 45 s)</button></div>
+            </div>
+            <div class="axis">
               <label>İleri uçuş Δ</label>
               <div class="toline fl3"><div class="inwrap"><input id="flDu" inputmode="decimal" placeholder="Δhız" aria-label="Δ hava hızı (kt)"><span>kt</span></div><div class="inwrap"><input id="flDpsi" inputmode="decimal" placeholder="Δψ" aria-label="Δ heading (°)"><span>°</span></div><div class="inwrap"><input id="flDh" inputmode="decimal" placeholder="Δh" aria-label="Δ irtifa (ft)"><span>ft</span></div></div>
               <div class="quick" id="flQuick"><button type="button" data-f="flDu" data-v="20">+20 kt</button><button type="button" data-f="flDu" data-v="-20">−20 kt</button><button type="button" data-f="flDpsi" data-v="90">+90°</button><button type="button" data-f="flDpsi" data-v="-90">−90°</button><button type="button" data-f="flDpsi" data-v="180">+180°</button><button type="button" data-f="flDh" data-v="200">+200 ft</button><button type="button" data-f="flDh" data-v="-200">−200 ft</button></div>
@@ -421,6 +426,7 @@ a{color:var(--s1)}
             <label id="rsWindDirWrap" hidden>Rüzgâr yönü (°, buruna göre)<input id="rsWindDir" inputmode="decimal" value="0"></label>
             <label id="rsTurbWrap" hidden>Türbülans<select id="rsTurb"><option value="none">Yok</option><option value="light">Hafif</option><option value="moderate">Orta</option><option value="severe">Şiddetli (eğitimde yok)</option></select></label>
             <label id="rsGustWrap" hidden>Gust<select id="rsGust"><option value="0">Yok</option><option value="1">Var (~1/dk, 5–12 kt)</option></select></label>
+            <label id="rsTempWrap" hidden>Sıcaklık farkı (°C, standart güne göre)<input id="rsTemp" inputmode="decimal" value="0"></label>
           </div>
           <div class="formrow" style="margin-top:10px"><button class="btn" id="resetBtn" type="button">Yeniden başlat</button><span class="hint" id="resetHint"></span></div>
         </details>
@@ -544,6 +550,8 @@ function taskText(t) {
   if (k === "land") return "İniş (hedef noktaya)";
   if (k === "hold") return "Hover tut";
   if (k === "stop") return "Dur (ileri uçuştan hover'a)";
+  if (k === "pirouette") return `Pirouette ${fmt(t.radius || 100, 0)} ft, ${fmt(t.circle_s || 45, 0)} s, ${t.direction < 0 ? "saat tersi" : "saat yönü"}`;
+  if (k === "komut") return "Komut";
   if (k === "cruise") {
     if (t.hold) return "İleri uçuşu tut";
     const p = [];
@@ -551,6 +559,7 @@ function taskText(t) {
     if (t.du_kt) p.push(`Δhız ${sgn(t.du_kt, 0)} kt`);
     if (t.dpsi) p.push(`Δψ ${sgn(t.dpsi, 0)}°`);
     if (t.dh) p.push(`Δh ${sgn(t.dh, 0)} ft`);
+    if (fin(t.h)) p.push(`irtifa → ${fmt(t.h, 0)} ft`);
     return (t.accel ? "Geçiş: " : "İleri uçuş: ") + (p.join(", ") || (t.auto ? "devam" : "—"));
   }
   if (k === "recover") {
@@ -1322,7 +1331,7 @@ function setMode(mode) {
   $("#cmdForm").hidden = !live || to; $("#toForm").hidden = !live || !to; $("#resetBox").hidden = !live;
   $("#rsStartWrap").hidden = $("#rsFuelWrap0").hidden = $("#rsFuelWrap1").hidden = !to; $("#rsSpdWrap").hidden = to;
   $("#flRows").hidden = !fly;
-  ["rsSpdKtWrap", "rsWindWrap", "rsWindDirWrap", "rsTurbWrap", "rsGustWrap"].forEach(id => $("#" + id).hidden = !fly);
+  ["rsSpdKtWrap", "rsWindWrap", "rsWindDirWrap", "rsTurbWrap", "rsGustWrap", "rsTempWrap"].forEach(id => $("#" + id).hidden = !fly);
   const man = live && app.hello?.task === "maneuver";
   $("#timeRow").hidden = !man; $("#timeHint").hidden = !man;
   const note = $("#replayNote"); note.hidden = live;
@@ -1468,6 +1477,7 @@ function applyState(s) {
   fl.commands = s.commands || []; fl.events = s.events || []; fl.meta = s.meta || fl.meta;
   const endEv = fl.events.find(e => e.type === "end"); fl.termination = endEv ? endEv.reason : null;
   app.status = s.status || {}; app.latestT = fl.tEnd;
+  const rt = app.status.route; if (rt && rt.id !== app.lastRouteId) { app.lastRouteId = rt.id; setHint("toHint", rt.message, rt.ok ? "ok" : "err"); }
   if (app.mode === "live") updateSub();
 }
 function renderStatus() {
@@ -1792,6 +1802,15 @@ function bindTakeoffForm() {
       return sendTask({ kind: "accel", u_kt: kt, dh: fin(dh) ? dh : 100 }, `Hızlan → ${fmt(kt, 0)} kt${fin(dh) ? `, Δh ${sgn(dh, 0)} ft` : ", Δh +100 ft"}`); }
     if (k === "stop") return sendTask({ kind: "stop", decel: 2.5 });
     if (k === "hold") return sendTask({ kind: "hold" });
+    if (k === "komut") {                         // 2026-10-01: sunucudaki komut yönlendiricisi rejime göre görev(ler)e çevirir
+      const t = { kind: "komut" }, raw = id => $("#" + id).value.trim().replace(",", ".").replace("−", "-");
+      [["cmSpd", "speed_kt", "dspeed_kt"], ["cmHdg", "heading_deg", "dheading_deg"], ["cmAlt", "alt_ft", "dalt_ft"]].forEach(([id, abs, rel]) => {
+        const v = raw(id); if (v === "") return; const x = Number(v); if (!fin(x)) return;
+        t[/^[+-]/.test(v) ? rel : abs] = x; });
+      if (Object.keys(t).length === 1) return setHint("toHint", "Komut: hız / heading / irtifa gir (sayı = mutlak, +/− ile başlarsa Δ).", "err");
+      ["cmSpd", "cmHdg", "cmAlt"].forEach(id => $("#" + id).value = ""); return sendTask(t, "komut");
+    }
+    if (k === "pirouette") return sendTask({ kind: "pirouette", radius: 100, circle_s: 45, direction: 1 }, "pirouette");
   }));
   document.querySelectorAll("#flQuick button").forEach(b => b.addEventListener("click", () => { $("#" + b.dataset.f).value = b.dataset.v; }));
   document.querySelectorAll("#toMoveQuick button").forEach(b => b.addEventListener("click", () => { $("#toDx").value = b.dataset.dx; $("#toDy").value = b.dataset.dy; }));
@@ -1826,7 +1845,8 @@ function bindUi() {
     const o = { alt: +$("#rsAlt").value, speed: +$("#rsSpd").value, heading: hv === "" ? "random" : +hv };
     if (isTOTask(app.hello?.task)) { o.start = $("#rsStart").value; o.fuel = [+$("#rsFuel0").value || 0, +$("#rsFuel1").value || 0]; delete o.speed; }
     if (app.hello?.task === "flight") Object.assign(o, { speed_kt: +$("#rsSpdKt").value || 60, wind_kt: +$("#rsWind").value || 0,
-      wind_dir: +$("#rsWindDir").value || 0, turb: $("#rsTurb").value, gusts: $("#rsGust").value === "1" });
+      wind_dir: +$("#rsWindDir").value || 0, turb: $("#rsTurb").value, gusts: $("#rsGust").value === "1",
+      temp_dc: +$("#rsTemp").value || 0 });
     if (!fin(o.alt) || (o.speed !== undefined && !fin(o.speed)) || (hv !== "" && !fin(o.heading))) { setHint("resetHint", "Sayı gir.", "err"); return; }
     try { const r = await app.live.reset(o); setHint("resetHint", r.ok ? "Başlatılıyor…" : (r.message || "olmadı"), r.ok ? "ok" : "err"); } catch (err) { setHint("resetHint", err.message, "err"); }
   };
@@ -1999,7 +2019,7 @@ async function boot() {
     }
     if (app.hello.task === "flight") {
       $("#rsSpdKt").value = st.speed_kt ?? 60; $("#rsWind").value = st.wind_kt ?? 0; $("#rsWindDir").value = st.wind_dir ?? 0;
-      $("#rsTurb").value = st.turb || "none"; $("#rsGust").value = st.gusts ? "1" : "0";
+      $("#rsTurb").value = st.turb || "none"; $("#rsGust").value = st.gusts ? "1" : "0"; $("#rsTemp").value = st.temp_dc ?? 0;
     }
     if (app.hello.task === "maneuver") { buildPresets(); const tr = app.hello.limits.trained;
       $("#limitsTxt").textContent = `Eğitim aralığı: Δψ ±${tr.heading}°, Δv ±${tr.speed} ft/s, Δh ±${tr.altitude} ft · başlangıç 0–100 kt, ${tr.start_alt_ft.join("–")} ft · süre hedefi: boş → seçili çeviklikten.`; }

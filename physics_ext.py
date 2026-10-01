@@ -181,11 +181,21 @@ class TurbExtConfig:
 
 
 @dataclass
+class AtmoExtConfig:
+    """Hava sıcaklığı (2026-10-01): JSBSim `atmosphere/delta-T` — standart günden sapma. Edwards'ta (pist 2283 ft MSL)
+    +15 °C → yoğunluk irtifası ~3900 ft, +30 °C → ~5400 ft. Yalnızca aerodinamik (yoğunluk); elektrik motorunun gücü
+    sıcaklık / irtifayla düşmüyor (T53 güç kaybı modellenmedi)."""
+    enable: bool = False
+    delta_T_C: tuple = (0.0, 0.0)         # bölüm başında düzgün dağılımdan (°C)
+
+
+@dataclass
 class PhysicsExtConfig:
     fuel: FuelExtConfig = field(default_factory=FuelExtConfig)
     wind: WindExtConfig = field(default_factory=WindExtConfig)
     gust: GustExtConfig = field(default_factory=GustExtConfig)
     turb: TurbExtConfig = field(default_factory=TurbExtConfig)
+    atmo: AtmoExtConfig = field(default_factory=AtmoExtConfig)
 
     @property
     def active(self) -> bool:
@@ -342,6 +352,7 @@ class PhysicsExt:
         self._turb_on = False
         self._xi = np.zeros(3)
         self._gust_next_t = np.inf
+        self._gust_end_t = -np.inf                   # çalışan 1−cos gust'ın bitişi (üst üste binmeyi önlemek için)
         self._gust_queue: list[dict] = []
         self._engine_out = False
         self._wind_ned = (0.0, 0.0)
@@ -367,13 +378,15 @@ class PhysicsExt:
     def begin_episode(self, rng, heading_deg: float = 0.0, options: dict | None = None) -> dict:
         """Reset başında bir kez: bölüm parametrelerini seçer. rng: env'in np_random'u — YALNIZCA katman açıksa bir
         tohum çekilir (kapalıyken env'in rastgele akışı değişmez). options (değerlendirme / canlı; config'i ezer):
-        {"wind_kt":, "wind_dir_deg":, "wind_dir_relative":, "turb_level":, "turb_backend":, "turb_w20_kt":,
+        {"wind_kt":, "wind_dir_deg":, "wind_dir_relative":, "wind_shear":, "turb_level":, "turb_backend":, "turb_w20_kt":,
+        "turb_from_wind": (True | çarpan), "delta_T_C":,
         "gusts": [...]}."""
         cfg, o = self.cfg, dict(options or {})
         self.t = 0.0
         self.events, self._engine_out, self._turb_on, self._dist_on = [], False, False, False
         self._xi = np.zeros(3)
         self._gust_next_t = np.inf
+        self._gust_end_t = -np.inf
         self._gust_queue = []
         self.stats = self._new_stats()
         self._wind_ned = (0.0, 0.0)
@@ -395,18 +408,28 @@ class PhysicsExt:
             d_abs = (heading_deg + d) % 360.0 if rel else d % 360.0
             p.update(wind_kt=spd, wind_dir_deg=d, wind_dir_relative=rel, wind_from_deg=d_abs)
             self._wind_ned = wind_ned_fps(spd * KT_TO_FPS, d_abs)
+            if "wind_shear" in o:                                  # 2026-10-01: seçenekle yer yakını kesme (W20 = 20 ft)
+                p["wind_shear"] = bool(o["wind_shear"])
         if cfg.turb.enable or "turb_level" in o:
             tb = cfg.turb
             probs = np.asarray(tb.level_probs, dtype=np.float64) if tb.level_probs else None
             lvl = tb.levels[int(self.rng.choice(len(tb.levels), p=probs / probs.sum() if probs is not None else None))]
             lvl = o.get("turb_level", lvl)
-            p.update(turb_level=lvl, turb_backend=o.get("turb_backend", tb.backend),
-                     turb_w20_kt=float(o.get("turb_w20_kt", TURB_W20_KT[lvl])))
+            w20 = float(o.get("turb_w20_kt", TURB_W20_KT[lvl]))
+            if o.get("turb_from_wind") and "wind_kt" in p and lvl != "none":
+                # 2026-10-01 seçeneği: şiddet ortalama rüzgârdan (MIL-F-8785C: σ_w = 0.1·W20; W20 = 20 ft'teki rüzgâr) —
+                # seviyenin W20'si alt sınır değil, rüzgâr × çarpan (turb_from_wind sayısı; True → 1)
+                w20 = float(p["wind_kt"]) * (1.0 if o["turb_from_wind"] is True else float(o["turb_from_wind"]))
+            p.update(turb_level=lvl, turb_backend=o.get("turb_backend", tb.backend), turb_w20_kt=w20)
         if cfg.gust.enable or "gusts" in o or "gust_rate_per_min" in o:
             self._gust_queue = sorted((dict(g) for g in (o.get("gusts", cfg.gust.schedule) or ())),
                                       key=lambda g: float(g["t"]))
             p["gust_rate_per_min"] = float(o.get("gust_rate_per_min", cfg.gust.rate_per_min if cfg.gust.enable else 0.0))
             p["gust_kt"] = tuple(o.get("gust_kt", cfg.gust.magnitude_kt))
+        if "delta_T_C" in o:                                      # sıcaklık (yalnızca istenince; yoksa RNG'ye dokunmaz)
+            p["delta_T_C"] = float(o["delta_T_C"])
+        elif cfg.atmo.enable:
+            p["delta_T_C"] = float(self.rng.uniform(*cfg.atmo.delta_T_C))
         self.params = p
         return dict(p)
 
@@ -418,8 +441,12 @@ class PhysicsExt:
             self._clear(fdm)
         if self._armed:
             self.apply_wind(fdm)
+            if self.params.get("delta_T_C"):                       # run_ic delta-T'yi silmiyor (ölçüldü) → bir kez
+                fdm["atmosphere/delta-T"] = 1.8 * float(self.params["delta_T_C"])   # °C → °R
+                self._touched = True
 
     def _clear(self, fdm):
+        fdm["atmosphere/delta-T"] = 0.0
         for k in ("wind", "gust"):
             for a in ("north", "east", "down"):
                 fdm[f"atmosphere/{k}-{a}-fps"] = 0.0
@@ -436,7 +463,7 @@ class PhysicsExt:
 
     def apply_wind(self, fdm, h_agl_ft: float | None = None):
         vn, ve = self._wind_ned
-        if self.cfg.wind.shear and (vn or ve):
+        if self.params.get("wind_shear", self.cfg.wind.shear) and (vn or ve):
             h = float(fdm["position/h-agl-ft"]) if h_agl_ft is None else h_agl_ft
             k = shear_factor(h, self.cfg.wind.z0_ft, self.cfg.wind.shear_min_frac)
             vn, ve = vn * k, ve * k
@@ -515,10 +542,17 @@ class PhysicsExt:
             self._gust_next_t = self.t + float(self.rng.exponential(60.0 / float(self.params["gust_rate_per_min"])))
         if due is None:
             return
+        if self.t < self._gust_end_t:
+            # JSBSim'in 1−cos gust'ı sürerken yenisi başlatılırsa yönü güncellemiyor, genliği basamakla değiştiriyor ve
+            # süreyi yeniden başlatmıyor (2026-09-30 ölçümü) → yeni gust öncekinin bitişine ertelenir (kaybolmaz)
+            self._gust_queue.append(dict(due, t=self._gust_end_t + 0.1))
+            self._gust_queue.sort(key=lambda x: float(x["t"]))
+            return
         mag = float(due["mag_kt"]) * KT_TO_FPS
         d = math.radians(float(due["dir_deg"]))                   # gust'ın GİTTİĞİ yön (mutlak)
         vf = float(due.get("vert", 0.0))
         hvec = math.sqrt(max(0.0, 1.0 - vf * vf))
+        self._gust_end_t = self.t + float(due.get("rise", 2.0)) + float(due.get("hold", 1.0)) + float(due.get("decay", 2.0))
         fdm["atmosphere/cosine-gust/startup-duration-sec"] = float(due.get("rise", 2.0))
         fdm["atmosphere/cosine-gust/steady-duration-sec"] = float(due.get("hold", 1.0))
         fdm["atmosphere/cosine-gust/end-duration-sec"] = float(due.get("decay", 2.0))
@@ -618,8 +652,10 @@ class PhysicsExt:
         d = dict(self._last)
         d["engine_out"] = self._engine_out
         d["wind_n_fps"], d["wind_e_fps"] = self._wind_ned
+        d["delta_T_C"] = float(self.params.get("delta_T_C", 0.0))
         if fdm is not None:
             d["fuel_lbs"] = fuel_total(fdm)
+            d["density_altitude_ft"] = float(fdm["atmosphere/density-altitude"])
             d["gust_n_fps"] = float(fdm["atmosphere/total-wind-north-fps"]) - self._wind_ned[0]
             d["gust_e_fps"] = float(fdm["atmosphere/total-wind-east-fps"]) - self._wind_ned[1]
             d["gust_d_fps"] = float(fdm["atmosphere/total-wind-down-fps"])
@@ -649,9 +685,16 @@ if __name__ == "__main__":
     ext = PhysicsExt(None)
     assert ext.begin_episode(g, 0.0) == {} and not ext.armed and g.bit_generator.state == s0
     # 2) dict ↔ config gidiş-dönüş (model zip'indeki ah1s_env_overrides["physics"])
-    d = {"fuel": {"enable": True}, "wind": {"enable": True, "speed_kt": [0, 20]}, "turb": {"enable": True}}
+    d = {"fuel": {"enable": True}, "wind": {"enable": True, "speed_kt": [0, 20]}, "turb": {"enable": True},
+         "atmo": {"enable": True, "delta_T_C": [-10, 30]}}
     c2 = PhysicsExtConfig.from_dict(d)
     assert c2.active and c2.wind.speed_kt == (0, 20) and PhysicsExtConfig.from_dict(c2.to_dict()).to_dict() == c2.to_dict()
+    assert c2.atmo.delta_T_C == (-10, 30)
+    # sıcaklık yalnızca istenince örneklenir (kapalıyken bölüm RNG akışı aynı)
+    e1, e2 = PhysicsExt({"wind": {"enable": True, "speed_kt": [0, 20]}}), PhysicsExt({"wind": {"enable": True, "speed_kt": [0, 20]}})
+    p1 = e1.begin_episode(np.random.default_rng(3), 0.0)
+    p2 = e2.begin_episode(np.random.default_rng(3), 0.0, {"delta_T_C": 25.0})
+    assert "delta_T_C" not in p1 and p2["delta_T_C"] == 25.0 and p1["wind_kt"] == p2["wind_kt"]
     # 3) tank çekimi
     assert np.allclose(draw_from_tanks((890, 890), 100, "equal"), (840, 840))
     assert np.allclose(draw_from_tanks((10, 890), 100, "equal"), (0, 800))

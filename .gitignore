@@ -18,3 +18,6 @@ results_*/
 
 # legacy/training/make_v13_from_v7.py tarafından V7 şablonundan üretilen script
 legacy/training/train_turn_full_entry_v13_gated_50_patch.py
+
+# git bundle dosyaları (teslim / yedek) — repoya eklenmesin
+*.bundle

@@ -474,6 +474,7 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.169.0/exampl
 // command_viz.py sayfayı sunarken bu modülleri satır içine alır (Colab'da ayrı dosya sunulamaz)
 import { createAH1S } from "./ah1s_model.js";
 import { createTerrain } from "./terrain.js";
+import { createPadFlag } from "./flag.js";
 
 // =====================================================================
 // yardımcılar
@@ -790,6 +791,8 @@ class FlightScene {
     this.padTex = new THREE.CanvasTexture(this.padCanvas); this.padTex.colorSpace = THREE.SRGBColorSpace;
     this.pad = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), new THREE.MeshLambertMaterial({ map: this.padTex, transparent: true }));
     this.pad.rotation.x = -Math.PI / 2; this.pad.position.y = 0.4; this.scene.add(this.pad);
+    // pistin batısında Türk bayrağı (direk 45 ft, bez 10 × 15 ft); kayıttaki rüzgârla dalgalanır
+    this.flag = createPadFlag({ poleHeight: 45, width: 10 }); this.flag.group.position.set(-150, this.terrain.groundAt(-150, -60), -60); this.scene.add(this.flag.group);
     // helikopter
     this.heli = new THREE.Group(); this.heli.rotation.order = "YXZ"; this.scene.add(this.heli);
     this.holder = new THREE.Group(); this.holder.rotation.y = Math.PI; this.holder.scale.setScalar(FT_PER_M); this.heli.add(this.holder);
@@ -896,6 +899,7 @@ class FlightScene {
     // rotor: kayıttaki devir (gerçek zamanda, oynatma hızından bağımsız) ve kumanda konumları (c0 collective 0…1, c1 / c2 cyclic −1…1)
     this.model.setState({ rotorRPM: s.rpm, collective: s.c[0], cyclic: { lon: s.c[1], lat: s.c[2] } });
     this.model.update(dt * (reduceMotion ? 0.25 : 1));
+    this.flag.update(dt * (reduceMotion ? 0.25 : 1), s.we, fin(s.wn) ? -s.wn : NaN);   // rüzgâr: doğu / kuzey ft/s → sahne X / Z
     this.groundBelow = this.terrain.groundAt(pos.x, pos.z);
     this.shadow.position.set(pos.x, this.groundBelow + 1.5, pos.z);
     this.shadow.quaternion.setFromUnitVectors(this.tmp2.set(0, 0, 1), this.terrain.normalAt(pos.x, pos.z));

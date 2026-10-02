@@ -170,7 +170,7 @@ ah1s-rl-project/
 ├── evaluate_command_policy.py               Step response değerlendirmesi (+ a=0 karşılaştırması)
 ├── diagnose_command_env.py                  Eğitimsiz sağlık kontrolü (başlatma, açık-döngü tepkiler, hız)
 ├── command_viz.py                           Canlı 3D görselleştirme: sunucu + Colab + kayıt (bölüm 27; komut ve manevra)
-├── viz/                                     Sayfa (command_viz.html), AH-1S modeli (ah1s_model.js + önizleme ah1s_model.html), arazi (terrain.js), demo uçuşları
+├── viz/                                     Sayfa (command_viz.html), AH-1S modeli (ah1s_model.js + önizleme ah1s_model.html), arazi (terrain.js), pist bayrağı (flag.js), demo uçuşları
 ├── models_command_curriculum/               Bu curriculum'un ilk koşularından modeller (v2_R1_final önerilen)
 ├── docs/command_curriculum/                 İlk koşuların kanıtları (ilerleme CSV, doğrulama, grafikler)
 │
@@ -1176,6 +1176,9 @@ Colab (localhost / paylaşım linki yok; eski dashboard gibi kernel callback'ler
   Hepsi örneklemeli (instanced) çizilir: ~230–320 bin üçgen, ~18 çizim çağrısı. Pencere kayması birkaç kareye bölünür;
   70 kt'lık 2 dakikalık uçuş taklidinde arazi güncellemesi ortalama 0.03 ms / kare, en kötü kare ~23 ms (yazılım GPU'lu
   test ortamında).
+- `viz/flag.js`: pistin batısında direkte Türk bayrağı (direk 45 ft, bez 10 × 15 ft). Ölçüler Türk Bayrağı Kanunu oranlarıyla
+  (boy 1.5 G; dış hilal merkezi gönderden G/2, çapı G/2; iç hilal +G/16, çapı 0.4 G; yıldız çevre çapı G/4). Bez kayıttaki
+  rüzgârın (`wn`, `we`) estiği yöne dalgalanır, rüzgâr arttıkça yataylaşır; rüzgârsız kayıtlarda direğe sarkar.
 - Kayıt modu: sayfa `command_viz.py` olmadan açılırsa (ör. yayımlanmış sayfa) `viz/demo_flights.json`'daki uçuşları oynatır.
   Manevra modeli: 60 kt'ta yatışlı dönüşler, slalom, düşük hızda çeviklik (pedal dönüşü, bob-up / bob-down, ani duruş),
   hızlanma / yavaşlama / irtifa, tırmanarak dönüş (80 kt) ve eski modelin 6 komutluk görevi. Karşılaştırma için eski komut

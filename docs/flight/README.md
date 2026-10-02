@@ -514,4 +514,46 @@ F10 müfredatı 2.5 ft/s² ile).
 
 ### 9.3. Sonuç modeli
 
-[9.3 DOLDURULACAK]
+**Sonuç modeli `models_flight/flight_v3.zip` = fl_v3 1.5 M** (flight_v2 + 1.5 M adım ince ayar; sha256
+`models_sha256.txt`'de; `rotor_dt_mode: sim` zip'inde). Seçim gerekçesi: held-out takımda düşme / sınır aşımı olmayan
+tek aday (2.0 M ve 2.5 M'de T2_t_turb inişinde kuyruk çarpması; flight_v2 orada −4.54 ft/s ile zor iniyordu), seçim
+takımı ve yeni seed'li seviyelerde flight_v2'den iyi, iniş daha yumuşak, hassasiyet korunmuş. 2.0 M daha yüksek görev
+başarısına rağmen (held-out 31/35 · 120/128, seviyeler %90 / 95 / 100 / 90 / 85 / 80) o kuyruk çarpması yüzünden
+seçilmedi; `runs/fl_v3/models/snap_02000k.zip` yeniden üretilebilir. İkinci tur (`fl_v3b`, `pen_land_att` ile 1.5 M)
+gust'lı iniş kazalarını azaltmadı ve genel görevleri geriletti (0.5 M 14/21 · 95/105, 1.0 M 12/21 · 93/105; iniş stresi
+2 ve 4 güvensiz) → olumsuz sonuç, model alınmadı; ödül terimi varsayılan olarak açık kalıyor (ileride sıfırdan eğitimde
+denenmek üzere), eski modellerin değerlendirmesine etkisi yok.
+
+| ölçüt | flight_v2 | **flight_v3** |
+|---|---|---|
+| held-out (35): güvenli · tüm · görev (istenen / yeterli+) | 35/35 · 29/35 · 116 / 126 (128) | **35/35 · 29/35 · 117 / 127 (128)** |
+| held-out: sıcak gün (tüm · görev) | 6/7 · 30/31 | **7/7 · 31/31** |
+| held-out 56 psi üstü toplam (en uzun) | 31.6 s (6.7) | 45.0 s (7.2) |
+| seçim (21): tüm · görev | 15/21 · 98/105 | **17/21 · 100/105** |
+| seviyeler F3 / F5 / F6 / F7 / F8 / F10 (seed 900000+, 20 ep.) | 75 / 90 / 100 / 85 / 75 / 65 | **80 / 95 / 100 / 85 / 80 / 80** |
+| temas hızı medyan / en sert (seçim + held-out) | −2.6 / −3.9 ft/s | **−2.5 / −3.8** (son 5 ft 3.7–3.9 ft/s ↔ 4.5–5.1) |
+| ADS-33 (16 MTE): istenen / yeterli / yetersiz | 2 / 11 / 3 | 1 / 13 / 2 (iniş yanal 1.8 / 2.8 ft ↔ 3.0 / 3.6) |
+| hassasiyet: yerinde dönüş 8 / pirouette 4 | 8/8, 5.8 ft / 4/4, 8.5 ft | 8/8, 5.3 ft / 4/4, 8.3 ft |
+| iniş stres taraması (24) | 19/24, 4 güvensiz | 18/24, 3 güvensiz |
+| 60 → 100 kt banda giriş / son sınır | 35.9 / 38.7 s | **29.5 / 38.6 s** |
+
+Açık kalanlar: (1) 25 kt + orta türbülans + gust'ta 150–300 ft'ten iniş iki modelde de 2–4/24 kaza (kuyruk çarpması /
+devrilme; burun yukarı frenleme) — `pen_land_att` ince ayarda çözmedi, sıfırdan eğitimde ya da gust'lı iniş okulu
+seviyesiyle denenmeli; (2) hızlanma hızı rampayla (2.5 ft/s²) sınırlı — daha çevik hızlanma için `cruise_accel_fps2`
+ve süre hedefi büyütülüp yeniden eğitilmeli; (3) tek seed, tek soy — farklar 10–35 senaryoluk takımlarda ±1–2 senaryo
+gürültüsünün sınırında (F10 %65 → %80 ve iniş yumuşaması bunun üstünde, seçim takımındaki +2/21 değil).
+
+Dosyalar: `docs/flight/eval_test_v3.json`, `eval_secim_v3.json`, `eval_levels_v3.json`, `precision_v3.json`,
+`docs/ads33/karne_flight_v3.json`, `eval_test_v2_rev.json` (flight_v2, düzeltilmiş ölçüt), `accel_v2/v3.json`,
+`landing_stress_v2_v3.json`; probe'lar `probe_accel.py`, `probe_landing.py`; koşular `runs/fl_v3`, `runs/fl_v3b`.
+
+```bash
+python -m pytest -q tests
+python evaluate_flight.py --model models_flight/flight_v3.zip --suite test --env '{"torque_density_climb": false, "next_at_deadline": false}'
+python docs/flight/probe_accel.py models_flight/flight_v3.zip /tmp/accel_v3.json
+python docs/flight/probe_landing.py /tmp/landing.json models_flight/flight_v2.zip models_flight/flight_v3.zip
+# ince ayar (fl_v3): flight_v2'den, yeni ödül varsayılanları + rotor dt "sim"
+python train_command_curriculum.py --task flight --out runs/fl_v3 --init-model models_flight/flight_v2.zip --level F13 \
+    --no-promote --total-steps 3000000 --n-envs 3 --n-steps 4096 --batch-size 512 --net 256,256 --eval-freq 500000 \
+    --eval-episodes 10 --eval-levels F13,F10,F6 --snapshot-freq 500000 --fine-from F6a --env-overrides '{"rotor_dt_mode": "sim"}'
+```

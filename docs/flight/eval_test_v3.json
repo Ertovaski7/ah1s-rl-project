@@ -1,0 +1,4378 @@
+{
+ "model": "/tmp/claude-0/-home-user-ah1s-rl-project/3c2ae793-4a98-541c-a552-99b9f532856e/scratchpad/snap_v3_1500k.zip",
+ "results": [
+  {
+   "id": "T1_t_sakin_9100",
+   "group": "test/zincir",
+   "title": "zincir T1 (80 ft → 70 kt → −135° → −25 kt +200 ft → dur → in), t_sakin, 9100 lbs",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 6,
+   "n": 6,
+   "n_adequate": 6,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 12.3,
+     "deadline": 15.4,
+     "settle_s": 10.8,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 3.6,
+      "h": 73.9,
+      "psi": 1.1
+     },
+     "hold_err": {
+      "xy": 1.4,
+      "h": 2.4,
+      "psi": 1.1,
+      "u_fps": 0.0
+     },
+     "torque_max": 55.8,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 50.3,
+     "deadline": 62.9,
+     "settle_s": 46.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 150.1,
+      "psi": 2.5,
+      "u": 118.2
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 5.3,
+      "psi": 1.0,
+      "u_fps": 2.4
+     },
+     "torque_max": 55.0,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 26.9,
+     "deadline": 33.6,
+     "settle_s": 24.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 4.8,
+      "psi": 135.0,
+      "u": 2.0
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 5.1,
+      "psi": 1.7,
+      "u_fps": 1.3
+     },
+     "torque_max": 31.6,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 23.0,
+     "deadline": 28.8,
+     "settle_s": 20.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 200.0,
+      "psi": 2.8,
+      "u": 42.2
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 8.3,
+      "psi": 0.7,
+      "u_fps": 1.0
+     },
+     "torque_max": 48.0,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 38.4,
+     "deadline": 48.1,
+     "settle_s": 31.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 5.3,
+      "h": 0.6,
+      "psi": 1.1,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 1.6,
+      "h": 0.6,
+      "psi": 0.7,
+      "u_fps": 0.0
+     },
+     "torque_max": 51.1,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 96.4,
+     "deadline": 120.5,
+     "settle_s": 79.2,
+     "coupling_ok": true,
+     "touchdown_vs": -3.36,
+     "max_err": {
+      "xy": 5.0,
+      "h": 414.9,
+      "psi": 0.9
+     },
+     "hold_err": {
+      "xy": 3.8,
+      "h": 0.2,
+      "psi": 0.3,
+      "u_fps": 0.0
+     },
+     "torque_max": 49.4,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 295.72499999999997,
+   "torque_max": 55.83289155140717,
+   "torque_p95": 51.523862912931946,
+   "t_over50_s": 22.575,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 317.27733783010683,
+   "fuel_used_lbs": 48.066096226730224,
+   "fuel_flow_lbh": 585.1312753951436,
+   "weight_end": 9051.940698984767,
+   "max_airspeed_kt": 70.915987761652,
+   "max_roll": 27.01381111079397,
+   "max_pitch": 14.182893248647312,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "T1_t_sakin_9500",
+   "group": "test/zincir",
+   "title": "zincir T1 (80 ft → 70 kt → −135° → −25 kt +200 ft → dur → in), t_sakin, 9500 lbs",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 6,
+   "n": 6,
+   "n_adequate": 6,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 18.7,
+     "deadline": 23.4,
+     "settle_s": 13.0,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 3.4,
+      "h": 74.1,
+      "psi": 1.0
+     },
+     "hold_err": {
+      "xy": 2.1,
+      "h": 1.1,
+      "psi": 1.1,
+      "u_fps": 0.0
+     },
+     "torque_max": 56.4,
+     "t_over56_s": 0.22
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 50.3,
+     "deadline": 62.9,
+     "settle_s": 46.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 150.1,
+      "psi": 2.4,
+      "u": 118.3
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.4,
+      "psi": 1.0,
+      "u_fps": 2.4
+     },
+     "torque_max": 56.9,
+     "t_over56_s": 5.92
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 26.9,
+     "deadline": 33.6,
+     "settle_s": 23.3,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 3.7,
+      "psi": 135.0,
+      "u": 2.1
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.9,
+      "psi": 1.4,
+      "u_fps": 1.2
+     },
+     "torque_max": 33.4,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 23.0,
+     "deadline": 28.8,
+     "settle_s": 21.8,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 200.0,
+      "psi": 2.7,
+      "u": 42.2
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 6.1,
+      "psi": 0.5,
+      "u_fps": 0.7
+     },
+     "torque_max": 48.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 38.6,
+     "deadline": 48.2,
+     "settle_s": 32.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 5.4,
+      "h": 1.0,
+      "psi": 0.9,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 1.4,
+      "h": 0.6,
+      "psi": 0.7,
+      "u_fps": 0.0
+     },
+     "torque_max": 53.8,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 96.9,
+     "deadline": 121.2,
+     "settle_s": 76.5,
+     "coupling_ok": true,
+     "touchdown_vs": -2.72,
+     "max_err": {
+      "xy": 4.6,
+      "h": 417.5,
+      "psi": 1.2
+     },
+     "hold_err": {
+      "xy": 4.0,
+      "h": 0.3,
+      "psi": 0.7,
+      "u_fps": 0.0
+     },
+     "torque_max": 50.9,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 298.5,
+   "torque_max": 56.94931719937608,
+   "torque_p95": 53.819942496271274,
+   "t_over50_s": 49.65,
+   "t_over56_s": 6.1499999999999995,
+   "longest_over56_s": 5.925,
+   "rpm_min": 317.1674988851104,
+   "fuel_used_lbs": 49.893789280602505,
+   "fuel_flow_lbh": 601.7341420776181,
+   "weight_end": 9450.113071434367,
+   "max_airspeed_kt": 70.87407578108379,
+   "max_roll": 27.589557497502042,
+   "max_pitch": 14.436347399262434,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "T1_t_ruzgar_9100",
+   "group": "test/zincir",
+   "title": "zincir T1 (80 ft → 70 kt → −135° → −25 kt +200 ft → dur → in), t_ruzgar, 9100 lbs",
+   "env": "t_ruzgar",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 6,
+   "n": 6,
+   "n_adequate": 6,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 12.3,
+     "deadline": 15.4,
+     "settle_s": 10.8,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 3.7,
+      "h": 73.9,
+      "psi": 1.7
+     },
+     "hold_err": {
+      "xy": 1.9,
+      "h": 1.8,
+      "psi": 1.7,
+      "u_fps": 0.0
+     },
+     "torque_max": 55.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 56.1,
+     "deadline": 70.1,
+     "settle_s": 46.8,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 150.1,
+      "psi": 2.4,
+      "u": 132.6
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 5.7,
+      "psi": 2.2,
+      "u_fps": 2.4
+     },
+     "torque_max": 57.4,
+     "t_over56_s": 2.77
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 26.8,
+     "deadline": 33.5,
+     "settle_s": 24.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 5.5,
+      "psi": 135.0,
+      "u": 2.3
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.0,
+      "psi": 0.7,
+      "u_fps": 0.8
+     },
+     "torque_max": 30.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 23.0,
+     "deadline": 28.8,
+     "settle_s": 20.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 200.0,
+      "psi": 2.1,
+      "u": 42.2
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 5.4,
+      "psi": 1.2,
+      "u_fps": 0.9
+     },
+     "torque_max": 47.3,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 40.0,
+     "deadline": 49.9,
+     "settle_s": 34.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.5,
+      "h": 2.2,
+      "psi": 1.7,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 3.1,
+      "h": 2.2,
+      "psi": 1.6,
+      "u_fps": 0.0
+     },
+     "torque_max": 51.0,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 97.1,
+     "deadline": 121.4,
+     "settle_s": 99.1,
+     "coupling_ok": true,
+     "touchdown_vs": -3.39,
+     "max_err": {
+      "xy": 6.0,
+      "h": 418.5,
+      "psi": 2.1
+     },
+     "hold_err": {
+      "xy": 3.9,
+      "h": 0.2,
+      "psi": 2.0,
+      "u_fps": 0.0
+     },
+     "torque_max": 49.1,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 298.95,
+   "torque_max": 57.39503484675227,
+   "torque_p95": 50.268788749420935,
+   "t_over50_s": 16.125,
+   "t_over56_s": 2.775,
+   "longest_over56_s": 2.775,
+   "rpm_min": 317.27539638524706,
+   "fuel_used_lbs": 49.78273014051206,
+   "fuel_flow_lbh": 599.4909801165527,
+   "weight_end": 9050.224113086637,
+   "max_airspeed_kt": 71.29088475701523,
+   "max_roll": 28.134675669226517,
+   "max_pitch": 24.42810146185215,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "T1_t_ruzgar_9500",
+   "group": "test/zincir",
+   "title": "zincir T1 (80 ft → 70 kt → −135° → −25 kt +200 ft → dur → in), t_ruzgar, 9500 lbs",
+   "env": "t_ruzgar",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 6,
+   "n": 6,
+   "n_adequate": 6,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 18.7,
+     "deadline": 23.4,
+     "settle_s": 11.5,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.2,
+      "h": 74.1,
+      "psi": 1.7
+     },
+     "hold_err": {
+      "xy": 2.1,
+      "h": 1.0,
+      "psi": 1.7,
+      "u_fps": 0.0
+     },
+     "torque_max": 56.1,
+     "t_over56_s": 0.07
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 56.1,
+     "deadline": 70.2,
+     "settle_s": 46.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 150.0,
+      "psi": 2.0,
+      "u": 132.8
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.9,
+      "psi": 1.9,
+      "u_fps": 2.4
+     },
+     "torque_max": 58.6,
+     "t_over56_s": 6.15
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 26.8,
+     "deadline": 33.5,
+     "settle_s": 23.6,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 4.8,
+      "psi": 135.0,
+      "u": 2.4
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.8,
+      "psi": 0.5,
+      "u_fps": 0.6
+     },
+     "torque_max": 32.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 23.0,
+     "deadline": 28.8,
+     "settle_s": 21.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 200.0,
+      "psi": 2.4,
+      "u": 42.2
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.3,
+      "psi": 1.3,
+      "u_fps": 0.7
+     },
+     "torque_max": 47.6,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 39.6,
+     "deadline": 49.5,
+     "settle_s": 33.7,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.7,
+      "h": 2.2,
+      "psi": 1.9,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 2.2,
+      "h": 2.2,
+      "psi": 1.4,
+      "u_fps": 0.0
+     },
+     "torque_max": 54.6,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 97.9,
+     "deadline": 122.4,
+     "settle_s": 100.2,
+     "coupling_ok": true,
+     "touchdown_vs": -1.4,
+     "max_err": {
+      "xy": 6.4,
+      "h": 422.3,
+      "psi": 2.4
+     },
+     "hold_err": {
+      "xy": 3.9,
+      "h": 0.3,
+      "psi": 2.1,
+      "u_fps": 0.0
+     },
+     "torque_max": 48.1,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 299.7,
+   "torque_max": 58.55957651389308,
+   "torque_p95": 52.60620384691703,
+   "t_over50_s": 30.15,
+   "t_over56_s": 6.225,
+   "longest_over56_s": 6.1499999999999995,
+   "rpm_min": 316.1896515473805,
+   "fuel_used_lbs": 51.74042551480079,
+   "fuel_flow_lbh": 621.5066127903999,
+   "weight_end": 9448.26649353026,
+   "max_airspeed_kt": 71.22737060759668,
+   "max_roll": 28.871008303903235,
+   "max_pitch": 24.626828370026075,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "T1_t_turb_9100",
+   "group": "test/zincir",
+   "title": "zincir T1 (80 ft → 70 kt → −135° → −25 kt +200 ft → dur → in), t_turb, 9100 lbs",
+   "env": "t_turb",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "n_ok": 3,
+   "n": 6,
+   "n_adequate": 5,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 12.3,
+     "deadline": 15.4,
+     "settle_s": 9.5,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.5,
+      "h": 73.9,
+      "psi": 2.7
+     },
+     "hold_err": {
+      "xy": 1.1,
+      "h": 2.6,
+      "psi": 1.4,
+      "u_fps": 0.0
+     },
+     "torque_max": 56.2,
+     "t_over56_s": 0.22
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": false,
+     "ads33": "yeterli",
+     "T": 37.1,
+     "deadline": 46.4,
+     "settle_s": null,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 150.0,
+      "psi": 3.2,
+      "u": 89.0
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.9,
+      "psi": 1.2,
+      "u_fps": 4.3
+     },
+     "torque_max": 58.1,
+     "t_over56_s": 1.27
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": false,
+     "ads33": "başarısız",
+     "T": 26.8,
+     "deadline": 33.5,
+     "settle_s": null,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 4.1,
+      "psi": 135.0,
+      "u": 5.9
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.6,
+      "psi": 7.8,
+      "u_fps": 6.8
+     },
+     "torque_max": 43.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": false,
+     "ads33": "yeterli",
+     "T": 23.0,
+     "deadline": 28.8,
+     "settle_s": null,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 199.9,
+      "psi": 6.2,
+      "u": 42.0
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.0,
+      "psi": 2.1,
+      "u_fps": 2.7
+     },
+     "torque_max": 49.9,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 49.2,
+     "deadline": 61.5,
+     "settle_s": 43.6,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 7.5,
+      "h": 2.1,
+      "psi": 2.4,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 3.1,
+      "h": 1.8,
+      "psi": 1.7,
+      "u_fps": 0.0
+     },
+     "torque_max": 48.9,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 97.2,
+     "deadline": 121.5,
+     "settle_s": 76.9,
+     "coupling_ok": true,
+     "touchdown_vs": -2.92,
+     "max_err": {
+      "xy": 16.6,
+      "h": 418.7,
+      "psi": 2.1
+     },
+     "hold_err": {
+      "xy": 7.7,
+      "h": 0.2,
+      "psi": 0.4,
+      "u_fps": 0.0
+     },
+     "torque_max": 43.7,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 323.625,
+   "torque_max": 58.082580962000534,
+   "torque_p95": 52.30308716199387,
+   "t_over50_s": 17.325,
+   "t_over56_s": 1.5,
+   "longest_over56_s": 1.275,
+   "rpm_min": 317.17097372692905,
+   "fuel_used_lbs": 49.65434968937336,
+   "fuel_flow_lbh": 552.3542955017199,
+   "weight_end": 9050.352459853004,
+   "max_airspeed_kt": 75.06089041327955,
+   "max_roll": 21.254773140135686,
+   "max_pitch": 14.742420656764581,
+   "events": [
+    "{'t': 12.52499999999997, 'kind': 'gust', 'mag_kt': 4.2049957409653835, 'dir_deg': 21.271369318376543, 'vert': -0.0, 'rise': 2.9401977482369537, 'hold': 0.16739925456033444, 'decay': 1.7767025748918945}",
+    "{'t': 36.37499999999995, 'kind': 'gust', 'mag_kt': 5.903980166515368, 'dir_deg': 180.0, 'vert': 0.0, 'rise': 2.973995556223955, 'hold': 0.82381750453062, 'decay': 2.2655509926722135}"
+   ],
+   "tol_scale": 1.25
+  },
+  {
+   "id": "T1_t_turb_9500",
+   "group": "test/zincir",
+   "title": "zincir T1 (80 ft → 70 kt → −135° → −25 kt +200 ft → dur → in), t_turb, 9500 lbs",
+   "env": "t_turb",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "n_ok": 3,
+   "n": 6,
+   "n_adequate": 6,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 18.7,
+     "deadline": 23.4,
+     "settle_s": 11.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.6,
+      "h": 74.0,
+      "psi": 2.6
+     },
+     "hold_err": {
+      "xy": 1.6,
+      "h": 0.9,
+      "psi": 1.4,
+      "u_fps": 0.0
+     },
+     "torque_max": 56.9,
+     "t_over56_s": 0.38
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": false,
+     "ads33": "yeterli",
+     "T": 37.1,
+     "deadline": 46.4,
+     "settle_s": null,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 150.2,
+      "psi": 3.4,
+      "u": 92.1
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.1,
+      "psi": 1.3,
+      "u_fps": 3.7
+     },
+     "torque_max": 59.2,
+     "t_over56_s": 3.9
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": false,
+     "ads33": "yeterli",
+     "T": 27.1,
+     "deadline": 33.9,
+     "settle_s": null,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 4.8,
+      "psi": 134.9,
+      "u": 5.9
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.5,
+      "psi": 3.5,
+      "u_fps": 4.8
+     },
+     "torque_max": 51.8,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": false,
+     "ads33": "yeterli",
+     "T": 23.0,
+     "deadline": 28.8,
+     "settle_s": null,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 200.2,
+      "psi": 4.8,
+      "u": 42.2
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.6,
+      "psi": 2.2,
+      "u_fps": 0.9
+     },
+     "torque_max": 50.3,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 48.9,
+     "deadline": 61.1,
+     "settle_s": 43.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 7.4,
+      "h": 2.2,
+      "psi": 2.1,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 3.3,
+      "h": 2.2,
+      "psi": 1.9,
+      "u_fps": 0.0
+     },
+     "torque_max": 49.9,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 97.8,
+     "deadline": 122.2,
+     "settle_s": 78.9,
+     "coupling_ok": true,
+     "touchdown_vs": -2.83,
+     "max_err": {
+      "xy": 16.1,
+      "h": 421.6,
+      "psi": 1.8
+     },
+     "hold_err": {
+      "xy": 8.9,
+      "h": 0.3,
+      "psi": 0.1,
+      "u_fps": 0.0
+     },
+     "torque_max": 46.4,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 326.175,
+   "torque_max": 59.21125224713158,
+   "torque_p95": 54.25690182052844,
+   "t_over50_s": 23.849999999999998,
+   "t_over56_s": 4.2749999999999995,
+   "longest_over56_s": 1.7249999999999999,
+   "rpm_min": 317.0710561293787,
+   "fuel_used_lbs": 52.04679669661709,
+   "fuel_flow_lbh": 574.4415363158474,
+   "weight_end": 9447.960097817573,
+   "max_airspeed_kt": 74.48284921659511,
+   "max_roll": 22.67778000750518,
+   "max_pitch": 14.650089593273568,
+   "events": [
+    "{'t': 12.52499999999997, 'kind': 'gust', 'mag_kt': 4.2049957409653835, 'dir_deg': 21.271369318376543, 'vert': -0.0, 'rise': 2.9401977482369537, 'hold': 0.16739925456033444, 'decay': 1.7767025748918945}",
+    "{'t': 36.37499999999995, 'kind': 'gust', 'mag_kt': 5.903980166515368, 'dir_deg': 180.0, 'vert': 0.0, 'rise': 2.973995556223955, 'hold': 0.82381750453062, 'decay': 2.2655509926722135}"
+   ],
+   "tol_scale": 1.25
+  },
+  {
+   "id": "T2_t_sakin_9300",
+   "group": "test/zincir",
+   "title": "zincir T2 (8 görev), t_sakin, 9300 lbs",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 8,
+   "n": 8,
+   "n_adequate": 8,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 6.7,
+     "deadline": 8.7,
+     "settle_s": 5.2,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 2.5,
+      "h": 19.0,
+      "psi": 1.4
+     },
+     "hold_err": {
+      "xy": 0.9,
+      "h": 1.5,
+      "psi": 1.4,
+      "u_fps": 0.0
+     },
+     "torque_max": 55.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 36.8,
+     "deadline": 46.0,
+     "settle_s": 31.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 80.1,
+      "psi": 2.4,
+      "u": 84.5
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 5.3,
+      "psi": 0.6,
+      "u_fps": 2.5
+     },
+     "torque_max": 55.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_u",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 26.6,
+     "deadline": 33.3,
+     "settle_s": 24.7,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 4.2,
+      "psi": 3.1,
+      "u": 59.1
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.1,
+      "psi": 1.3,
+      "u_fps": 2.2
+     },
+     "torque_max": 51.8,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_h",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 28.0,
+     "deadline": 35.0,
+     "settle_s": 23.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 250.0,
+      "psi": 2.5,
+      "u": 2.3
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 8.3,
+      "psi": 2.0,
+      "u_fps": 1.8
+     },
+     "torque_max": 46.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 37.4,
+     "deadline": 46.8,
+     "settle_s": 33.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 8.4,
+      "psi": 160.0,
+      "u": 4.0
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.6,
+      "psi": 1.4,
+      "u_fps": 2.4
+     },
+     "torque_max": 41.9,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 23.3,
+     "deadline": 29.1,
+     "settle_s": 19.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 5.0,
+      "psi": 45.0,
+      "u": 50.7
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.7,
+      "psi": 0.2,
+      "u_fps": 2.4
+     },
+     "torque_max": 27.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 45.0,
+     "deadline": 56.3,
+     "settle_s": 38.8,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 5.3,
+      "h": 0.6,
+      "psi": 1.0,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 2.1,
+      "h": 0.5,
+      "psi": 0.6,
+      "u_fps": 0.0
+     },
+     "torque_max": 52.0,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 81.2,
+     "deadline": 101.6,
+     "settle_s": 62.7,
+     "coupling_ok": true,
+     "touchdown_vs": -2.9,
+     "max_err": {
+      "xy": 4.8,
+      "h": 339.0,
+      "psi": 1.1
+     },
+     "hold_err": {
+      "xy": 3.7,
+      "h": 0.3,
+      "psi": 0.4,
+      "u_fps": 0.0
+     },
+     "torque_max": 49.7,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 330.075,
+   "torque_max": 55.72641462771498,
+   "torque_p95": 50.70841327381614,
+   "t_over50_s": 21.45,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 317.31064277347366,
+   "fuel_used_lbs": 52.35428715751516,
+   "fuel_flow_lbh": 571.0079035584475,
+   "weight_end": 9247.652538441163,
+   "max_airspeed_kt": 88.3207857918374,
+   "max_roll": 26.381959658311786,
+   "max_pitch": 13.403728364081502,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "T2_t_turb_9300",
+   "group": "test/zincir",
+   "title": "zincir T2 (8 görev), t_turb, 9300 lbs",
+   "env": "t_turb",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "n_ok": 6,
+   "n": 8,
+   "n_adequate": 8,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 6.7,
+     "deadline": 8.7,
+     "settle_s": 5.5,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 3.8,
+      "h": 19.0,
+      "psi": 2.0
+     },
+     "hold_err": {
+      "xy": 1.5,
+      "h": 1.0,
+      "psi": 1.5,
+      "u_fps": 0.0
+     },
+     "torque_max": 56.4,
+     "t_over56_s": 0.22
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": false,
+     "ads33": "yeterli",
+     "T": 25.4,
+     "deadline": 31.8,
+     "settle_s": null,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 80.1,
+      "psi": 3.0,
+      "u": 56.2
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.9,
+      "psi": 3.5,
+      "u_fps": 6.3
+     },
+     "torque_max": 58.9,
+     "t_over56_s": 1.35
+    },
+    {
+     "category": "cruise_u",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 26.6,
+     "deadline": 33.3,
+     "settle_s": 23.8,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 5.8,
+      "psi": 3.9,
+      "u": 61.6
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.6,
+      "psi": 2.5,
+      "u_fps": 2.0
+     },
+     "torque_max": 57.0,
+     "t_over56_s": 0.97
+    },
+    {
+     "category": "cruise_h",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 28.0,
+     "deadline": 35.0,
+     "settle_s": 25.8,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 250.0,
+      "psi": 4.1,
+      "u": 4.6
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 7.6,
+      "psi": 1.9,
+      "u_fps": 2.1
+     },
+     "torque_max": 50.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 37.5,
+     "deadline": 46.9,
+     "settle_s": 43.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 20.6,
+      "psi": 159.9,
+      "u": 9.3
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.5,
+      "psi": 1.1,
+      "u_fps": 3.9
+     },
+     "torque_max": 46.5,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 23.3,
+     "deadline": 29.1,
+     "settle_s": 18.8,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 3.7,
+      "psi": 45.0,
+      "u": 50.9
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 1.5,
+      "psi": 2.1,
+      "u_fps": 2.5
+     },
+     "torque_max": 40.6,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 53.5,
+     "deadline": 66.9,
+     "settle_s": 45.6,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 9.9,
+      "h": 3.4,
+      "psi": 3.6,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 4.9,
+      "h": 3.4,
+      "psi": 2.0,
+      "u_fps": 0.0
+     },
+     "torque_max": 54.4,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": false,
+     "ads33": "yeterli",
+     "T": 82.6,
+     "deadline": 103.2,
+     "settle_s": null,
+     "coupling_ok": true,
+     "touchdown_vs": -2.9,
+     "max_err": {
+      "xy": 18.9,
+      "h": 345.5,
+      "psi": 7.2
+     },
+     "hold_err": {
+      "xy": 11.9,
+      "h": 0.3,
+      "psi": 6.2,
+      "u_fps": 0.0
+     },
+     "torque_max": 48.1,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 349.875,
+   "torque_max": 58.947674617476395,
+   "torque_p95": 50.271562975305585,
+   "t_over50_s": 18.45,
+   "t_over56_s": 2.55,
+   "longest_over56_s": 1.3499999999999999,
+   "rpm_min": 317.15973761846993,
+   "fuel_used_lbs": 56.14623813337323,
+   "fuel_flow_lbh": 577.7104888321361,
+   "weight_end": 9243.860657762756,
+   "max_airspeed_kt": 93.15919280898054,
+   "max_roll": 29.599355776476987,
+   "max_pitch": 15.098545935878535,
+   "events": [
+    "{'t': 12.52499999999997, 'kind': 'gust', 'mag_kt': 4.2049957409653835, 'dir_deg': 21.271369318376543, 'vert': -0.0, 'rise': 2.9401977482369537, 'hold': 0.16739925456033444, 'decay': 1.7767025748918945}",
+    "{'t': 36.37499999999995, 'kind': 'gust', 'mag_kt': 5.903980166515368, 'dir_deg': 180.0, 'vert': 0.0, 'rise': 2.973995556223955, 'hold': 0.82381750453062, 'decay': 2.2655509926722135}"
+   ],
+   "tol_scale": 1.25
+  },
+  {
+   "id": "t_hover_arka",
+   "group": "test/öğe",
+   "title": "60 ft hover, 20 kt arkadan rüzgâr, 30 s",
+   "env": "özel",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 5,
+   "n": 5,
+   "n_adequate": 5,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 2.6,
+      "h": 2.6,
+      "psi": 1.6
+     },
+     "hold_err": {
+      "xy": 2.6,
+      "h": 2.6,
+      "psi": 1.6,
+      "u_fps": 0.0
+     },
+     "torque_max": 48.9,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 1.7,
+      "h": 2.9,
+      "psi": 0.9
+     },
+     "hold_err": {
+      "xy": 1.9,
+      "h": 2.9,
+      "psi": 0.9,
+      "u_fps": 0.0
+     },
+     "torque_max": 46.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 2.0,
+      "h": 3.1,
+      "psi": 1.1
+     },
+     "hold_err": {
+      "xy": 2.0,
+      "h": 3.1,
+      "psi": 1.1,
+      "u_fps": 0.0
+     },
+     "torque_max": 48.4,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 2.0,
+      "h": 3.1,
+      "psi": 1.2
+     },
+     "hold_err": {
+      "xy": 1.9,
+      "h": 3.1,
+      "psi": 1.2,
+      "u_fps": 0.0
+     },
+     "torque_max": 47.6,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 2.0,
+      "h": 3.1,
+      "psi": 1.2
+     },
+     "hold_err": {
+      "xy": 2.0,
+      "h": 3.1,
+      "psi": 1.2,
+      "u_fps": 0.0
+     },
+     "torque_max": 47.5,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 39.975,
+   "torque_max": 48.86566055377636,
+   "torque_p95": 47.551670591212805,
+   "t_over50_s": 0.0,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 319.5990047502804,
+   "fuel_used_lbs": 7.4728233785137945,
+   "fuel_flow_lbh": 672.9747132620303,
+   "weight_end": 9292.540186151246,
+   "max_airspeed_kt": -19.403305185114124,
+   "max_roll": 4.139081237293641,
+   "max_pitch": 1.826340254916389,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "t_donus270",
+   "group": "test/öğe",
+   "title": "20 ft hover, yerinde +270° dönüş",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.7,
+      "h": 1.1,
+      "psi": 0.7
+     },
+     "hold_err": {
+      "xy": 0.7,
+      "h": 1.1,
+      "psi": 0.7,
+      "u_fps": 0.0
+     },
+     "torque_max": 49.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "turn",
+     "kind": "turn",
+     "success": true,
+     "ads33": "istenen",
+     "T": 22.0,
+     "deadline": 27.5,
+     "settle_s": 13.2,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.5,
+      "h": 2.3,
+      "psi": 270.2
+     },
+     "hold_err": {
+      "xy": 1.0,
+      "h": 2.0,
+      "psi": 0.6,
+      "u_fps": 0.0
+     },
+     "torque_max": 50.6,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 45.0,
+   "torque_max": 50.63950726614204,
+   "torque_p95": 48.17436862811301,
+   "t_over50_s": 0.22499999999999998,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 319.6898261625702,
+   "fuel_used_lbs": 8.625818796081376,
+   "fuel_flow_lbh": 690.06550368651,
+   "weight_end": 9091.38887767013,
+   "max_airspeed_kt": 1.2588996271160422,
+   "max_roll": 9.177386001235607,
+   "max_pitch": 5.169503743951364,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "t_kayma_yan",
+   "group": "test/öğe",
+   "title": "30 ft hover, 40 ft sağa kayma, 15 kt soldan rüzgâr",
+   "env": "özel",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 2.1,
+      "h": 2.5,
+      "psi": 2.7
+     },
+     "hold_err": {
+      "xy": 2.1,
+      "h": 2.5,
+      "psi": 2.5,
+      "u_fps": 0.0
+     },
+     "torque_max": 51.3,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "move",
+     "kind": "move",
+     "success": true,
+     "ads33": "istenen",
+     "T": 11.0,
+     "deadline": 13.8,
+     "settle_s": 11.2,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 40.0,
+      "h": 3.0,
+      "psi": 4.0
+     },
+     "hold_err": {
+      "xy": 2.5,
+      "h": 1.7,
+      "psi": 2.1,
+      "u_fps": 0.0
+     },
+     "torque_max": 55.3,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 31.275,
+   "torque_max": 55.3091604829442,
+   "torque_p95": 52.95831484122135,
+   "t_over50_s": 7.199999999999999,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 321.2818261342471,
+   "fuel_used_lbs": 6.14458366972201,
+   "fuel_flow_lbh": 707.2902065867063,
+   "weight_end": 9293.869932596665,
+   "max_airspeed_kt": 1.0305738117778172,
+   "max_roll": 24.46275793292653,
+   "max_pitch": 4.108897275815224,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "t_bob",
+   "group": "test/öğe",
+   "title": "30 ft hover, +30 ft, −30 ft",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 3,
+   "n": 3,
+   "n_adequate": 3,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 1.5,
+      "h": 0.5,
+      "psi": 1.0
+     },
+     "hold_err": {
+      "xy": 1.5,
+      "h": 0.9,
+      "psi": 1.0,
+      "u_fps": 0.0
+     },
+     "torque_max": 52.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "bob",
+     "kind": "bob",
+     "success": true,
+     "ads33": "istenen",
+     "T": 10.0,
+     "deadline": 12.5,
+     "settle_s": 7.0,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 2.0,
+      "h": 30.1,
+      "psi": 1.2
+     },
+     "hold_err": {
+      "xy": 1.6,
+      "h": 1.3,
+      "psi": 0.9,
+      "u_fps": 0.0
+     },
+     "torque_max": 58.9,
+     "t_over56_s": 1.8
+    },
+    {
+     "category": "bob",
+     "kind": "bob",
+     "success": true,
+     "ads33": "istenen",
+     "T": 10.0,
+     "deadline": 12.5,
+     "settle_s": 5.8,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 3.6,
+      "h": 30.0,
+      "psi": 1.4
+     },
+     "hold_err": {
+      "xy": 1.1,
+      "h": 1.1,
+      "psi": 1.3,
+      "u_fps": 0.0
+     },
+     "torque_max": 53.9,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 43.05,
+   "torque_max": 58.90405743249326,
+   "torque_p95": 55.344886275218165,
+   "t_over50_s": 22.65,
+   "t_over56_s": 1.7999999999999998,
+   "longest_over56_s": 1.7999999999999998,
+   "rpm_min": 318.58388942250576,
+   "fuel_used_lbs": 8.841546388894358,
+   "fuel_flow_lbh": 739.3627642280996,
+   "weight_end": 9491.173339682711,
+   "max_airspeed_kt": 0.7341226901671168,
+   "max_roll": 4.6773950367748975,
+   "max_pitch": 3.061619448642813,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "t_inis150",
+   "group": "test/öğe",
+   "title": "150 ft hover → iniş, 15 kt rüzgâr (sağ ön)",
+   "env": "özel",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 1.2,
+      "h": 1.4,
+      "psi": 1.6
+     },
+     "hold_err": {
+      "xy": 1.2,
+      "h": 1.4,
+      "psi": 1.7,
+      "u_fps": 0.0
+     },
+     "torque_max": 49.0,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 42.3,
+     "deadline": 52.8,
+     "settle_s": 24.6,
+     "coupling_ok": true,
+     "touchdown_vs": -2.72,
+     "max_err": {
+      "xy": 8.2,
+      "h": 144.0,
+      "psi": 1.7
+     },
+     "hold_err": {
+      "xy": 4.0,
+      "h": 0.3,
+      "psi": 0.1,
+      "u_fps": 0.0
+     },
+     "torque_max": 48.2,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 68.325,
+   "torque_max": 49.01926557949397,
+   "torque_p95": 47.66932072832991,
+   "t_over50_s": 0.0,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 319.37743774475024,
+   "fuel_used_lbs": 9.540111892571531,
+   "fuel_flow_lbh": 502.6623170619468,
+   "weight_end": 9290.466750086698,
+   "max_airspeed_kt": 12.025172143428577,
+   "max_roll": 4.16077308003576,
+   "max_pitch": 2.405857036551128,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "t_donus90kt",
+   "group": "test/öğe",
+   "title": "400 ft / 90 kt: −120°",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "cruise_hold",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 1.5,
+      "psi": 1.1,
+      "u": 1.9
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 1.5,
+      "psi": 1.3,
+      "u_fps": 2.3
+     },
+     "torque_max": 28.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 30.1,
+     "deadline": 37.6,
+     "settle_s": 26.2,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 2.1,
+      "psi": 120.0,
+      "u": 3.0
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.6,
+      "psi": 0.9,
+      "u_fps": 1.8
+     },
+     "torque_max": 32.0,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 49.8,
+   "torque_max": 32.042961834204206,
+   "torque_p95": 30.82029764830387,
+   "t_over50_s": 0.0,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 321.2078780258075,
+   "fuel_used_lbs": 7.116231809890223,
+   "fuel_flow_lbh": 514.4263958956789,
+   "weight_end": 9292.894317264349,
+   "max_airspeed_kt": 90.08745455899526,
+   "max_roll": 26.82517396846681,
+   "max_pitch": 4.9332740991075426,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "t_karma50",
+   "group": "test/öğe",
+   "title": "200 ft / 50 kt: +40 kt ve +150 ft",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "cruise_hold",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 2.6,
+      "psi": 0.5,
+      "u": 0.1
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.2,
+      "psi": 0.5,
+      "u_fps": 0.1
+     },
+     "torque_max": 31.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 30.0,
+     "deadline": 37.5,
+     "settle_s": 27.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 150.0,
+      "psi": 3.5,
+      "u": 67.5
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 1.7,
+      "psi": 1.0,
+      "u_fps": 2.1
+     },
+     "torque_max": 47.3,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 49.725,
+   "torque_max": 47.349313964826116,
+   "torque_p95": 46.92466183252833,
+   "t_over50_s": 0.0,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 318.757931613942,
+   "fuel_used_lbs": 8.302575621436858,
+   "fuel_flow_lbh": 601.0914477058359,
+   "weight_end": 9491.708126620331,
+   "max_airspeed_kt": 88.88171796306382,
+   "max_roll": 5.507070206605306,
+   "max_pitch": 8.440478950941623,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "t_durus_arka",
+   "group": "test/öğe",
+   "title": "300 ft / 70 kt → duruş, 15 kt arkadan rüzgâr",
+   "env": "özel",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "cruise_hold",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 1.9,
+      "psi": 1.1,
+      "u": 1.4
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.3,
+      "psi": 1.1,
+      "u_fps": 1.9
+     },
+     "torque_max": 26.6,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 64.4,
+     "deadline": 80.5,
+     "settle_s": 58.8,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 5.4,
+      "h": 1.9,
+      "psi": 1.6,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 1.1,
+      "h": 1.2,
+      "psi": 1.2,
+      "u_fps": 0.0
+     },
+     "torque_max": 51.2,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 92.7,
+   "torque_max": 51.150676511380304,
+   "torque_p95": 50.46801181353742,
+   "t_over50_s": 9.9,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 319.9995294884645,
+   "fuel_used_lbs": 15.932296307260799,
+   "fuel_flow_lbh": 618.729953680031,
+   "weight_end": 9284.08292002224,
+   "max_airspeed_kt": 69.97105706079944,
+   "max_roll": 4.520179844131845,
+   "max_pitch": 5.544492958621002,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "t_hizlan90",
+   "group": "test/öğe",
+   "title": "40 ft hover → 90 kt (+120 ft), 18 kt sağdan rüzgâr + hafif türbülans",
+   "env": "özel",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "n_ok": 1,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 2.5,
+      "h": 0.8,
+      "psi": 2.4
+     },
+     "hold_err": {
+      "xy": 2.7,
+      "h": 1.2,
+      "psi": 2.5,
+      "u_fps": 0.0
+     },
+     "torque_max": 45.9,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": false,
+     "ads33": "yeterli",
+     "T": 63.5,
+     "deadline": 79.4,
+     "settle_s": null,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 120.1,
+      "psi": 8.2,
+      "u": 154.3
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.4,
+      "psi": 6.9,
+      "u_fps": 4.7
+     },
+     "torque_max": 59.3,
+     "t_over56_s": 6.0
+    }
+   ],
+   "duration": 96.89999999999999,
+   "torque_max": 59.335697799685676,
+   "torque_p95": 56.471048603853376,
+   "t_over50_s": 12.45,
+   "t_over56_s": 6.0,
+   "longest_over56_s": 5.325,
+   "rpm_min": 316.93487012016163,
+   "fuel_used_lbs": 16.092277985739656,
+   "fuel_flow_lbh": 597.8555288819687,
+   "weight_end": 9283.919293322897,
+   "max_airspeed_kt": 93.14978546642534,
+   "max_roll": 18.67201642864749,
+   "max_pitch": 20.076559839429702,
+   "events": [],
+   "tol_scale": 1.25
+  },
+  {
+   "id": "d_120kt",
+   "group": "test/doğal",
+   "title": "400 ft / 100 kt → 120 kt",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "n_ok": 1,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "cruise_hold",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 2.7,
+      "psi": 1.0,
+      "u": 2.3
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.7,
+      "psi": 1.2,
+      "u_fps": 2.6
+     },
+     "torque_max": 29.9,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_u",
+     "kind": "cruise",
+     "success": false,
+     "ads33": "yeterli",
+     "T": 17.7,
+     "deadline": 22.1,
+     "settle_s": null,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 4.6,
+      "psi": 2.8,
+      "u": 36.9
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.9,
+      "psi": 0.6,
+      "u_fps": 3.6
+     },
+     "torque_max": 51.9,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 34.35,
+   "torque_max": 51.85784325419311,
+   "torque_p95": 50.07187117797511,
+   "t_over50_s": 1.7999999999999998,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 318.5244575646866,
+   "fuel_used_lbs": 5.794744805865207,
+   "fuel_flow_lbh": 607.3094993046506,
+   "weight_end": 9294.217148519881,
+   "max_airspeed_kt": 118.02079944924081,
+   "max_roll": 6.8682918214482385,
+   "max_pitch": 8.420585187779064,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "d_15kt",
+   "group": "test/doğal",
+   "title": "300 ft / 40 kt → 15 kt → +90°",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 3,
+   "n": 3,
+   "n_adequate": 3,
+   "windows": [
+    {
+     "category": "cruise_hold",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 2.2,
+      "psi": 0.6,
+      "u": 0.5
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.5,
+      "psi": 0.6,
+      "u_fps": 0.5
+     },
+     "torque_max": 34.8,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_u",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 19.8,
+     "deadline": 24.8,
+     "settle_s": 15.7,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 9.8,
+      "psi": 2.4,
+      "u": 42.1
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.9,
+      "psi": 2.2,
+      "u_fps": 2.3
+     },
+     "torque_max": 49.6,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 14.2,
+     "deadline": 17.8,
+     "settle_s": 10.8,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 3.5,
+      "psi": 90.1,
+      "u": 3.6
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.8,
+      "psi": 1.6,
+      "u_fps": 0.9
+     },
+     "torque_max": 52.2,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 51.9,
+   "torque_max": 52.20473361533988,
+   "torque_p95": 49.3528292242599,
+   "t_over50_s": 0.6749999999999999,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 318.8787560197883,
+   "fuel_used_lbs": 9.456073787717173,
+   "fuel_flow_lbh": 655.9126326740236,
+   "weight_end": 9290.558187764127,
+   "max_airspeed_kt": 40.03595533395311,
+   "max_roll": 9.269905554104696,
+   "max_pitch": 14.6782116896941,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "d_1500_ileri",
+   "group": "test/doğal",
+   "title": "1000 ft / 80 kt → +500 ft (1500 ft)",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "cruise_hold",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 1.4,
+      "psi": 0.7,
+      "u": 1.5
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 1.4,
+      "psi": 0.7,
+      "u_fps": 1.9
+     },
+     "torque_max": 27.1,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_h",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 53.0,
+     "deadline": 66.2,
+     "settle_s": 45.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 500.1,
+      "psi": 1.8,
+      "u": 2.6
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.1,
+      "psi": 0.2,
+      "u_fps": 0.8
+     },
+     "torque_max": 50.1,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 78.45,
+   "torque_max": 50.101438508595244,
+   "torque_p95": 41.07449148760983,
+   "t_over50_s": 0.15,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 318.6770768666947,
+   "fuel_used_lbs": 12.17405949313877,
+   "fuel_flow_lbh": 558.6566497807466,
+   "weight_end": 9287.836064430816,
+   "max_airspeed_kt": 81.28969148353006,
+   "max_roll": 7.037989449861502,
+   "max_pitch": 5.058244704314962,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "d_1500_hover",
+   "group": "test/doğal",
+   "title": "1000 ft hover → 1500 ft",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 1.5,
+      "h": 2.2,
+      "psi": 1.0
+     },
+     "hold_err": {
+      "xy": 1.5,
+      "h": 2.2,
+      "psi": 1.0,
+      "u_fps": 0.0
+     },
+     "torque_max": 53.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "climb_to",
+     "kind": "climb_to",
+     "success": true,
+     "ads33": "istenen",
+     "T": 59.9,
+     "deadline": 74.9,
+     "settle_s": 53.0,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 3.9,
+      "h": 497.9,
+      "psi": 0.9
+     },
+     "hold_err": {
+      "xy": 2.3,
+      "h": 0.8,
+      "psi": 0.9,
+      "u_fps": 0.0
+     },
+     "torque_max": 60.5,
+     "t_over56_s": 1.8
+    }
+   ],
+   "duration": 92.39999999999999,
+   "torque_max": 60.523988241110516,
+   "torque_p95": 55.762958214971995,
+   "t_over50_s": 58.65,
+   "t_over56_s": 1.7999999999999998,
+   "longest_over56_s": 1.7999999999999998,
+   "rpm_min": 318.4478053604864,
+   "fuel_used_lbs": 19.253841906274147,
+   "fuel_flow_lbh": 750.1496846600318,
+   "weight_end": 9080.76079012861,
+   "max_airspeed_kt": 0.9475871261780983,
+   "max_roll": 5.23988283590306,
+   "max_pitch": 4.114145164981385,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "d_tirmanis1400",
+   "group": "test/doğal",
+   "title": "100 ft / 80 kt → +1400 ft",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "cruise_hold",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 2.3,
+      "psi": 1.4,
+      "u": 1.4
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.8,
+      "psi": 1.5,
+      "u_fps": 1.9
+     },
+     "torque_max": 26.9,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_h",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 143.0,
+     "deadline": 178.8,
+     "settle_s": 139.6,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 1400.1,
+      "psi": 3.2,
+      "u": 5.4
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.7,
+      "psi": 0.4,
+      "u_fps": 0.1
+     },
+     "torque_max": 51.3,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 190.95,
+   "torque_max": 51.32374272699172,
+   "torque_p95": 49.6603519271821,
+   "t_over50_s": 8.174999999999999,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 318.7181794603385,
+   "fuel_used_lbs": 30.5521211390826,
+   "fuel_flow_lbh": 576.0022838475903,
+   "weight_end": 9269.45802467166,
+   "max_airspeed_kt": 84.06807014885254,
+   "max_roll": 6.317976786583351,
+   "max_pitch": 10.998172917906336,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "d_alcak50",
+   "group": "test/doğal",
+   "title": "300 ft / 80 kt → 50 ft",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "cruise_hold",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 1.5,
+      "psi": 1.2,
+      "u": 1.4
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.0,
+      "psi": 1.3,
+      "u_fps": 1.9
+     },
+     "torque_max": 27.0,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_h",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 27.7,
+     "deadline": 34.6,
+     "settle_s": 30.2,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 247.0,
+      "psi": 3.6,
+      "u": 5.1
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.6,
+      "psi": 1.5,
+      "u_fps": 1.5
+     },
+     "torque_max": 24.6,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 46.8,
+   "torque_max": 27.022451931252775,
+   "torque_p95": 24.206821710425142,
+   "t_over50_s": 0.0,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 321.3306392168086,
+   "fuel_used_lbs": 5.749225059250989,
+   "fuel_flow_lbh": 442.24808148084537,
+   "weight_end": 9294.261207944597,
+   "max_airspeed_kt": 82.764130001661,
+   "max_roll": 4.75664310040521,
+   "max_pitch": 7.118290698387001,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "d_hizlan20",
+   "group": "test/doğal",
+   "title": "100 ft hover → 20 kt",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 1.4,
+      "h": 0.3,
+      "psi": 1.0
+     },
+     "hold_err": {
+      "xy": 1.4,
+      "h": 0.4,
+      "psi": 1.0,
+      "u_fps": 0.0
+     },
+     "torque_max": 52.0,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 16.5,
+     "deadline": 20.6,
+     "settle_s": 11.0,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 7.2,
+      "psi": 3.3,
+      "u": 33.8
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.5,
+      "psi": 1.7,
+      "u_fps": 0.9
+     },
+     "torque_max": 60.7,
+     "t_over56_s": 1.5
+    }
+   ],
+   "duration": 38.175,
+   "torque_max": 60.67291878658838,
+   "torque_p95": 55.19574587193874,
+   "t_over50_s": 12.299999999999999,
+   "t_over56_s": 1.5,
+   "longest_over56_s": 0.75,
+   "rpm_min": 318.86825783002627,
+   "fuel_used_lbs": 7.485204558387068,
+   "fuel_flow_lbh": 705.8739072742226,
+   "weight_end": 9292.528805166512,
+   "max_airspeed_kt": 20.974183262897313,
+   "max_roll": 8.616558950863743,
+   "max_pitch": 19.13730583604539,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "d_donus120kt",
+   "group": "test/doğal",
+   "title": "500 ft / 120 kt: +180°",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": false,
+   "n_ok": 1,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "cruise_hold",
+     "kind": "cruise",
+     "success": false,
+     "ads33": "yeterli",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": null,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 6.1,
+      "psi": 1.0,
+      "u": 3.0
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.9,
+      "psi": 0.5,
+      "u_fps": 3.0
+     },
+     "torque_max": 34.5,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 57.3,
+     "deadline": 71.7,
+     "settle_s": 64.6,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 10.4,
+      "psi": 180.0,
+      "u": 3.7
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.0,
+      "psi": 0.6,
+      "u_fps": 2.7
+     },
+     "torque_max": 44.2,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 93.825,
+   "torque_max": 44.1559358570696,
+   "torque_p95": 43.15149100989545,
+   "t_over50_s": 0.0,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 320.6343512219685,
+   "fuel_used_lbs": 14.930948148989273,
+   "fuel_flow_lbh": 572.8900968437131,
+   "weight_end": 9085.080805389432,
+   "max_airspeed_kt": 121.68736097459576,
+   "max_roll": 27.761017095256783,
+   "max_pitch": 6.656324735122997,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "d_donus360",
+   "group": "test/doğal",
+   "title": "20 ft hover, yerinde 360° dönüş",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 1.1,
+      "h": 0.9,
+      "psi": 0.7
+     },
+     "hold_err": {
+      "xy": 1.1,
+      "h": 1.0,
+      "psi": 0.7,
+      "u_fps": 0.0
+     },
+     "torque_max": 51.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "turn",
+     "kind": "turn",
+     "success": true,
+     "ads33": "istenen",
+     "T": 28.0,
+     "deadline": 35.0,
+     "settle_s": 18.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.8,
+      "h": 6.5,
+      "psi": 360.0
+     },
+     "hold_err": {
+      "xy": 1.4,
+      "h": 1.7,
+      "psi": 0.4,
+      "u_fps": 0.0
+     },
+     "torque_max": 54.4,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 52.5,
+   "torque_max": 54.35200448575741,
+   "torque_p95": 50.486720084853296,
+   "t_over50_s": 4.575,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 319.68488643164113,
+   "fuel_used_lbs": 10.311135168045439,
+   "fuel_flow_lbh": 707.049268665973,
+   "weight_end": 9289.703903055382,
+   "max_airspeed_kt": 0.8400842519364627,
+   "max_roll": 4.932667097356013,
+   "max_pitch": 4.571116172355378,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "d_pirouette_sag",
+   "group": "test/doğal",
+   "title": "pirouette, 100 ft yarıçap, 45 s, saat yönü (16 ft)",
+   "env": "t_sakin",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.9,
+      "h": 1.0,
+      "psi": 0.9
+     },
+     "hold_err": {
+      "xy": 0.9,
+      "h": 1.0,
+      "psi": 0.9,
+      "u_fps": 0.0
+     },
+     "torque_max": 48.8,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "pirouette",
+     "kind": "pirouette",
+     "success": true,
+     "ads33": "istenen",
+     "T": 53.0,
+     "deadline": 66.2,
+     "settle_s": 51.7,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 7.8,
+      "h": 2.3,
+      "psi": 1.7,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 1.0,
+      "h": 2.1,
+      "psi": 1.1,
+      "u_fps": 0.0
+     },
+     "torque_max": 50.6,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 83.77499999999999,
+   "torque_max": 50.632276798539074,
+   "torque_p95": 47.54840856536994,
+   "t_over50_s": 0.22499999999999998,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 319.68672366920885,
+   "fuel_used_lbs": 15.69390126316,
+   "fuel_flow_lbh": 674.4022028931782,
+   "weight_end": 9084.320293760135,
+   "max_airspeed_kt": 0.9954252425580202,
+   "max_roll": 11.677948746225796,
+   "max_pitch": 8.005689225933349,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "d_pirouette_sol",
+   "group": "test/doğal",
+   "title": "pirouette, 100 ft, 45 s, saat tersi, 10 kt rüzgâr",
+   "env": "özel",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 1.6,
+      "h": 1.0,
+      "psi": 1.5
+     },
+     "hold_err": {
+      "xy": 1.6,
+      "h": 1.3,
+      "psi": 1.5,
+      "u_fps": 0.0
+     },
+     "torque_max": 48.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "pirouette",
+     "kind": "pirouette",
+     "success": true,
+     "ads33": "istenen",
+     "T": 53.0,
+     "deadline": 66.2,
+     "settle_s": 51.6,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 10.2,
+      "h": 1.8,
+      "psi": 3.8,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 1.6,
+      "h": 2.1,
+      "psi": 0.2,
+      "u_fps": 0.0
+     },
+     "torque_max": 50.5,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 83.77499999999999,
+   "torque_max": 50.517824704981244,
+   "torque_p95": 48.399097349991806,
+   "t_over50_s": 0.375,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 319.34534314118383,
+   "fuel_used_lbs": 15.954077219598048,
+   "fuel_flow_lbh": 685.5825483802206,
+   "weight_end": 9484.06011135905,
+   "max_airspeed_kt": 10.35629622117166,
+   "max_roll": 12.049980103396875,
+   "max_pitch": 4.868192743681945,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "s_T1_sicak25_9300",
+   "group": "test/sıcak",
+   "title": "zincir T1, +25 °C, sakin, 9300 lbs",
+   "env": "t_sicak25",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 6,
+   "n": 6,
+   "n_adequate": 6,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 14.6,
+     "deadline": 18.3,
+     "settle_s": 13.5,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.5,
+      "h": 74.0,
+      "psi": 1.1
+     },
+     "hold_err": {
+      "xy": 1.5,
+      "h": 0.9,
+      "psi": 1.1,
+      "u_fps": 0.0
+     },
+     "torque_max": 55.2,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 50.3,
+     "deadline": 62.9,
+     "settle_s": 47.6,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 150.1,
+      "psi": 2.5,
+      "u": 118.3
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.1,
+      "psi": 0.2,
+      "u_fps": 2.3
+     },
+     "torque_max": 54.1,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 26.8,
+     "deadline": 33.5,
+     "settle_s": 21.7,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 4.1,
+      "psi": 135.0,
+      "u": 3.0
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.2,
+      "psi": 1.0,
+      "u_fps": 1.4
+     },
+     "torque_max": 32.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 23.0,
+     "deadline": 28.8,
+     "settle_s": 22.0,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 200.0,
+      "psi": 1.7,
+      "u": 42.2
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 7.1,
+      "psi": 0.6,
+      "u_fps": 1.4
+     },
+     "torque_max": 47.8,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 37.7,
+     "deadline": 47.1,
+     "settle_s": 31.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.9,
+      "h": 1.2,
+      "psi": 1.2,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 1.5,
+      "h": 0.7,
+      "psi": 0.5,
+      "u_fps": 0.0
+     },
+     "torque_max": 52.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 96.9,
+     "deadline": 121.1,
+     "settle_s": 54.3,
+     "coupling_ok": true,
+     "touchdown_vs": -1.44,
+     "max_err": {
+      "xy": 7.0,
+      "h": 417.2,
+      "psi": 1.3
+     },
+     "hold_err": {
+      "xy": 3.0,
+      "h": 0.3,
+      "psi": 1.3,
+      "u_fps": 0.0
+     },
+     "torque_max": 50.8,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 297.45,
+   "torque_max": 55.15666106988145,
+   "torque_p95": 52.75438374748257,
+   "t_over50_s": 42.675,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 317.3386175037082,
+   "fuel_used_lbs": 47.00247674697698,
+   "fuel_flow_lbh": 568.8650740935187,
+   "weight_end": 9253.004178976475,
+   "max_airspeed_kt": 70.40027633141763,
+   "max_roll": 28.908472656872558,
+   "max_pitch": 15.880569253359896,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "s_T1_sicak30_9700",
+   "group": "test/sıcak",
+   "title": "zincir T1, +30 °C, sakin, 9700 lbs",
+   "env": "t_sicak30",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 6,
+   "n": 6,
+   "n_adequate": 6,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 27.9,
+     "deadline": 34.9,
+     "settle_s": 24.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.9,
+      "h": 74.1,
+      "psi": 1.0
+     },
+     "hold_err": {
+      "xy": 1.6,
+      "h": 3.4,
+      "psi": 0.7,
+      "u_fps": 0.0
+     },
+     "torque_max": 56.1,
+     "t_over56_s": 1.05
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 50.3,
+     "deadline": 62.8,
+     "settle_s": 47.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 155.3,
+      "psi": 3.2,
+      "u": 118.1
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.3,
+      "psi": 0.3,
+      "u_fps": 2.1
+     },
+     "torque_max": 55.5,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 26.8,
+     "deadline": 33.5,
+     "settle_s": 21.5,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 3.6,
+      "psi": 135.0,
+      "u": 3.3
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.6,
+      "psi": 0.6,
+      "u_fps": 1.7
+     },
+     "torque_max": 34.1,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 23.0,
+     "deadline": 28.8,
+     "settle_s": 22.6,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 200.0,
+      "psi": 1.6,
+      "u": 42.2
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 5.4,
+      "psi": 0.7,
+      "u_fps": 1.7
+     },
+     "torque_max": 48.1,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 37.5,
+     "deadline": 46.9,
+     "settle_s": 31.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 5.3,
+      "h": 1.7,
+      "psi": 1.2,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 1.1,
+      "h": 0.3,
+      "psi": 0.5,
+      "u_fps": 0.0
+     },
+     "torque_max": 55.4,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 96.9,
+     "deadline": 121.1,
+     "settle_s": 44.4,
+     "coupling_ok": true,
+     "touchdown_vs": -0.56,
+     "max_err": {
+      "xy": 9.3,
+      "h": 417.2,
+      "psi": 1.1
+     },
+     "hold_err": {
+      "xy": 4.4,
+      "h": 0.4,
+      "psi": 0.7,
+      "u_fps": 0.0
+     },
+     "torque_max": 54.6,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 309.075,
+   "torque_max": 56.09742403306629,
+   "torque_p95": 55.1355342081265,
+   "t_over50_s": 66.45,
+   "t_over56_s": 1.05,
+   "longest_over56_s": 1.05,
+   "rpm_min": 317.28201174683574,
+   "fuel_used_lbs": 50.02767755196555,
+   "fuel_flow_lbh": 582.7052954366286,
+   "weight_end": 9649.97901563932,
+   "max_airspeed_kt": 70.3999364234275,
+   "max_roll": 29.48030086758849,
+   "max_pitch": 16.315651239189556,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "s_T1_sicak15r_9500",
+   "group": "test/sıcak",
+   "title": "zincir T1, +15 °C, 12 kt rüzgâr, 9500 lbs",
+   "env": "t_sicak15r",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 6,
+   "n": 6,
+   "n_adequate": 6,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 18.7,
+     "deadline": 23.4,
+     "settle_s": 12.2,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 6.7,
+      "h": 74.1,
+      "psi": 1.9
+     },
+     "hold_err": {
+      "xy": 1.2,
+      "h": 1.3,
+      "psi": 1.1,
+      "u_fps": 0.0
+     },
+     "torque_max": 57.9,
+     "t_over56_s": 0.75
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 46.3,
+     "deadline": 57.9,
+     "settle_s": 48.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 150.1,
+      "psi": 2.5,
+      "u": 108.3
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 2.8,
+      "psi": 0.3,
+      "u_fps": 2.4
+     },
+     "torque_max": 60.6,
+     "t_over56_s": 1.05
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 26.8,
+     "deadline": 33.5,
+     "settle_s": 22.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 3.5,
+      "psi": 135.0,
+      "u": 2.4
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.8,
+      "psi": 2.2,
+      "u_fps": 1.3
+     },
+     "torque_max": 34.0,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 23.0,
+     "deadline": 28.8,
+     "settle_s": 22.7,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 200.0,
+      "psi": 3.1,
+      "u": 42.2
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 5.4,
+      "psi": 0.8,
+      "u_fps": 1.1
+     },
+     "torque_max": 50.0,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 36.3,
+     "deadline": 45.3,
+     "settle_s": 29.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 5.2,
+      "h": 1.6,
+      "psi": 1.8,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 1.1,
+      "h": 1.6,
+      "psi": 1.4,
+      "u_fps": 0.0
+     },
+     "torque_max": 50.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 97.4,
+     "deadline": 121.7,
+     "settle_s": 68.2,
+     "coupling_ok": true,
+     "touchdown_vs": -2.75,
+     "max_err": {
+      "xy": 8.9,
+      "h": 419.7,
+      "psi": 1.2
+     },
+     "hold_err": {
+      "xy": 4.1,
+      "h": 0.3,
+      "psi": 0.2,
+      "u_fps": 0.0
+     },
+     "torque_max": 49.2,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 297.75,
+   "torque_max": 60.572116266580366,
+   "torque_p95": 52.69812232795417,
+   "t_over50_s": 30.375,
+   "t_over56_s": 1.7999999999999998,
+   "longest_over56_s": 1.05,
+   "rpm_min": 316.9522202446694,
+   "fuel_used_lbs": 48.177979970379624,
+   "fuel_flow_lbh": 582.504543722474,
+   "weight_end": 9451.82881315543,
+   "max_airspeed_kt": 70.32089606774875,
+   "max_roll": 28.361342268457168,
+   "max_pitch": 15.323038312932127,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "s_T3_sicak30_9100",
+   "group": "test/sıcak",
+   "title": "zincir T3 (40 ft → 60 kt → dur → in), +30 °C, 9100 lbs",
+   "env": "t_sicak30",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 4,
+   "n": 4,
+   "n_adequate": 4,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 7.8,
+     "deadline": 9.8,
+     "settle_s": 6.6,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.0,
+      "h": 33.9,
+      "psi": 1.3
+     },
+     "hold_err": {
+      "xy": 1.4,
+      "h": 1.1,
+      "psi": 1.3,
+      "u_fps": 0.0
+     },
+     "torque_max": 54.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 43.5,
+     "deadline": 54.4,
+     "settle_s": 40.4,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 100.0,
+      "psi": 2.7,
+      "u": 101.3
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 4.5,
+      "psi": 0.3,
+      "u_fps": 2.6
+     },
+     "torque_max": 52.9,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 48.6,
+     "deadline": 60.8,
+     "settle_s": 42.2,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 4.8,
+      "h": 1.2,
+      "psi": 0.7,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 1.6,
+      "h": 0.4,
+      "psi": 0.4,
+      "u_fps": 0.0
+     },
+     "torque_max": 51.8,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 39.2,
+     "deadline": 49.0,
+     "settle_s": 19.7,
+     "coupling_ok": true,
+     "touchdown_vs": -1.35,
+     "max_err": {
+      "xy": 6.7,
+      "h": 128.8,
+      "psi": 0.8
+     },
+     "hold_err": {
+      "xy": 1.9,
+      "h": 0.2,
+      "psi": 0.4,
+      "u_fps": 0.0
+     },
+     "torque_max": 50.8,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 165.975,
+   "torque_max": 54.675191502087365,
+   "torque_p95": 51.98043745226867,
+   "t_over50_s": 22.275,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 317.38902936513915,
+   "fuel_used_lbs": 26.494727184561498,
+   "fuel_flow_lbh": 574.6709918025089,
+   "weight_end": 9073.511891973012,
+   "max_airspeed_kt": 60.4407396501176,
+   "max_roll": 5.028894080454571,
+   "max_pitch": 11.275827597696647,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "s_inis_sicak30",
+   "group": "test/sıcak",
+   "title": "100 ft hover → iniş, +30 °C, 9700 lbs",
+   "env": "t_sicak30",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 2,
+   "n": 2,
+   "n_adequate": 2,
+   "windows": [
+    {
+     "category": "hold",
+     "kind": "hold",
+     "success": true,
+     "ads33": "istenen",
+     "T": 8.0,
+     "deadline": 10.0,
+     "settle_s": 0.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 1.8,
+      "h": 1.6,
+      "psi": 1.1
+     },
+     "hold_err": {
+      "xy": 1.8,
+      "h": 1.6,
+      "psi": 1.1,
+      "u_fps": 0.0
+     },
+     "torque_max": 55.4,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 31.9,
+     "deadline": 39.9,
+     "settle_s": 14.8,
+     "coupling_ok": true,
+     "touchdown_vs": -2.7,
+     "max_err": {
+      "xy": 7.3,
+      "h": 92.3,
+      "psi": 1.1
+     },
+     "hold_err": {
+      "xy": 3.0,
+      "h": 0.4,
+      "psi": 0.0,
+      "u_fps": 0.0
+     },
+     "torque_max": 54.6,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 55.35,
+   "torque_max": 55.43021159280691,
+   "torque_p95": 54.962114973894444,
+   "t_over50_s": 12.825,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 319.04887633870425,
+   "fuel_used_lbs": 7.9756871721615425,
+   "fuel_flow_lbh": 518.7438811161979,
+   "weight_end": 9692.031030017437,
+   "max_airspeed_kt": 1.1583737162383019,
+   "max_roll": 5.420195171851075,
+   "max_pitch": 2.8412304061243314,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "s_kalkis_sicak30",
+   "group": "test/sıcak",
+   "title": "kalkış 60 ft, +30 °C, 9700 lbs",
+   "env": "t_sicak30",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 1,
+   "n": 1,
+   "n_adequate": 1,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 21.5,
+     "deadline": 26.9,
+     "settle_s": 15.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 5.3,
+      "h": 54.1,
+      "psi": 0.8
+     },
+     "hold_err": {
+      "xy": 1.4,
+      "h": 1.4,
+      "psi": 1.2,
+      "u_fps": 0.0
+     },
+     "torque_max": 55.6,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 37.875,
+   "torque_max": 55.61195691411761,
+   "torque_p95": 54.848284420227095,
+   "t_over50_s": 36.675,
+   "t_over56_s": 0.0,
+   "longest_over56_s": 0.0,
+   "rpm_min": 317.27873901994144,
+   "fuel_used_lbs": 8.051456044953284,
+   "fuel_flow_lbh": 765.2869112034804,
+   "weight_end": 9691.964732214781,
+   "max_airspeed_kt": 0.8783703874361338,
+   "max_roll": 5.267631763747946,
+   "max_pitch": 1.9774745724243388,
+   "events": [],
+   "tol_scale": 1.0
+  },
+  {
+   "id": "s_T1_soguk_9500",
+   "group": "test/sıcak",
+   "title": "zincir T1, −10 °C, 8 kt rüzgâr, 9500 lbs",
+   "env": "t_soguk",
+   "safe": true,
+   "termination": "time_limit",
+   "episode_ok": true,
+   "n_ok": 6,
+   "n": 6,
+   "n_adequate": 6,
+   "windows": [
+    {
+     "category": "takeoff",
+     "kind": "takeoff",
+     "success": true,
+     "ads33": "istenen",
+     "T": 18.7,
+     "deadline": 23.4,
+     "settle_s": 11.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 3.0,
+      "h": 74.1,
+      "psi": 1.5
+     },
+     "hold_err": {
+      "xy": 1.6,
+      "h": 1.5,
+      "psi": 1.5,
+      "u_fps": 0.0
+     },
+     "torque_max": 56.8,
+     "t_over56_s": 0.38
+    },
+    {
+     "category": "accel",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 45.6,
+     "deadline": 57.0,
+     "settle_s": 46.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 150.2,
+      "psi": 1.8,
+      "u": 106.6
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.5,
+      "psi": 1.4,
+      "u_fps": 2.7
+     },
+     "torque_max": 57.6,
+     "t_over56_s": 7.2
+    },
+    {
+     "category": "cruise_psi",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 26.9,
+     "deadline": 33.7,
+     "settle_s": 28.9,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 4.1,
+      "psi": 135.0,
+      "u": 2.1
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 3.8,
+      "psi": 1.3,
+      "u_fps": 1.0
+     },
+     "torque_max": 31.9,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "cruise_mix",
+     "kind": "cruise",
+     "success": true,
+     "ads33": "istenen",
+     "T": 23.0,
+     "deadline": 28.8,
+     "settle_s": 21.1,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 0.0,
+      "h": 200.0,
+      "psi": 3.6,
+      "u": 42.2
+     },
+     "hold_err": {
+      "xy": 0.0,
+      "h": 7.0,
+      "psi": 0.8,
+      "u_fps": 0.7
+     },
+     "torque_max": 49.0,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "stop",
+     "kind": "stop",
+     "success": true,
+     "ads33": "istenen",
+     "T": 43.8,
+     "deadline": 54.7,
+     "settle_s": 37.3,
+     "coupling_ok": true,
+     "touchdown_vs": null,
+     "max_err": {
+      "xy": 5.5,
+      "h": 1.3,
+      "psi": 1.3,
+      "u": 0.0
+     },
+     "hold_err": {
+      "xy": 1.4,
+      "h": 1.3,
+      "psi": 0.8,
+      "u_fps": 0.0
+     },
+     "torque_max": 52.7,
+     "t_over56_s": 0.0
+    },
+    {
+     "category": "land",
+     "kind": "land",
+     "success": true,
+     "ads33": "istenen",
+     "T": 97.0,
+     "deadline": 121.2,
+     "settle_s": 90.0,
+     "coupling_ok": true,
+     "touchdown_vs": -2.8,
+     "max_err": {
+      "xy": 6.5,
+      "h": 417.7,
+      "psi": 1.5
+     },
+     "hold_err": {
+      "xy": 4.4,
+      "h": 0.3,
+      "psi": 0.5,
+      "u_fps": 0.0
+     },
+     "torque_max": 49.0,
+     "t_over56_s": 0.0
+    }
+   ],
+   "duration": 307.5,
+   "torque_max": 57.56540382629886,
+   "torque_p95": 53.71699200100117,
+   "t_over50_s": 42.375,
+   "t_over56_s": 7.574999999999999,
+   "longest_over56_s": 7.199999999999999,
+   "rpm_min": 317.07870544485746,
+   "fuel_used_lbs": 52.26074771439153,
+   "fuel_flow_lbh": 611.8331439733641,
+   "weight_end": 9447.746225878995,
+   "max_airspeed_kt": 71.5031765054569,
+   "max_roll": 23.18405203600826,
+   "max_pitch": 13.818935895483623,
+   "events": [],
+   "tol_scale": 1.0
+  }
+ ],
+ "summary": {
+  "test/zincir": {
+   "safe": [
+    8,
+    8
+   ],
+   "episode_ok": [
+    5,
+    8
+   ],
+   "tasks_ok": [
+    44,
+    52
+   ],
+   "tasks_adequate": [
+    51,
+    52
+   ]
+  },
+  "test/öğe": {
+   "safe": [
+    9,
+    9
+   ],
+   "episode_ok": [
+    8,
+    9
+   ],
+   "tasks_ok": [
+    21,
+    22
+   ],
+   "tasks_adequate": [
+    22,
+    22
+   ]
+  },
+  "test/doğal": {
+   "safe": [
+    11,
+    11
+   ],
+   "episode_ok": [
+    9,
+    11
+   ],
+   "tasks_ok": [
+    21,
+    23
+   ],
+   "tasks_adequate": [
+    23,
+    23
+   ]
+  },
+  "test/sıcak": {
+   "safe": [
+    7,
+    7
+   ],
+   "episode_ok": [
+    7,
+    7
+   ],
+   "tasks_ok": [
+    31,
+    31
+   ],
+   "tasks_adequate": [
+    31,
+    31
+   ]
+  },
+  "toplam": {
+   "safe": [
+    35,
+    35
+   ],
+   "episode_ok": [
+    29,
+    35
+   ],
+   "tasks_ok": [
+    117,
+    128
+   ],
+   "tasks_adequate": [
+    127,
+    128
+   ]
+  },
+  "kategori": {
+   "accel": {
+    "istenen": 11,
+    "yeterli_veya_iyi": 15,
+    "n": 15
+   },
+   "bob": {
+    "istenen": 2,
+    "yeterli_veya_iyi": 2,
+    "n": 2
+   },
+   "climb_to": {
+    "istenen": 1,
+    "yeterli_veya_iyi": 1,
+    "n": 1
+   },
+   "cruise_h": {
+    "istenen": 5,
+    "yeterli_veya_iyi": 5,
+    "n": 5
+   },
+   "cruise_hold": {
+    "istenen": 8,
+    "yeterli_veya_iyi": 9,
+    "n": 9
+   },
+   "cruise_mix": {
+    "istenen": 11,
+    "yeterli_veya_iyi": 13,
+    "n": 13
+   },
+   "cruise_psi": {
+    "istenen": 13,
+    "yeterli_veya_iyi": 14,
+    "n": 15
+   },
+   "cruise_u": {
+    "istenen": 3,
+    "yeterli_veya_iyi": 4,
+    "n": 4
+   },
+   "hold": {
+    "istenen": 16,
+    "yeterli_veya_iyi": 16,
+    "n": 16
+   },
+   "land": {
+    "istenen": 14,
+    "yeterli_veya_iyi": 15,
+    "n": 15
+   },
+   "move": {
+    "istenen": 1,
+    "yeterli_veya_iyi": 1,
+    "n": 1
+   },
+   "pirouette": {
+    "istenen": 2,
+    "yeterli_veya_iyi": 2,
+    "n": 2
+   },
+   "stop": {
+    "istenen": 14,
+    "yeterli_veya_iyi": 14,
+    "n": 14
+   },
+   "takeoff": {
+    "istenen": 14,
+    "yeterli_veya_iyi": 14,
+    "n": 14
+   },
+   "turn": {
+    "istenen": 2,
+    "yeterli_veya_iyi": 2,
+    "n": 2
+   }
+  },
+  "tork": {
+   "senaryo_56_ustu": [
+    13,
+    35
+   ],
+   "maks_psi": 60.67291878658838,
+   "sure_50_ustu_s": 592.5749999999999,
+   "sure_56_ustu_s": 44.999999999999986,
+   "en_uzun_56_ustu_s": 7.199999999999999,
+   "sure_toplam_s": 5357.250000000001,
+   "rpm_min": 316.1896515473805
+  },
+  "yakit": {
+   "harcanan_lbs": 885.0990636245338,
+   "ort_akis_lbh": 613.3863646494298
+  },
+  "hassasiyet": {
+   "donus_kayma_ft": [
+    4.8,
+    4.65,
+    2
+   ],
+   "pirouette_uzaklik_ft": [
+    10.2,
+    2
+   ]
+  }
+ },
+ "env": {
+  "torque_density_climb": false,
+  "next_at_deadline": false
+ }
+}

@@ -2195,4 +2195,15 @@ ivmeden vazgeçiyordu. İniş probe'u: 10–20 ft'te 6.1–6.6 ft/s alçalıp so
 
 ## 35.3. Eğitim ve sonuç
 
-[35.3 DOLDURULACAK]
+Soy: flight_v2 → `fl_v3` (F13, 3 M adım, 70 dk, 3 env, `rotor_dt_mode: sim`, yeni ödül varsayılanları). Anlık görüntüler
+seçim takımı + hızlanma / iniş probe'u + 24 inişlik stres taraması + held-out ile karşılaştırıldı (`docs/flight/README.md`
+9.2). **Sonuç modeli `models_flight/flight_v3.zip` = fl_v3 1.5 M**: held-out güvenli 35/35 · tüm 29/35 · görev 117/128
+(flight_v2 düzeltilmiş ölçütle 35/35 · 29/35 · 116/128), sıcak gün 7/7 (6/7), seçim 17/21 · 100/105 (15/21 · 98/105),
+yeni seed'li seviyeler F3 %80 / F5 %95 / F6 %100 / F7 %85 / F8 %80 / F10 %80 (75 / 90 / 100 / 85 / 75 / 65), 60 → 100 kt
+banda giriş 29.5 s (35.9), iniş son 5 ft'te 3.7–3.9 ft/s (4.5–5.1), ADS-33 iniş yanal sapması 1.8 / 2.8 ft (3.0 / 3.6).
+Bedeli: held-out'ta 56 psi üstü 45 s (32). 2.0 M adayı daha yüksek görev başarısına rağmen held-out T2_t_turb inişinde
+kuyruk çarptığı için seçilmedi. İkinci tur (`fl_v3b`, `pen_land_att`) gust'lı iniş kazalarını (25 kt + orta türbülans +
+gust, 150–300 ft; flight_v2'de de 4/24) azaltmadı ve genel görevleri geriletti → model alınmadı.
+
+Açık konular: gust'lı inişte burun yukarı frenleme kazaları (ortak zayıflık), hızlanma rampası (2.5 ft/s²) ile sınırlı
+çeviklik, tek seed. Canlı uygulama ve `command_viz.py` varsayılanı artık `flight_v3` (yoksa flight_v2).

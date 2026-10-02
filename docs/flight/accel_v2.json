@@ -1,0 +1,94 @@
+{
+ "model": "models_flight/flight_v2.zip",
+ "env": {
+  "density_obs": true,
+  "pen_turn_rate": 2.0,
+  "torque_feedback_climb": true,
+  "torque_density_climb": false,
+  "next_at_deadline": false
+ },
+ "rows": [
+  {
+   "id": "acc_20_120",
+   "success": true,
+   "settle_s": 75.7,
+   "deadline": 88.0,
+   "term": "time_limit",
+   "max_alt_loss_ft": 8.2,
+   "max_alt_gain_ft": 2.4,
+   "max_pitch": 17.4,
+   "t90_speed_s": 62.0,
+   "loss_first10s_ft": 8.2,
+   "dv_first10s_kt": 36.3
+  },
+  {
+   "id": "dec_120_20",
+   "success": true,
+   "settle_s": 66.5,
+   "deadline": 86.3,
+   "term": "time_limit",
+   "max_alt_loss_ft": 6.5,
+   "max_alt_gain_ft": 6.9,
+   "max_pitch": 5.3,
+   "t90_speed_s": 55.1,
+   "loss_first10s_ft": -1.6,
+   "dv_first10s_kt": 23.6
+  },
+  {
+   "id": "hover_to_100",
+   "success": true,
+   "settle_s": 69.1,
+   "deadline": 88.2,
+   "term": "time_limit",
+   "max_alt_loss_ft": 2.7,
+   "max_alt_gain_ft": 5.5,
+   "max_pitch": 20.3,
+   "t90_speed_s": 59.5,
+   "loss_first10s_ft": 1.5,
+   "dv_first10s_kt": 37.4
+  },
+  {
+   "id": "acc_60_100",
+   "success": true,
+   "settle_s": 35.9,
+   "deadline": 38.7,
+   "term": "time_limit",
+   "max_alt_loss_ft": 3.6,
+   "max_alt_gain_ft": 2.8,
+   "max_pitch": 12.1,
+   "t90_speed_s": 27.3,
+   "loss_first10s_ft": 3.6,
+   "dv_first10s_kt": 22.9
+  },
+  {
+   "id": "land_300",
+   "success": true,
+   "settle_s": 48.2,
+   "deadline": 90.5,
+   "term": "time_limit",
+   "touchdown_vs": -3.292059184753895,
+   "xy_td": 4.3,
+   "max_sink_by_band": {
+    "15-20ft": 6.52,
+    "10-15ft": 6.11,
+    "5-10ft": 5.77,
+    "0-5ft": 4.51
+   }
+  },
+  {
+   "id": "land_50_wind",
+   "success": true,
+   "settle_s": 8.1,
+   "deadline": 27.5,
+   "term": "time_limit",
+   "touchdown_vs": -2.7309231805771668,
+   "xy_td": 4.79,
+   "max_sink_by_band": {
+    "15-20ft": 6.34,
+    "10-15ft": 6.62,
+    "5-10ft": 6.07,
+    "0-5ft": 5.09
+   }
+  }
+ ]
+}

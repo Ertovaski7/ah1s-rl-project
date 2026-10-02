@@ -128,6 +128,11 @@ class FlightEnvConfig(TakeoffEnvConfig):
     progress_min_scale_u: float = 10.0
     sched_scale_u: float = 15.0
     pen_side: float = 0.3                   # · (v_air / 10)², hava hızı 30 kt üstünde (koordineli uçuş)
+    # Rota tutma (2026-10-02, canlı uygulama; eğitim ve değerlendirmede kapalı): ileri uçuşta heading komutu yer izi
+    # (rota) olur. Burun hedefi = rota − süzülmüş sürüklenme açısı (yer hızının buruna göre açısı: rüzgâr + yana kayma);
+    # helikopter rüzgârda pilotun yaptığı gibi burnunu rüzgâra çevirir ve komut edilen yöne gider.
+    course_hold: bool = False
+    course_drift_tau_s: float = 4.0
     cruise_att_roll_deg: float = 35.0       # açı cezası eşikleri (hover'da 20° / 15°)
     cruise_att_pitch_deg: float = 20.0
     # --- inişin son metreleri --------------------------------------------------------------------------------------
@@ -194,6 +199,9 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         self.u_dot = 0.0
         self._u_prev = 0.0
         self.cruise = None                  # ileri uçuş hedefi: dict(u=ft/s) — pencere cruise iken
+        self._course = None                 # rota tutma: hedef yer izi (unwrap °) ve süzülmüş sürüklenme açısı (°)
+        self._drift = 0.0
+        self._gs = 0.0
         self.env_stage = "E0"
 
     # =================================================================
@@ -439,6 +447,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         s0 = self._state()
         self.trim = self._trim_for(self._sched_speed(), s0["weight"], s0["h"])
         self.cruise = None
+        self._course, self._drift, self._gs = None, 0.0, 0.0
         if start == "cruise" and "tasks" not in options:        # takvim ileri uçuş başlangıcına göre (hover'ınki değil)
             options = dict(options, tasks=lv.sample_schedule(self.np_random, "cruise"))
         base_start = "hover" if start == "cruise" else start     # hedef irtifa = mevcut irtifa
@@ -491,6 +500,8 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
 
     def _new_window(self, d: dict, t: float, s: dict) -> dict:
         kind = d["kind"]
+        if kind != "cruise":
+            self._course = None                                  # rota yalnızca ileri uçuş pencerelerinde
         if kind not in ("cruise", "stop", "pirouette"):
             self.cruise = None
             w = super()._new_window(d, t, s)
@@ -571,6 +582,8 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
                 axes.append("psi")
             else:
                 psi_t = base_psi if not d.get("hold") else self.psi_unwrap
+            if cfg.course_hold:
+                psi_t = self._course_target(d, s, psi_t)
             if "h" in d:
                 h_t = float(d["h"])
                 if not samp:
@@ -673,6 +686,31 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
     def _init_progress(self, s: dict):
         e2 = self._errors(s)
         self.prev_abs_err = {"xy": e2["xy"], "h": abs(e2["h"]), "psi": abs(e2["psi"]), "u": abs(e2["u"])}
+
+    # ---------- rota tutma (course_hold) ----------
+    def _course_target(self, d: dict, s: dict, psi_t: float) -> float:
+        """Komutun yönü yer izi (rota): mutlak (psi_abs, flight_commands), önceki rotaya göre Δ ya da önceki rota."""
+        if "psi_abs" in d:
+            course = self.psi_unwrap + wrap_deg(float(d["psi_abs"]) - s["psi_deg"])
+        elif "dpsi" in d:
+            course = (self._course if self._course is not None else self.psi_unwrap) + float(d["dpsi"])
+        else:
+            course = self._course if self._course is not None else psi_t
+        self._course = course
+        return course - self._drift_weight() * self._drift
+
+    def _drift_weight(self) -> float:
+        x = float(np.clip((self._gs - 20.0 * KT) / (20.0 * KT), 0.0, 1.0))      # yer hızı 20 → 40 kt
+        return x * x * (3.0 - 2.0 * x)
+
+    def _update_course(self, air: dict):
+        self._gs = math.hypot(air["u_gnd"], air["v_gnd"])
+        if not self._in_cruise() or self._course is None:
+            return
+        if self._gs > 10.0:
+            drift = float(np.clip(math.degrees(math.atan2(air["v_gnd"], air["u_gnd"])), -35.0, 35.0))
+            self._drift += (1.0 - math.exp(-CONTROL_DT / self.cfg.course_drift_tau_s)) * (drift - self._drift)
+        self.target["psi"] = self._course - self._drift_weight() * self._drift
 
     def _in_cruise(self) -> bool:
         return self.cruise is not None and bool(self.windows) and self.windows[-1]["kind"] == "cruise"
@@ -854,6 +892,8 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         self.u_meas += a_m * (air["u_air"] - self.u_meas)
         self.u_dot += 0.3 * ((air["u_air"] - self._u_prev) / CONTROL_DT - self.u_dot)
         self._u_prev = air["u_air"]
+        if self.cfg.course_hold:
+            self._update_course(air)
         if self._in_cruise():                                    # ileri uçuşta konum hedefi helikopteri izler
             self.target["n"], self.target["e"] = s["n"], s["e"]
         self._update_track(t_after, s)
@@ -1089,7 +1129,9 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
                  trim_speed_kt=self._sched_speed() / KT,
                  fuel_lbs=fuel_total(self.fdm), wind_n=self.ext.wind_ned[0], wind_e=self.ext.wind_ned[1],
                  delta_T_C=float(self.ext.params.get("delta_T_C", 0.0)),
-                 density_altitude_ft=float(self.fdm["atmosphere/density-altitude"]))
+                 density_altitude_ft=float(self.fdm["atmosphere/density-altitude"]),
+                 course_deg=(self._course % 360.0 if self._course is not None and self._in_cruise() else float("nan")),
+                 drift_deg=self._drift)
         return d
 
 

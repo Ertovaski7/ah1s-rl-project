@@ -267,6 +267,9 @@ class HelicopterEnvCommand(gym.Env):
         self.action_space = spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
 
         self.fdm = None
+        # (enlem°, boylam°) ya da None: None → reset00.xml'deki konum (eğitim ve değerlendirme hep böyle). Canlı uygulama
+        # (ah1s_app) uçuşu başka yerde başlatmak için atar; zemin yüksekliği ve atmosfer değişmez.
+        self.start_location: tuple[float, float] | None = None
         self._fdm_needs_refresh = True
         self._episodes_on_fdm = 0
         self._scale = np.asarray(self.cfg.action_scale, dtype=np.float64)
@@ -332,6 +335,8 @@ class HelicopterEnvCommand(gym.Env):
             raise RuntimeError("AH-1S modeli yüklenemedi.")
         if not fdm.load_ic("reset00.xml", True):
             raise RuntimeError("reset00.xml yüklenemedi.")
+        if self.start_location is not None:
+            fdm["ic/lat-geod-deg"], fdm["ic/long-gc-deg"] = float(self.start_location[0]), float(self.start_location[1])
         fdm.set_dt(JSBSIM_DT)
         # Resmi AH-1S kurulumu (legacy/helicopter_env_v2.py ile birebir)
         fdm["ap/afcs/psi-trim-rad"] = np.pi

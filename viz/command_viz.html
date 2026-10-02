@@ -461,7 +461,7 @@ a{color:var(--s1)}
       <div id="noteSuccess"><b>Başarı</b> eğitimdeki kuralla aynı: komut penceresinin son 10 s'si boyunca aynı anda |eψ| ≤ 1.5°, |ev| ≤ 1.5 ft/s, |eh| ≤ 10 ft; komut verilmeyen eksen pencere boyunca kuplaj sınırında (5°, 4 ft/s, 25 ft). Kararı pencere kapanınca (yeni komut ya da uçuş sonu) env verir.</div>
       <div><b>Metrikler</b>: yükselme = hedefe giden yolun %10'undan %90'ına süre; aşma = hedefin ötesine geçen kısım (|Δ|'nın %'si); oturma = tolerans bandına girip bir daha çıkmadığı an (komuttan itibaren); son hata = pencerenin son tutma süresi (komut 10 s, manevra 5 s) boyunca ortalama.</div>
       <div id="noteSafety"><b>Güvenlik</b>: yatış 40°, yunuslama 30°, irtifa 50 ft altı, rotor 280–380 rpm, komut bandından 75 ft / 12 ft/s sapma, heading'in 30°'den fazla ters yöne gitmesi → uçuş biter. Güvenli aralık dışına taşan Δ'nın işareti env tarafından çevrilir (eğitimdeki gibi).</div>
-      <div><b>HUD</b>: magenta = komut / hedef (aviyonik geleneği). Heading bandındaki ◇ ve «İZ» yer izidir (helikopterin gerçekten gittiği yön); burun yönünden farkı yana kaymadır — hız kutusundaki «yanal» değeri.</div>
+      <div><b>HUD</b>: magenta = komut / hedef (aviyonik geleneği). Heading bandındaki ◇ ve «İZ» yer izidir (helikopterin gerçekten gittiği yön); burun yönünden farkı yana kaymadır — hız kutusundaki «yanal» değeri. Canlı uçuşta ileri uçuş heading komutu rotadır (yer izi): helikopter komut edilen yöne gider, rüzgârda burnunu pilotun yaptığı gibi rüzgâra çevirir («ROTA 090° · burun −12°»); 3D'de magenta çizgi rota, koyu çizgi burun.</div>
       <div class="muted">3D model: low-poly AH-1S (viz/ah1s_model.js); rotor göbekleri, kızaklar ve rotor boyutları JSBSim AH-1S modelinden. Ana rotor kayıttaki devirle döner (nominal 324 rpm), kuyruk rotoru orantılı (× 1660 / 324); kanat hatvesi collective'i, disk eğimi cyclic'i gösterir. Uçuş dinamiği JSBSim AH-1S modeli.</div>
     </div>
   </section>
@@ -658,7 +658,8 @@ class Flight {
       tx: this.ix.tx != null ? L("tx") : NaN, ty: this.ix.ty != null ? L("ty") : NaN,
       wow: this.ix.wow != null ? this.col("wow")[i] : NaN, wf: this.ix.wf != null ? L("wf") : NaN,
       ...(this.ix.ua != null ? { ua: L("ua"), uat: this.col("uat")[i], uff: L("uff"), wn: L("wn"), we: L("we"), tq: L("tq"),
-        fuel: L("fuel"), va: L("va"), esp: L("esp"), cr: this.col("cr")[i] } : {}) };
+        fuel: L("fuel"), va: L("va"), esp: L("esp"), cr: this.col("cr")[i] } : {}),
+      crs: this.ix.crs != null ? this.col("crs")[i] : NaN };      // rota tutma: hedef yer izi (en yakın satır, sarmasın)
   }
 }
 
@@ -906,7 +907,8 @@ class FlightScene {
     this.shadow.material.opacity = 0.55 * clamp(1 - s.h / 2200, 0.2, 1); this.shadow.scale.setScalar(0.8 + s.h / 1800);
     this._syncTrail(fl, s.t, pos);
     // hedef heading çizgisi + dönüş yayı (heli irtifasında)
-    const psiR = THREE.MathUtils.degToRad(s.psi), tgtR = THREE.MathUtils.degToRad(s.psi_ref);
+    // magenta: hedef yön (rota tutmada rota = gidilecek yer izi), koyu: burun
+    const psiR = THREE.MathUtils.degToRad(s.psi), tgtR = THREE.MathUtils.degToRad(fin(s.crs) ? s.crs : s.psi_ref);
     const dir = r => new THREE.Vector3(Math.sin(r), 0, -Math.cos(r));
     this._setLine(this.tgtLine, [pos.clone(), pos.clone().addScaledVector(dir(tgtR), 320)]);
     this._setLine(this.curLine, [pos.clone(), pos.clone().addScaledVector(dir(psiR), 150)]);
@@ -1003,7 +1005,7 @@ function updateFlightGauges(s, fl, T) {
   const left = fin(rate) && rate > 50 ? fuel / rate : NaN, hh = Math.floor(left), mm = Math.round(60 * (left - hh));
   hud.fuelSub.textContent = fin(left) ? `${fmt(rate, 0)} lb/h · ~${hh > 0 ? `${hh} sa ${String(mm).padStart(2, "0")} dk` : `${mm} dk`}` : "";
 }
-function drawTape(hdg, tgt, showTgt, track) {
+function drawTape(hdg, tgt, showTgt, track, course) {
   const cv = hud.tape, dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight;
   if (!W || !H) return;
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
@@ -1021,6 +1023,12 @@ function drawTape(hdg, tgt, showTgt, track) {
     const e = wrap180(track - hdg);
     if (Math.abs(e) < span / 2 - 3) { const x = cx + e * ppd, y = base - 7; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - 4.5); g.lineTo(x + 4.5, y); g.lineTo(x, y + 4.5); g.lineTo(x - 4.5, y); g.closePath(); g.stroke(); g.lineWidth = 1; }
     g.textAlign = "right"; g.font = "10px 'B612', sans-serif"; g.fillText(`İZ ${pad3(track)}°`, W - 6, 13); g.textAlign = "center";
+  }
+  if (fin(course)) {                      // rota tutma: hedef rota ve burnun rüzgâr düzeltmesi
+    const wca = wrap180(hdg - course);
+    g.textAlign = "left"; g.font = "10px 'B612', sans-serif"; g.fillStyle = "#ff8ff0";
+    g.fillText(`ROTA ${pad3(course)}° · burun ${wca >= 0 ? "+" : "−"}${Math.abs(wca).toFixed(0)}°`, 6, 13);
+    g.textAlign = "center"; g.fillStyle = "rgba(242,246,248,.92)";
   }
   if (showTgt) {
     const e = wrap180(tgt - hdg), off = Math.abs(e) > span / 2 - 3, x = cx + clamp(e, -span / 2 + 3, span / 2 - 3) * ppd;
@@ -1074,7 +1082,8 @@ function updateHud(s, fl, T) {
   hud.hdg.textContent = pad3(s.psi) + "°";
   const hasCmd = fl.commands.some(c => c.t <= T);
   const track = s.u > 2 ? s.psi + Math.atan2(s.v, s.u) * 180 / Math.PI : NaN;
-  drawTape(s.psi, s.psi_ref, hasCmd || Math.abs(wrap180(s.psi_ref - s.psi)) > 0.5, track);
+  const tgtHdg = fin(s.crs) ? s.crs : s.psi_ref;
+  drawTape(s.psi, tgtHdg, hasCmd || Math.abs(wrap180(tgtHdg - s.psi)) > 0.5, track, s.crs);
   updateFlightGauges(s, fl, T);
   if (isFL(fl) && fin(s.ua) && (s.cr > 0 || Math.abs(s.ua) > 20)) {   // uçuş: ileri uçuşta hava hızı (kt), hedef hız
     const onGround = (s.wow || 0) > 0;
@@ -1473,6 +1482,7 @@ function renderStatus() {
 function updateSub() {
   const fl = app.flight; const m = fl?.meta || {}; const st = m.start || {};
   const parts = ["PPO ajanı", "JSBSim AH-1S"];
+  if (st.location?.name) parts.push(`konum ${st.location.name}`);
   if (m.model) parts.push(`model ${m.model}`);
   const au = authText(fl?.limits || app.hello?.limits); if (au) parts.push(au);
   if (isTO(fl)) {

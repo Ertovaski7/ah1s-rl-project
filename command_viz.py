@@ -117,6 +117,8 @@ COLUMNS = [
     # toplam rüzgâr kuzey / doğu ft/s (ortalama + türbülans + gust), tork psi, yakıt lbs, yana hava hızı ft/s,
     # hız hatası ft/s (süzülmüş), ileri uçuş bayrağı
     ("ua", 2), ("uat", 2), ("uff", 2), ("wn", 2), ("we", 2), ("tq", 2), ("fuel", 1), ("va", 2), ("esp", 2), ("cr", 0),
+    # rota tutma (canlı, 2026-10-02): hedef yer izi ° (ileri uçuşta; yoksa boş)
+    ("crs", 1),
 ]
 COLS = [c for c, _ in COLUMNS]
 AXIS_ERR_COL = {"heading": "e_psi", "speed": "e_u", "altitude": "e_h"}
@@ -156,6 +158,7 @@ def _limits_flight(cfg: FlightEnvConfig) -> dict:
     """Tek ajan: kalkış görevinin sınırları + ileri uçuş bandı, tork / yakıt, türbülans bant katsayıları."""
     L = _limits_takeoff(cfg)
     L["task"] = "flight"
+    L["course_hold"] = bool(getattr(cfg, "course_hold", False))        # sayfa: heading komutu rota mı
     L["flight"] = dict(tol_u_fps=cfg.tol_u_fps, tol_psi_cruise_deg=cfg.tol_psi_cruise_deg, tol_h_cruise_ft=cfg.tol_h_cruise_ft,
                        tol_vs_cruise_fps=cfg.tol_vs_cruise_fps, coupling_cruise=list(cfg.coupling_cruise),
                        tol_turb_scale=dict(cfg.tol_turb_scale), max_airspeed_kt=cfg.max_airspeed_kt,
@@ -359,7 +362,7 @@ class LiveFlight:
     """
 
     def __init__(self, policy_path: str | Path = DEFAULT_POLICY, env_config: str = "v2", level: str | None = None,
-                 policy=None, start: dict | None = None, task: str | None = None):
+                 policy=None, start: dict | None = None, task: str | None = None, course_hold: bool = False):
         self.policy_path = Path(policy_path)
         self.env_config = env_config
         obs_dim, self.env_overrides = None, {}
@@ -372,7 +375,8 @@ class LiveFlight:
                              else {OBS_DIM_M: "maneuver"}.get(obs_dim, "command"))
         self.is_to = self.task in ("takeoff", "flight")          # görev listesi / pencereler kalkış env'inin yapısında
         if self.task == "flight":
-            cfg = FlightEnvConfig(**self.env_overrides)
+            # course_hold: ileri uçuşta heading komutu yer izi; burun rüzgâra göre düzeltilir (eğitimde kapalıydı)
+            cfg = FlightEnvConfig(**{**self.env_overrides, "course_hold": bool(course_hold)})
             self.env = HelicopterEnvFlight(level=level or "F8", config=cfg)
         elif self.task == "takeoff":
             cfg = TakeoffEnvConfig(**self.env_overrides)
@@ -718,6 +722,8 @@ class LiveFlight:
     def _do_reset(self, opts: dict):
         with self.lock:
             self.state, self.message = "resetting", "Yeniden başlatılıyor…"
+        loc = opts.get("location") or None                 # {name, lat, lon}: uçuş bu enlem / boylamda başlar
+        self.env.start_location = (float(loc["lat"]), float(loc["lon"])) if loc else None
         if self.is_to:
             options = dict(tasks=[dict(t) for t in (opts.get("tasks") or [])], episode_s=LIVE_EPISODE_S, live=True,
                            start=opts.get("start", "ground"), start_alt_ft=float(opts.get("alt", 100.0)),
@@ -870,7 +876,7 @@ class LiveFlight:
                 vals += [info["airspeed_kt"], info["u_target_kt"] if info.get("cruise") else None, info["trim_speed_kt"],
                          float(f["atmosphere/total-wind-north-fps"]), float(f["atmosphere/total-wind-east-fps"]),
                          info["torque_psi"], info["fuel_lbs"], info["lateral_airspeed"], info["err_speed"],
-                         1.0 if info.get("cruise") else 0.0]
+                         1.0 if info.get("cruise") else 0.0, info.get("course_deg")]
             vals += [None] * (len(COLUMNS) - len(vals))
             return [round(float(v), nd) if _finite(v) else None for v, (_, nd) in zip(vals, COLUMNS)]
         f = self.env.fdm
@@ -1031,10 +1037,24 @@ def page_fragment(boot: dict | None = None) -> str:
     return html
 
 
-def page_document(boot: dict | None = None) -> str:
+# CDN → yerel kopya (viz/vendor; aynı sürümler). Yerel sunucu sayfayı bunlarla verir: masaüstü penceresi / tarayıcı
+# internetsiz de açılır. Colab satır içi sayfası CDN'den yükler (yanında dosya sunulamaz).
+VENDOR = {
+    "https://cdn.jsdelivr.net/npm/three@0.169.0/+esm": "./vendor/three.module.min.js",
+    "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js/+esm": "./vendor/OrbitControls.js",
+    "https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.iife.min.js": "./vendor/uPlot.iife.min.js",
+}
+
+
+def page_document(boot: dict | None = None, local_vendor: bool = True) -> str:
+    html = page_fragment(boot)
+    if local_vendor:
+        for cdn, local in VENDOR.items():
+            if (VIZ_DIR / local.removeprefix("./")).is_file():
+                html = html.replace(cdn, local)
     return ("<!doctype html>\n<html lang=\"tr\">\n<head>\n<meta charset=\"utf-8\">\n"
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n"
-            "</head>\n<body>\n" + page_fragment(boot) + "\n</body>\n</html>\n")
+            "</head>\n<body>\n" + html + "\n</body>\n</html>\n")
 
 
 # =====================================================================
@@ -1390,6 +1410,13 @@ def main(argv=None):
         a = p.parse_args(argv[1:])
         record_missions(a.out, a.every, a.only, a.maneuver_model, a.robust_model, a.takeoff_model, a.flight_model)
         return
+    p = live_parser()
+    a = p.parse_args(argv)
+    serve(live_from_args(a, p), a.host, a.port, a.open)
+
+
+def live_parser() -> argparse.ArgumentParser:
+    """Canlı uçuşun komut satırı (main ve masaüstü uygulamasının 3D penceresi, ah1s_app.sim_window, ortak)."""
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--model", type=Path, default=DEFAULT_POLICY,
                    help="PPO modeli (.zip); görev (komut / manevra) modelin observation boyutundan anlaşılır")
@@ -1407,13 +1434,28 @@ def main(argv=None):
     p.add_argument("--turb", choices=["none", "light", "moderate", "severe"], default=None, help="uçuş görevi: türbülans")
     p.add_argument("--gusts", action="store_true", help="uçuş görevi: gust'lar (dakikada ~1, 5–12 kt)")
     p.add_argument("--fuel", type=float, nargs=2, default=None, help="kalkış / uçuş görevi: tank başına yakıt (lbs)")
+    p.add_argument("--temp-dc", type=float, default=None, help="uçuş görevi: standart günden sıcaklık farkı (°C)")
+    p.add_argument("--lat", type=float, default=None, help="başlangıç enlemi (°); --lon ile birlikte (yoksa reset00.xml)")
+    p.add_argument("--lon", type=float, default=None, help="başlangıç boylamı (°)")
+    p.add_argument("--location-name", default=None, help="konumun sayfada görünen adı")
     p.add_argument("--open", action="store_true", help="tarayıcıyı aç")
-    a = p.parse_args(argv)
-    flight = LiveFlight(a.model, env_config=a.env_config,
-                        start=dict(alt=a.start_alt, speed=a.start_speed, heading=a.start_heading, start=a.start,
-                                   speed_kt=a.start_speed_kt, wind_kt=a.wind_kt, wind_dir=a.wind_dir, turb=a.turb,
-                                   gusts=True if a.gusts else None, fuel=list(a.fuel) if a.fuel else None))
-    serve(flight, a.host, a.port, a.open)
+    p.add_argument("--nose-heading", action="store_true",
+                   help="uçuş görevi: heading komutu burun yönü (eğitimdeki gibi); varsayılan: ileri uçuşta yer izi (rota), "
+                        "burun rüzgâra göre düzeltilir")
+    return p
+
+
+def live_from_args(a, p: argparse.ArgumentParser | None = None) -> LiveFlight:
+    if (a.lat is None) != (a.lon is None):
+        if p is not None:
+            p.error("--lat ve --lon birlikte verilmeli")
+        raise ValueError("--lat ve --lon birlikte verilmeli")
+    location = dict(name=a.location_name or f"{a.lat:.3f}, {a.lon:.3f}", lat=a.lat, lon=a.lon) if a.lat is not None else None
+    return LiveFlight(a.model, env_config=a.env_config,
+                      start=dict(alt=a.start_alt, speed=a.start_speed, heading=a.start_heading, start=a.start,
+                                 speed_kt=a.start_speed_kt, wind_kt=a.wind_kt, wind_dir=a.wind_dir, turb=a.turb,
+                                 gusts=True if a.gusts else None, fuel=list(a.fuel) if a.fuel else None,
+                                 temp_dc=a.temp_dc, location=location), course_hold=not a.nose_heading)
 
 
 if __name__ == "__main__":

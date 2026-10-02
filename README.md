@@ -153,6 +153,13 @@ python evaluate_flight.py --model models_flight/flight_v2.zip --suite test   # h
 python command_viz.py --wind-kt 15 --turb light                        # canlı 3D (varsayılan flight_v2), rüzgâr / tork / yakıt
 ```
 
+## 1.10. Yeni: `flight_v3` — ödül dengesi, rotor dt düzeltmesi, 120 kt zarfı (2026-10-02, bölüm 35)
+
+```bash
+python -m pytest -q tests                                              # duman testleri (env'ler kuruluyor mu)
+python evaluate_flight.py --model models_flight/flight_v3.zip --suite test --env '{"torque_density_climb": false, "next_at_deadline": false}'
+```
+
 ---
 
 # 2. Repo yapısı
@@ -2143,3 +2150,49 @@ yer tutucu panel), `config.py` (paneller, konumlar, sınırlar — `flight_curri
 yükler), `turkey.py` (kaba Türkiye ana hatları). Menüler jsbsim / torch olmadan da açılır; bunlar yalnızca simülasyon
 sürecinde yüklenir.
 
+---
+
+# 35. Bağımsız değerlendirme sonrası: ödül dengesi, rotor zaman adımı, 120 kt zarfı — `flight_v3` (2026-10-02, branch `reward-v3`)
+
+Bu oturumdaki bağımsız teknik değerlendirmenin bulguları ve kullanıcı kararları üzerine yapılan değişiklikler. Ayrıntı ve
+ölçümler: `docs/flight/README.md` bölüm 9. `legacy/` kapsam dışıdır (devre dışı eski sistem; hiçbir değişiklik dokunmaz).
+
+## 35.1. Düzeltmeler
+
+- **HEAD regresyonu:** 8c583eb `start_location`'ı `HelicopterEnvCommand.__init__`'e ekledi; kalkış / uçuş env'leri temel
+  init'i çağırmadığı için reset'te `AttributeError` veriyordu (`python helicopter_env_flight.py`, `evaluate_flight.py`,
+  eğitim çöküyordu; yalnızca `command_viz.py` çalışıyordu). Nitelik `HelicopterEnvTakeoff.__init__`'te de tanımlandı;
+  `tests/test_smoke.py` (`python -m pytest -q tests`) her env'i kurup adım attırıyor.
+- **Rotor zaman adımı** (`TakeoffEnvConfig.rotor_dt_mode`): "legacy" (varsayılan; eski modeller bit düzeyinde aynı)
+  `set_dt`'yi `load_model`'den sonra çağırır → FGRotor / FGTransmission 1/120 s ile integre ederken simülasyon 0.0075 s
+  ilerler (rotor tarafı ~%11 hızlı). "sim": `set_dt` önce → rotor ve simülasyon aynı dt'de; repo uçağının yer etkisi
+  çarpanı `ge/inflow-amplification` gerçek rotor dt'sine göre yazılır (A = e/(1−e), e = exp(−0.0075/0.09) → 11.51;
+  XML'deki 10.31 1/120 s içindi). Ölçüm: kolektif basamağında (0 → 0.62, 8800 lbs) 4 s'de irtifa 19.3 → 20.3 ft, tork
+  ±0.1 psi; `flight_v2` iki modda da aynı davranıyor (hızlanma / iniş probe'u farkları ≤ 0.1 ft). `flight_v3` "sim" ile
+  eğitildi (ayar model zip'inde taşınır; `evaluate_*` ve `command_viz.py` okur).
+- **Komut zarfı 130 → 120 kt** (`flight_curriculum.CMD_MAX_KT`): trim tablosu (probe e) 120 kt'a kadar ölçülü; üstünde
+  ileri besleme kırpılıp yanlış kalıyordu. F10 örneklemesi 15–115 kt başlangıç, 15–110 kt hızlanma. Held-out `d_130kt` →
+  `d_120kt` (komut zaten 120'ye kırpıldığı için fiziksel test aynı).
+- **`evaluate_flight.py` `episode_ok`:** 30 s hover senaryolarında süre bitince yarım kalan oto-tutma penceresi episode'u
+  "başarısız" gösteriyordu (hover_sakin 5/5 görev, "tüm görevler ✗"); kesilen pencereler artık sayılmıyor. Eski JSON'larda
+  etkilenen yalnızca 3 hover senaryosu: flight_v2 seçim 13/21 → **15/21**, held-out 28 → **29/35** okunmalı.
+
+## 35.2. Ödül değişiklikleri (`FlightEnvConfig`; eski modellerin değerlendirmesi ödüle bağlı değil)
+
+Ölçüm (`flight_v2`, kısa zincir 9700 lbs): getiri 709, görev bonusu 12 (%1.7); `track` + `guide` pozitif getirinin ~%99'u,
+bütün cezalar < %5. Görev erken bitince sıradaki görev hemen başlıyor ve episode kısalıyordu → erken bitirmek getiriyi
+düşürüyordu; `flight_v2` ileri uçuş görevlerini son sınırın %70–90'ında bitiriyordu (banda giriş / son sınır medyan
+0.75–0.86). Kullanıcı gözlemi: hızlanmada burun eğilip irtifa kaybı hemen cezalandırıldığı için ajan 3–4 s sonra
+ivmeden vazgeçiyordu. İniş probe'u: 10–20 ft'te 6.1–6.6 ft/s alçalıp son 5 ft'te 4.5–5.1 ft/s'den fren.
+
+| değişiklik | alan (varsayılan) | ne yapar |
+|---|---|---|
+| sıradaki görev son sınırda | `next_at_deadline` (True) | başarıyla biten pencereden sonra sıradaki görev son sınır + tutma süresinde başlar (`end_at_deadline`'ın her pencereye genellenmişi): erken varan hedefte daha çok adım geçirir, episode uzunluğu başarıdan bağımsız; sabit `_t` takvimli ve kesen `_frac` görevler etkilenmez |
+| erken bitirme bonusu | `w_task_early` (50) | başarıda +50·(1 − banda giriş / son sınır) ham (en çok 5 ölçekli), `w_task_success` 30'un üstüne |
+| hızlanmada irtifa payı | `accel_h_allow_ft` (30) | ileri uçuşta hız değişimi sürerken irtifa hatasının 30 ft · (kalan hız hatası oranı) kadarı takip çekirdeği, dikey hız yönlendirmesi, takvim gecikmesi ve kuplaj cezasında sayılmaz; hedefe yaklaştıkça pay sıfırlanır (başarı bandı ±12 ft ve kuplaj sınırı 40 ft değişmez; simetrik: yavaşlarken hız–irtifa takası) |
+| inişin son 20 ft'i | `pen_land_final` (3) | izin verilen alçalma 1.0 + 0.15·kızak yüksekliği ft/s (20 ft: 4.0, 10 ft: 2.5, 5 ft: 1.75); aşımın karesi · 3; yalnızca iniş penceresinde havadayken → manevra kabiliyetini etkilemez |
+| yere yakın attitude | `pen_land_att` (2) | iniş penceresinde kızak < 15 ft iken burun yukarı θ > 8° ve |φ| > 6° için ((aşım)/4°)² · 2 (iniş stres taraması: gust'lı inişte burun 3° → 13° kaldırılıp kuyruk çarpıyordu) |
+
+## 35.3. Eğitim ve sonuç
+
+[35.3 DOLDURULACAK]

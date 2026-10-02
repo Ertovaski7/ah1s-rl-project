@@ -460,3 +460,58 @@ python train_command_curriculum.py --task flight --out runs/fl10 --init-model ru
 # fl13: F12 (1 M) · fl14: F13 (1.5 M → flight_v2) — aynı bayraklarla, --init-model bir öncekinin son modeli
 python command_viz.py --start ground --wind-kt 15 --turb light            # canlı 3D (varsayılan model flight_v2)
 ```
+
+## 9. Ödül dengesi, rotor dt, 120 kt zarfı, iniş — `flight_v3` (2026-10-02, branch `reward-v3`; README 35)
+
+Ölçüt (bütün tablolar): deterministik policy, `torque_density_climb` ve `next_at_deadline` kapalı (eski modellerle aynı
+zamanlama), rotor dt modeli modelin kendi ayarı (flight_v2 "legacy", flight_v3 "sim"). `evaluate_flight.py`'nin düzeltilmiş
+`episode_ok`'u (kesilen oto-tutma pencereleri sayılmaz).
+
+### 9.1. Yeni ölçümler (bağımsız değerlendirme, flight_v2)
+
+- **Osilasyon** (hover 100 ft, sakin, 30 s): konum RMS 0.94 ft (maks 1.1), irtifa maks 0.7 ft, heading 1.0°, roll / pitch
+  std 0.5°; kumanda baskın frekansı 0.33 Hz, 1 Hz üstü güç %1–4 (15 kt yan rüzgâr + hafif türbülansta pedal %11). Yüksek
+  frekanslı titreme yok.
+- **Ödül yapısı:** getiri 412–1266, görev bonusu %1.5–1.9; track + guide pozitif getirinin ~%99'u.
+- **Zamanlama:** ileri uçuş görevlerinde banda giriş / son sınır medyan 0.75–0.86 (flight_final 0.52–0.74).
+- **Sağlamlık probe'u** (kısa zincir sakin / rüzgârlı ağır, 300 ft'ten iniş, 80 kt dönüşler): gözlem gürültüsü σ 0.02–0.05
+  (≈0.5 ft, 1.4°, 1 ft/s) sorunsuz, σ 0.10'da bozulma; aksiyon gecikmesi 75 ms sorunsuz, 150 ms'de kalkış / duruş / hover
+  tutma bozuluyor, 300 ms'de kalkışta düşme; trim bias'ları (collective +0.03, pedal +0.08, lateral −0.08) sorunsuz.
+- **Hızlanma probe'u** (`scratchpad/probe_accel.py` mantığı; sakin, 9300 lbs): 20 → 120 kt'ta ilk 10 s'de 8.2 ft kayıp,
+  36 kt hız artışı, %90 hız 62 s; iniş 300 ft'ten: 10–20 ft'te 6.1–6.6 ft/s, son 5 ft 4.5–5.1 ft/s, temas −3.3 ft/s.
+- **İniş stres taraması** (24 iniş: 150 / 300 / 50 ft × sakin / 15 kt yan + hafif / 25 kt + orta + gust / 20 kt arkadan +
+  hafif + gust × 8800–9700 lbs, 2 seed): flight_v2 19/24 başarılı, **4 güvensiz** (25 kt + orta türbülans + gust'ta
+  150–300 ft'ten: 3 kuyruk çarpması, 1 devrilme — burun 3° → 13° kaldırılıp yer hızı frenleniyor). Bu zayıflık eskiden
+  beri vardı (held-out T2_t_turb inişi flight_v2'de −4.54 ft/s).
+- **Yeni seed'lerle seviyeler** (seed 900000+, 20 episode): flight_v2 F3 %75, F5 %90, F6 %100, F7 %85, F8 %75, F10 %65.
+
+### 9.2. İnce ayar koşuları
+
+`fl_v3`: flight_v2'den, F13, 3 M adım (70 dk, 3 env), lr 1e-4 + KL 0.02, `rotor_dt_mode: sim`, yeni ödül varsayılanları
+(next_at_deadline, w_task_early 50, accel_h_allow_ft 30, pen_land_final 3). `fl_v3b`: fl_v3'ün 1.5 M modelinden,
+`pen_land_att` 2 ile 1.5 M adım.
+
+| model | seçim: tüm · görev | 56 psi üstü (en uzun) | banda giriş / son sınır (cruise, medyan) | temas medyan / en sert | son 5 ft alçalma (300 ft / 50 ft rüzgâr) | 60 → 100 kt banda giriş |
+|---|---|---|---|---|---|---|
+| flight_v2 | 15/21 · 98/105 | 46 s (6.7) | 0.75–0.86 | −2.6 / −3.6 | 4.5 / 5.1 ft/s | 35.9 s / 38.7 |
+| fl_v3 0.5 M | 15/21 · 93/105 | 50 s (6.9) | 0.73 | −2.4 / −3.3 | 4.9 / 4.4 | 37.4 |
+| fl_v3 1.0 M | 13/21 · 94/105 | 61 s (7.5) | 0.75 | −2.2 / −3.2 | 4.6 / 4.2 | 29.4 |
+| fl_v3 1.5 M | 17/21 · 100/105 | 61 s (7.0) | 0.76 | −2.4 / −3.8 | 3.7 / 3.9 | 29.5 |
+| fl_v3 2.0 M | 18/21 · 102/105 | 51 s (7.6) | 0.76 | −2.2 / −2.8 | 3.6 / 3.8 | 29.5 |
+| fl_v3 2.5 M | 17/21 · 101/105 | 36 s (5.0) | 0.73 | −2.0 / −3.3 | 3.0 / 3.5 | 29.5 |
+| fl_v3 3.0 M | 14/21 · 97/105 | 51 s (6.5) | 0.74 | −1.7 / −2.7 | 2.9 / 3.7 | 29.5 |
+
+Held-out (35) ve iniş stresi: fl_v3 1.5 M güvenli 35/35, tüm 29/35, görev 117/128, sıcak gün 7/7 (flight_v2 29/35 ·
+116/128 · 6/7); 2.0 M 34/35 (T2_t_turb inişinde kuyruk çarpması), 31/35 · 120/128; 2.5 M 34/35 (aynı senaryo), yerinde
+dönüş hassasiyeti bozuldu (7/8, 7.1 ft). İniş stresinde adaylar 2–4 güvensiz (flight_v2 4) → gust'lı iniş ortak
+zayıflık; `pen_land_att` bunun için eklendi (fl_v3b). Yeni seed'lerle seviyeler: 1.5 M F3 %80, F5 %95, F6 %100, F7 %85,
+F8 %80, F10 %80; 2.0 M %90 / 95 / 100 / 90 / 85 / 80.
+
+Hızlanma probe'u (20 → 120 kt): ilk 10 s irtifa kaybı 8.2 (v2) → 8.6 / 9.1 / 7.4 / 6.5 ft (1.5 / 2.0 / 2.5 / 3.0 M), hız
+kazancı 35–36 kt aynı; hızlanma penceresi süre hedefi (2.5 ft/s² rampa) değişmediği için %90 hız süresi 62 s sabit —
+"bir an önce hızlanma" için rampanın (`cruise_accel_fps2`) ve hızlanma süre hedefinin de büyütülmesi gerekir (yapılmadı;
+F10 müfredatı 2.5 ft/s² ile).
+
+### 9.3. Sonuç modeli
+
+[9.3 DOLDURULACAK]

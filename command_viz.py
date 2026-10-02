@@ -74,7 +74,6 @@ from takeoff_curriculum import DEFAULT_TAKEOFF_LEVELS, GROUND_H_FT, TANK_CAPACIT
 
 VIZ_DIR = REPO_ROOT / "viz"
 PAGE_FILE = VIZ_DIR / "command_viz.html"
-MODEL_MODULE = VIZ_DIR / "ah1s_model.js"           # low-poly AH-1S (three.js modülü); sayfa sunulurken satır içine alınır
 COMMAND_POLICY = REPO_ROOT / "models_command_curriculum" / "v2_R1_final.zip"
 MANEUVER_POLICY = REPO_ROOT / "models_maneuver" / "maneuver_M5_final.zip"
 ROBUST_POLICY = REPO_ROOT / "models_maneuver" / "maneuver_robust_final.zip"     # collective ±0.45 + S4 ince ayar (README 29)
@@ -1007,27 +1006,26 @@ class LiveFlight:
 # SAYFA
 # =====================================================================
 
-def inline_model_module(html: str) -> str:
-    """Sayfadaki `import { … } from "./ah1s_model.js";` satırını modülün kendisiyle değiştirir.
+def inline_local_modules(html: str) -> str:
+    """Sayfadaki `import { … } from "./<ad>.js";` satırlarını (viz/ altındaki modüller) modüllerin kendisiyle değiştirir.
 
-    Colab sayfayı satır içi gösterir, yanında dosya sunamaz; yerel sunucu da aynı sayfayı verir. Modül kendi
-    `import * as THREE` satırı olmadan, sayfanın THREE'si ile bir kapsam içinde çalışır; adları sayfayla çakışmaz.
+    Colab sayfayı satır içi gösterir, yanında dosya sunamaz; yerel sunucu da aynı sayfayı verir. Her modül kendi
+    `import * as THREE` satırı olmadan, sayfanın THREE'si ile ayrı bir kapsamda çalışır; adları sayfayla çakışmaz.
     """
-    m = re.search(r'^import \{([^}]*)\} from "\./ah1s_model\.js";$', html, flags=re.M)
-    if not m:
-        return html
-    names = ", ".join(n.strip() for n in m.group(1).split(",") if n.strip())
-    src = MODEL_MODULE.read_text(encoding="utf-8")
-    src, n_three = re.subn(r'^import \* as THREE from "[^"]+";\n', "", src, flags=re.M)
-    if n_three != 1 or re.search(r"^import ", src, flags=re.M):
-        raise RuntimeError(f"{MODEL_MODULE.name}: beklenen tek import three.js olmalı")
-    src = re.sub(r"^export (const|class|function) ", r"\1 ", src, flags=re.M)
-    block = f"const {{ {names} }} = (() => {{\n{src}\nreturn {{ {names} }};\n}})();"
-    return html[:m.start()] + block + html[m.end():]
+    def repl(m: re.Match) -> str:
+        names = ", ".join(n.strip() for n in m.group(1).split(",") if n.strip())
+        path = VIZ_DIR / m.group(2)
+        src = path.read_text(encoding="utf-8")
+        src, n_three = re.subn(r'^import \* as THREE from "[^"]+";\n', "", src, flags=re.M)
+        if n_three != 1 or re.search(r"^import ", src, flags=re.M):
+            raise RuntimeError(f"{path.name}: beklenen tek import three.js olmalı")
+        src = re.sub(r"^export (const|class|function) ", r"\1 ", src, flags=re.M)
+        return f"const {{ {names} }} = (() => {{\n{src}\nreturn {{ {names} }};\n}})();"
+    return re.sub(r'^import \{([^}]*)\} from "\./([\w-]+\.js)";$', repl, html, flags=re.M)
 
 
 def page_fragment(boot: dict | None = None) -> str:
-    html = inline_model_module(PAGE_FILE.read_text(encoding="utf-8"))
+    html = inline_local_modules(PAGE_FILE.read_text(encoding="utf-8"))
     if boot:
         html = f"<script>window.AH1S_VIZ_BOOT = {json.dumps(boot)};</script>\n" + html
     return html
@@ -1043,7 +1041,7 @@ def page_document(boot: dict | None = None) -> str:
 # YEREL HTTP SUNUCU (yalnızca standart kütüphane)
 # =====================================================================
 
-STATIC_TYPES = {".glb": "model/gltf-binary", ".json": "application/json", ".js": "text/javascript",
+STATIC_TYPES = {".json": "application/json", ".js": "text/javascript",
                 ".css": "text/css", ".png": "image/png", ".svg": "image/svg+xml", ".acmi": "text/plain"}
 
 
@@ -1095,7 +1093,7 @@ def make_handler(flight: LiveFlight):
                 name = path.lstrip("/")
                 target = (VIZ_DIR / name).resolve()
                 if (VIZ_DIR.resolve() in target.parents and target.is_file()
-                        and target.suffix in STATIC_TYPES and "tools" not in target.parts):
+                        and target.suffix in STATIC_TYPES):
                     return self._send(200, target.read_bytes(), STATIC_TYPES[target.suffix])
                 return self._json(dict(ok=False, message="bulunamadı"), 404)
             except Exception as exc:                      # noqa: BLE001

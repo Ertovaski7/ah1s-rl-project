@@ -11,8 +11,7 @@
   --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
   --good:#0ca30c; --good-ink:#006300; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
   --focus:#2a78d6; --btn:#e6ebed; --btn-hover:#dbe2e5; --shadow:0 1px 2px rgba(16,21,24,.06);
-  --sky-top:#9fc3dc; --sky-horizon:#e3ecef; --sky-bottom:#cfc6b3; --ground:#d8cfbc; --grid-minor:rgba(70,62,48,.16);
-  --grid-major:rgba(70,62,48,.34); --trail:#27414f; --curtain:#27414f; --cue-ink:#1b2a33;
+  --sky-top:#9fc3dc; --sky-horizon:#e3ecef; --sky-bottom:#cfc6b3; --trail:#27414f; --curtain:#27414f; --cue-ink:#1b2a33;
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-inst: "B612", "Segoe UI", system-ui, sans-serif;
   --font-num: "B612 Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -24,8 +23,7 @@
     --hair:#242c32; --line:#364049; --target:#e26bd0; --target-wash:rgba(226,107,208,.14); --target-ink:#ec8fdd;
     --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
     --good-ink:#0ca30c; --focus:#6da7ec; --btn:#1f272d; --btn-hover:#29333a; --shadow:none;
-    --sky-top:#1d3346; --sky-horizon:#4d6272; --sky-bottom:#2b2a26; --ground:#35332d; --grid-minor:rgba(230,220,200,.10);
-    --grid-major:rgba(230,220,200,.22); --trail:#d6e3ea; --curtain:#a9c4d3; --cue-ink:#e6eef2;
+    --sky-top:#1d3346; --sky-horizon:#4d6272; --sky-bottom:#2b2a26; --trail:#d6e3ea; --curtain:#a9c4d3; --cue-ink:#e6eef2;
   }
 }
 :root[data-theme="dark"]{
@@ -34,8 +32,7 @@
   --hair:#242c32; --line:#364049; --target:#e26bd0; --target-wash:rgba(226,107,208,.14); --target-ink:#ec8fdd;
   --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
   --good-ink:#0ca30c; --focus:#6da7ec; --btn:#1f272d; --btn-hover:#29333a; --shadow:none;
-  --sky-top:#1d3346; --sky-horizon:#4d6272; --sky-bottom:#2b2a26; --ground:#35332d; --grid-minor:rgba(230,220,200,.10);
-  --grid-major:rgba(230,220,200,.22); --trail:#d6e3ea; --curtain:#a9c4d3; --cue-ink:#e6eef2;
+  --sky-top:#1d3346; --sky-horizon:#4d6272; --sky-bottom:#2b2a26; --trail:#d6e3ea; --curtain:#a9c4d3; --cue-ink:#e6eef2;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -325,7 +322,7 @@ a{color:var(--s1)}
         <div class="cam glass" role="group" aria-label="Kamera">
           <button type="button" data-cam="chase" aria-pressed="true">Takip</button><button type="button" data-cam="free" aria-pressed="false">Serbest</button><button type="button" data-cam="top" aria-pressed="false">Üstten</button><button type="button" data-cam="side" aria-pressed="false">Yandan</button>
         </div>
-        <div class="scaleinfo glass" id="scaleInfo">ızgara 100 ft</div>
+        <div class="scaleinfo glass" id="scaleInfo" title="Helikopterin altındaki arazinin pist seviyesine göre yüksekliği. Arazi yalnızca görsel: JSBSim düz zeminde uçar, helikopter kayıttaki AGL irtifasıyla arazinin üstüne çizilir.">arazi +0 ft</div>
         <div class="compass glass" title="Kuzey"><svg viewBox="-17 -17 34 34" id="compassSvg" aria-label="Kuzey oku"><path d="M0,-14 L6,6 L0,2 L-6,6 Z" fill="#f2f6f8"/><text x="0" y="15.5" text-anchor="middle" font-size="7" fill="#f2f6f8" font-family="B612, sans-serif">N</text></svg></div>
         <div class="banner glass" id="banner" hidden><div id="bannerTxt"></div><div><button class="btn primary" type="button" id="bannerBtn">Yeniden başlat</button></div></div>
       </div>
@@ -474,8 +471,10 @@ a{color:var(--s1)}
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.169.0/+esm";
 import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js/+esm";
-// command_viz.py sayfayı sunarken bu modülü satır içine alır (Colab'da ayrı dosya sunulamaz)
+// command_viz.py sayfayı sunarken bu modülleri satır içine alır (Colab'da ayrı dosya sunulamaz)
 import { createAH1S } from "./ah1s_model.js";
+import { createTerrain } from "./terrain.js";
+import { createPadFlag } from "./flag.js";
 
 // =====================================================================
 // yardımcılar
@@ -784,19 +783,16 @@ class FlightScene {
       side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
     });
     this.sky = new THREE.Mesh(new THREE.SphereGeometry(100000, 32, 16), this.skyMat); this.sky.renderOrder = -1000; this.scene.add(this.sky);
-    this.scene.fog = new THREE.Fog(0xe3ecef, 5000, 42000);
-    // zemin (1 karo = 1000 ft, ince çizgi = 100 ft)
-    this.gridCanvas = document.createElement("canvas"); this.gridCanvas.width = this.gridCanvas.height = 1024;
-    this.gridTex = new THREE.CanvasTexture(this.gridCanvas); this.gridTex.wrapS = this.gridTex.wrapT = THREE.RepeatWrapping;
-    this.gridTex.repeat.set(160, 160); this.gridTex.colorSpace = THREE.SRGBColorSpace;
-    this.gridTex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-    this.ground = new THREE.Mesh(new THREE.PlaneGeometry(160000, 160000), new THREE.MeshLambertMaterial({ map: this.gridTex }));
-    this.ground.rotation.x = -Math.PI / 2; this.scene.add(this.ground);
+    this.scene.fog = new THREE.Fog(0xe3ecef, 3000, 42000);                  // pus: uzak sırtlar maviye çalar; arazi 42 000 ft'in ötesinde biter
+    // arazi: hafif dağlık, meşe benekli yamaçlar, vadilerde köyler (yalnızca görsel; fizik düz zeminde)
+    this.terrain = createTerrain(); this.scene.add(this.terrain.group);
     // başlangıç pisti (orijin) — kuzey oku ile
     this.padCanvas = document.createElement("canvas"); this.padCanvas.width = this.padCanvas.height = 512;
     this.padTex = new THREE.CanvasTexture(this.padCanvas); this.padTex.colorSpace = THREE.SRGBColorSpace;
     this.pad = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), new THREE.MeshLambertMaterial({ map: this.padTex, transparent: true }));
     this.pad.rotation.x = -Math.PI / 2; this.pad.position.y = 0.4; this.scene.add(this.pad);
+    // pistin batısında Türk bayrağı (direk 45 ft, bez 10 × 15 ft); kayıttaki rüzgârla dalgalanır
+    this.flag = createPadFlag({ poleHeight: 45, width: 10 }); this.flag.group.position.set(-150, this.terrain.groundAt(-150, -60), -60); this.scene.add(this.flag.group);
     // helikopter
     this.heli = new THREE.Group(); this.heli.rotation.order = "YXZ"; this.scene.add(this.heli);
     this.holder = new THREE.Group(); this.holder.rotation.y = Math.PI; this.holder.scale.setScalar(FT_PER_M); this.heli.add(this.holder);
@@ -807,7 +803,7 @@ class FlightScene {
     const grd = g.createRadialGradient(64, 64, 4, 64, 64, 64); grd.addColorStop(0, "rgba(0,0,0,0.55)"); grd.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = grd; g.fillRect(0, 0, 128, 128);
     this.shadow = new THREE.Mesh(new THREE.CircleGeometry(34, 40), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sh), transparent: true, depthWrite: false }));
-    this.shadow.rotation.x = -Math.PI / 2; this.shadow.position.y = 0.7; this.scene.add(this.shadow);
+    this.scene.add(this.shadow);
     // iz + perde + yer izi
     this.MAX = 24000;
     this.trailPos = new Float32Array(this.MAX * 3);
@@ -846,11 +842,6 @@ class FlightScene {
     this.scene.fog.color = C("--sky-horizon");
     const dark = tok("color-scheme") === "dark" || C("--page").getHSL({}).l < 0.3;
     this.hemi.intensity = dark ? 1.15 : 1.5; this.sun.intensity = dark ? 1.7 : 2.3;
-    const gc = this.gridCanvas.getContext("2d"), S = 1024;
-    gc.fillStyle = tok("--ground"); gc.fillRect(0, 0, S, S);
-    gc.fillStyle = tok("--grid-minor"); for (let k = 1; k < 10; k++) { gc.fillRect(k * S / 10 - 1, 0, 2, S); gc.fillRect(0, k * S / 10 - 1, S, 2); }
-    gc.fillStyle = tok("--grid-major"); gc.fillRect(0, 0, 4, S); gc.fillRect(0, 0, S, 4);
-    this.gridTex.needsUpdate = true;
     const pc = this.padCanvas.getContext("2d"), P = 512; pc.clearRect(0, 0, P, P);
     const ink = tok("--cue-ink");
     pc.strokeStyle = ink; pc.globalAlpha = 0.55; pc.lineWidth = 10; pc.beginPath(); pc.arc(P / 2, P / 2, 150, 0, Math.PI * 2); pc.stroke();
@@ -873,17 +864,24 @@ class FlightScene {
     if (m === "free") { this.controls.target.copy(this.heli.position); this.lastHeli.copy(this.heli.position); this.controls.update(); }
   }
   resetTrail() { this.trailN = 0; this.trailT = -Infinity; this.trailFlight = null; this.snap = true; }
-  _world(s, out) { return out.set(s.x, s.h, -s.y); }
+  // kayıttaki h AGL'dir (JSBSim düz zemin): helikopter arazinin bu kadar üstüne çizilir. Alçakta kesin zemin (kızaklar
+  // yere oturur), irtifada ±500 ft ortalaması (üçgen kenarlarında sarsılmasın); geçiş 20–250 ft arasında.
+  _alt(X, Z, h) {
+    const g = this.terrain.groundAt(X, Z), w = THREE.MathUtils.smoothstep(h, 20, 250);
+    return h + (w > 0 ? g + (this.terrain.groundSmooth(X, Z) - g) * w : g);
+  }
+  _world(s, out) { return out.set(s.x, this._alt(s.x, -s.y, s.h), -s.y); }
   _syncTrail(fl, T, cur) {
     const STEP = 0.3;
     if (fl !== this.trailFlight || T < this.trailT - 1e-6) { this.trailN = 0; this.trailT = -Infinity; this.trailFlight = fl; }
     let next = this.trailN ? this.trailT + STEP : fl.col("t")[0];
     const P = this.trailPos, K = this.trackPos, Cc = this.curtPos;
-    const put = (k, x, y, z) => { P[k * 3] = x; P[k * 3 + 1] = y; P[k * 3 + 2] = z; K[k * 3] = x; K[k * 3 + 1] = 1.0; K[k * 3 + 2] = z;
-      Cc[k * 6] = x; Cc[k * 6 + 1] = y; Cc[k * 6 + 2] = z; Cc[k * 6 + 3] = x; Cc[k * 6 + 4] = 1.0; Cc[k * 6 + 5] = z; };
+    const put = (k, x, y, z) => { const g = this.terrain.groundAt(x, z) + 2;      // yer izi ve perde tabanı arazide
+      P[k * 3] = x; P[k * 3 + 1] = y; P[k * 3 + 2] = z; K[k * 3] = x; K[k * 3 + 1] = g; K[k * 3 + 2] = z;
+      Cc[k * 6] = x; Cc[k * 6 + 1] = y; Cc[k * 6 + 2] = z; Cc[k * 6 + 3] = x; Cc[k * 6 + 4] = g; Cc[k * 6 + 5] = z; };
     let guard = 0;
     while (next <= T - 1e-9 && this.trailN < this.MAX - 2 && guard++ < 50000) {
-      const s = fl.sample(next); if (s) { put(this.trailN, s.x, s.h, -s.y); this.trailN++; }
+      const s = fl.sample(next); if (s) { put(this.trailN, s.x, this._alt(s.x, -s.y, s.h), -s.y); this.trailN++; }
       this.trailT = next; next += STEP;
     }
     put(this.trailN, cur.x, cur.y, cur.z);
@@ -894,13 +892,17 @@ class FlightScene {
   _setLine(line, pts) { const a = line.geometry.attributes.position; pts.forEach((p, k) => a.setXYZ(k, p.x, p.y, p.z)); a.needsUpdate = true; line.geometry.setDrawRange(0, pts.length); }
   update(fl, s, dt, dtCam = dt) {
     if (!s) return;
+    this.terrain.update(s.x, -s.y, this.camera.position.x, this.camera.position.z);   // pencere helikopteri, yakın ağaçlar kamerayı izler
     const pos = this._world(s, this.tmp);
     this.heli.position.copy(pos);
     this.heli.rotation.set(THREE.MathUtils.degToRad(s.theta || 0), -THREE.MathUtils.degToRad(s.psi), -THREE.MathUtils.degToRad(s.phi || 0), "YXZ");
     // rotor: kayıttaki devir (gerçek zamanda, oynatma hızından bağımsız) ve kumanda konumları (c0 collective 0…1, c1 / c2 cyclic −1…1)
     this.model.setState({ rotorRPM: s.rpm, collective: s.c[0], cyclic: { lon: s.c[1], lat: s.c[2] } });
     this.model.update(dt * (reduceMotion ? 0.25 : 1));
-    this.shadow.position.set(pos.x, 0.7, pos.z);
+    this.flag.update(dt * (reduceMotion ? 0.25 : 1), s.we, fin(s.wn) ? -s.wn : NaN);   // rüzgâr: doğu / kuzey ft/s → sahne X / Z
+    this.groundBelow = this.terrain.groundAt(pos.x, pos.z);
+    this.shadow.position.set(pos.x, this.groundBelow + 1.5, pos.z);
+    this.shadow.quaternion.setFromUnitVectors(this.tmp2.set(0, 0, 1), this.terrain.normalAt(pos.x, pos.z));
     this.shadow.material.opacity = 0.55 * clamp(1 - s.h / 2200, 0.2, 1); this.shadow.scale.setScalar(0.8 + s.h / 1800);
     this._syncTrail(fl, s.t, pos);
     // hedef heading çizgisi + dönüş yayı (heli irtifasında)
@@ -915,11 +917,13 @@ class FlightScene {
     if (fin(s.tx) && fin(s.ty)) {                            // kalkış görevi: hedef nokta (konum + irtifa) ve yere dikey çizgi
       const far = Math.hypot(s.tx - s.x, s.ty - s.y) > 3 || Math.abs(s.h_ref - s.h) > 3;
       this.ring.visible = this.stem.visible = far;
-      if (far) { this.ring.position.set(s.tx, Math.max(0.8, s.h_ref), -s.ty); this._setLine(this.stem, [new THREE.Vector3(s.tx, 0.8, -s.ty), new THREE.Vector3(s.tx, Math.max(0.8, s.h_ref), -s.ty)]); this.stem.computeLineDistances(); }
+      if (far) { const gy = this.terrain.groundAt(s.tx, -s.ty), ry = this._alt(s.tx, -s.ty, Math.max(0.8, s.h_ref));
+        this.ring.position.set(s.tx, ry, -s.ty); this._setLine(this.stem, [new THREE.Vector3(s.tx, gy + 0.8, -s.ty), new THREE.Vector3(s.tx, ry, -s.ty)]); this.stem.computeLineDistances(); }
     } else {
       const showAlt = fin(s.h_ref) && Math.abs(s.h_ref - s.h) > 3;
       this.ring.visible = this.stem.visible = showAlt;
-      if (showAlt) { this.ring.position.set(pos.x, s.h_ref, pos.z); this._setLine(this.stem, [pos.clone(), new THREE.Vector3(pos.x, s.h_ref, pos.z)]); this.stem.computeLineDistances(); }
+      if (showAlt) { const ry = this._alt(pos.x, pos.z, s.h_ref);
+        this.ring.position.set(pos.x, ry, pos.z); this._setLine(this.stem, [pos.clone(), new THREE.Vector3(pos.x, ry, pos.z)]); this.stem.computeLineDistances(); }
     }
     this.sun.target.position.copy(pos); this.sun.position.copy(pos).add(new THREE.Vector3(-450, 1000, 350));
     this._camera(pos, s, dtCam);
@@ -944,7 +948,8 @@ class FlightScene {
       cam.position.lerp(want, this.snap ? 1 : Math.min(1, k * 1.6)); cam.up.set(0, 1, 0);
       cam.lookAt(this.mode === "side" ? pos : pos.clone().addScaledVector(fwd, d * 0.22).add(new THREE.Vector3(0, 4, 0)));
     }
-    if (cam.position.y < 8) cam.position.y = 8;
+    const floor = this.terrain.surfaceAt(cam.position.x, cam.position.z) + 8;   // kamera yamacın içine girmesin
+    if (cam.position.y < floor) cam.position.y = floor;
     this.snap = false;
   }
   cameraYawDeg() {
@@ -961,7 +966,7 @@ class FlightScene {
 const hud = {
   tape: $("#tapeCanvas"), hdg: $("#hdgBox"), spd: $("#hudSpd"), kt: $("#hudKt"), spdT: $("#hudSpdT"),
   alt: $("#hudAlt"), vs: $("#hudVs"), altT: $("#hudAltT"), chip: $("#cmdChip"), chipK: $("#cmdChipK"), chipTxt: $("#cmdChipTxt"), compass: $("#compassSvg"),
-  spdLbl: $("#hudSpdLbl"), altLbl: $("#hudAltLbl"),
+  spdLbl: $("#hudSpdLbl"), altLbl: $("#hudAltLbl"), terrain: $("#scaleInfo"),
   flg: $("#flGauges"), windMean: $("#windMean"), windNow: $("#windNow"), windTxt: $("#windTxt"), turbTxt: $("#turbTxt"),
   tqBar: $("#tqBar"), tqTxt: $("#tqTxt"), fuelBar: $("#fuelBar"), fuelTxt: $("#fuelTxt"), fuelSub: $("#fuelSub"),
 };
@@ -1064,6 +1069,8 @@ function drawAdi(phi, th, phiC, thC) {
 function updateHud(s, fl, T) {
   if (!s) return;
   drawAdi(s.phi || 0, s.theta || 0, s.phi_c, s.theta_c);
+  const tg = Math.round((app.scene.groundBelow || 0) / 10) * 10, tgTxt = `arazi ${tg > 0 ? "+" : tg < 0 ? "−" : "±"}${Math.abs(tg)} ft`;
+  if (hud.terrain.textContent !== tgTxt) hud.terrain.textContent = tgTxt;
   hud.hdg.textContent = pad3(s.psi) + "°";
   const hasCmd = fl.commands.some(c => c.t <= T);
   const track = s.u > 2 ? s.psi + Math.atan2(s.v, s.u) * 180 / Math.PI : NaN;

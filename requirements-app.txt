@@ -1,0 +1,8 @@
+# Masaüstü uygulaması (python -m ah1s_app). Simülasyonun kendi bağımlılıkları requirements.txt'te.
+-r requirements.txt
+pygame
+pywebview
+# Linux'ta pywebview penceresi için Qt WebEngine (Windows: WebView2, macOS: WebKit hazır gelir, ek paket gerekmez)
+PyQt6; sys_platform == "linux"
+PyQt6-WebEngine; sys_platform == "linux"
+qtpy; sys_platform == "linux"

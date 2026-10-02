@@ -198,7 +198,7 @@ class FlightSetupScene(Scene):
             y = ui.text(surf, f"• {msg}", (r.left + 8, y), 15, ui.WARN, maxw=r.width - 16).bottom + 4
         if not self.sc.warnings():
             ui.text(surf, "Seçimler ajanın eğitildiği aralıkta.", (r.left + 8, y), 15, ui.OK)
-        ui.text(surf, "3D görünüm ve komutlar tarayıcıda açılır.", (self.start_btn.rect.left - 16, self.start_btn.rect.centery),
+        ui.text(surf, "3D görünüm ve komutlar ayrı pencerede açılır.", (self.start_btn.rect.left - 16, self.start_btn.rect.centery),
                 15, ui.MUTED, anchor="midright")
         for wd in self.widgets:
             wd.draw(surf)
@@ -249,10 +249,10 @@ class SimRunScene(Scene):
     def __init__(self, app, sc: StartConditions):
         super().__init__(app)
         self.sc = sc
-        self.sim = SimProcess(sc, open_browser=app.open_browser).start()
+        self.sim = SimProcess(sc, view=app.view).start()
         app.sims.append(self.sim)
         self.stop_btn = ui.Button("Durdur ve ayarlara dön", self.back, kind="ghost")
-        self.open_btn = ui.Button("3D görünümü tarayıcıda aç", self.sim.open_page)
+        self.open_btn = ui.Button("3D'yi tarayıcıda da aç", self.sim.open_page, kind="ghost")
         self.widgets = [self.stop_btn, self.open_btn]
 
     def layout(self, size):
@@ -290,8 +290,16 @@ class SimRunScene(Scene):
         y = max(y, pill.bottom) + 14
         y = ui.text(surf, f"Başlangıç: {summary(self.sc)}", (c.left + 22, y), 15, ui.TEXT_2,
                     maxw=c.width - 360).bottom + 6
-        y = ui.text(surf, f"3D sayfa: {snap['url']}  ·  komutlar (görev, Δhız / Δheading / Δirtifa) sayfadaki formdan",
-                    (c.left + 22, y), 15, ui.MUTED, maxw=c.width - 44).bottom + 22
+        view = {"window": "3D görünüm ayrı masaüstü penceresinde; pencereyi kapatınca simülasyon biter.",
+                "browser": f"Masaüstü penceresi açılamadı ({snap['view_note']}); 3D görünüm tarayıcıda.",
+                "closed": "3D pencere kapatıldı.", "pending": "3D görünüm hazırlanıyor…"}.get(snap["view_state"], "")
+        if snap["view"] != "window":
+            view = "3D görünüm tarayıcıda." if snap["view"] == "browser" else "3D görünüm kapalı (--view none)."
+        col = ui.WARN if snap["view_state"] == "browser" else ui.TEXT_2
+        y = ui.text(surf, view, (c.left + 22, y), 15, col, maxw=c.width - 44).bottom + 4
+        y = ui.text(surf, f"Görevler ve komutlar (kalkış, hover, ileri uçuş, Δhız / Δheading / Δirtifa, iniş) 3D görünümdeki "
+                          f"formdan; uçuşu PPO ajanı yapar. Adres: {snap['url']}", (c.left + 22, y), 15, ui.MUTED,
+                    maxw=c.width - 44).bottom + 22
         # canlı değerler
         t = snap["telemetry"]
         cells = [("Süre", t.get("t"), "{:.0f} s"), ("İrtifa (AGL)", t.get("h"), "{:.0f} ft"),

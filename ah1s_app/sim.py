@@ -1,8 +1,9 @@
 """Canlı simülasyonu ayrı süreçte başlatır ve izler.
 
 Simülasyon mevcut canlı sunucudur (command_viz.py: JSBSim + PPO uçuş ajanı + 3D sayfa). Uygulama onu seçilen
-başlangıç koşullarıyla ayrı bir Python sürecinde açar, hazır olunca 3D sayfayı tarayıcıda açar ve HTTP API'sinden
-(api/hello, api/state) son telemetri satırını okur. Ağır bağımlılıklar (jsbsim, torch) yalnızca o süreçte yüklenir;
+başlangıç koşullarıyla ayrı bir Python sürecinde açar; 3D sayfa o sürecin masaüstü penceresinde açılır (pywebview;
+açılamazsa tarayıcıda) ve pencere kapanınca simülasyon biter. Uygulama HTTP API'sinden (api/hello, api/state) son
+telemetri satırını okur. Ağır bağımlılıklar (jsbsim, torch) yalnızca o süreçte yüklenir;
 menüler onlarsız da çalışır.
 """
 
@@ -54,11 +55,12 @@ class SimProcess:
 
     TELEMETRY = ("t", "h", "psi", "u", "vs", "ua", "fuel", "tq", "rpm", "wow")
 
-    def __init__(self, sc: StartConditions, port: int | None = None, open_browser: bool = True):
+    def __init__(self, sc: StartConditions, port: int | None = None, view: str = "window"):
         self.sc = sc
         self.port = port or free_port()
         self.url = f"http://127.0.0.1:{self.port}/"
-        self.open_browser = open_browser
+        self.view = view                       # window: masaüstü penceresi · browser: tarayıcı · none: açma
+        self.view_state, self.view_note = "pending", ""
         self.state = "starting"
         self.message = "Simülasyon başlatılıyor (JSBSim + PPO ajanı yükleniyor)…"
         self.telemetry: dict[str, float] = {}
@@ -70,7 +72,7 @@ class SimProcess:
 
     @property
     def command(self) -> list[str]:
-        return [sys.executable, "-u", str(LIVE_SERVER), *server_args(self.sc, self.port)]
+        return [sys.executable, "-u", str(LIVE_SERVER), *server_args(self.sc, self.port)] + (["--window"] if self.view == "window" else [])
 
     def start(self) -> "SimProcess":
         self.proc = subprocess.Popen(self.command, cwd=str(REPO_ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -101,7 +103,12 @@ class SimProcess:
     # ---------------- iş parçacıkları ----------------
     def _read_output(self):
         for line in self.proc.stdout:
-            self.log.append(line.rstrip())
+            line = line.rstrip()
+            self.log.append(line)
+            if line.startswith("3D_VIEW "):                  # sunucunun pencere durumu (command_viz._serve_window)
+                kind, _, note = line[8:].partition(" ")
+                with self._lock:
+                    self.view_state, self.view_note = kind, note
 
     def _get(self, path: str, timeout: float = 2.0):
         with urllib.request.urlopen(self.url + path, timeout=timeout) as r:
@@ -112,8 +119,13 @@ class SimProcess:
         while not self._stop.is_set():
             code = self.proc.poll()
             if code is not None:
+                time.sleep(0.2)                                  # son çıktı satırları okunsun
                 with self._lock:
-                    if self.state != "stopped":
+                    if self.state == "stopped":
+                        pass
+                    elif self.view_state == "closed" and code == 0:
+                        self.state, self.message = "stopped", "3D pencere kapatıldı; simülasyon bitti."
+                    else:
                         self.state = "error"
                         self.message = f"Simülasyon süreci kapandı (çıkış kodu {code})."
                 return
@@ -133,7 +145,7 @@ class SimProcess:
                         self.telemetry = {k: row[cols[k]] for k in self.TELEMETRY if k in cols}
                     if status.get("state") in ("running", "done") and self.state == "starting":
                         self.state = "running"
-                        if self.open_browser:
+                        if self.view == "browser":
                             self.open_page()
                     if self.state == "running":
                         self.message = status.get("message") or ""
@@ -144,4 +156,5 @@ class SimProcess:
     def snapshot(self) -> dict:
         with self._lock:
             return dict(state=self.state, message=self.message, telemetry=dict(self.telemetry),
-                        status=dict(self.sim_status), log=list(self.log)[-12:], url=self.url)
+                        status=dict(self.sim_status), log=list(self.log)[-12:], url=self.url,
+                        view=self.view, view_state=self.view_state, view_note=self.view_note)

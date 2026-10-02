@@ -216,6 +216,7 @@ ah1s-rl-project/
 │
 ├── models_sha256.txt                        Model dosyalarının SHA-256 listesi (legacy/ modelleri dahil)
 ├── requirements.txt
+├── requirements-app.txt                     Masaüstü uygulaması: pygame, pywebview (+ Linux'ta Qt WebEngine)
 │
 │   Eski sistem — heading ve durma görevleri (Stage 1 → 2 → 3 / Turn); komutlar bu klasörden: cd legacy
 └── legacy/
@@ -2090,11 +2091,11 @@ python docs/flight/compare_eval.py flight_final=docs/flight/eval_test_final.json
 
 # 34. Uygulama katmanı — `ah1s_app` (pygame, 2026-10-02)
 
-Terminalden (repo kökünde):
+Masaüstü uygulaması; terminalden (repo kökünde):
 
 ```bash
-pip install -r requirements.txt          # pygame dahil
-python -m ah1s_app                       # pencere 1280×720; --fullscreen, --size 1600x900, --no-browser
+pip install -r requirements-app.txt      # requirements.txt + pygame + pywebview (Linux'ta Qt WebEngine)
+python -m ah1s_app                       # pencere 1280×720; --fullscreen, --size 1600x900, --view window|browser|none
 ```
 
 Ekranlar (görseller şimdilik düz renk yer tutucu; görsellik ve UI en sonda):
@@ -2106,10 +2107,14 @@ Ekranlar (görseller şimdilik düz renk yer tutucu; görsellik ve UI en sonda):
    (yerde / hover / ileri uçuş), irtifa, hava hızı, heading, yakıt (iki tanka eşit), rüzgâr hızı ve geldiği yön (kuzeye
    göre), türbülans, gust, sıcaklık farkı. Formun aralıkları canlı sunucunun kabul ettikleri; ajanın eğitim aralığı
    dışındaki seçimler sarı uyarıyla gösterilir (uçuş yine başlar).
-4. **Simülasyon**: "Simülasyonu başlat" canlı sunucuyu (`command_viz.py`, `models_flight/flight_v2.zip`) bu koşullarla
-   ayrı süreçte açar, hazır olunca 3D sayfayı tarayıcıda açar; pygame penceresi süreyi, irtifayı, hava hızını, heading'i,
-   dikey hızı, yakıtı, torku ve rotor devrini canlı gösterir. Görevler / komutlar sayfadaki formdan. "Durdur ve ayarlara
-   dön" (ya da Esc) süreci kapatır; uygulamadan çıkınca da kapanır.
+4. **Simülasyon**: "Simülasyonu başlat" canlı sunucuyu (`command_viz.py --window`, `models_flight/flight_v2.zip`) bu
+   koşullarla ayrı süreçte açar; 3D görünüm kendi masaüstü penceresinde açılır (pywebview: Windows WebView2, macOS
+   WebKit, Linux Qt WebEngine). Helikopteri PPO ajanı uçurur; görevler / komutlar 3D penceredeki formdan. pygame penceresi
+   süreyi, irtifayı, hava hızını, heading'i, dikey hızı, yakıtı, torku ve rotor devrini canlı gösterir. 3D pencereyi
+   kapatmak, "Durdur ve ayarlara dön" ya da Esc simülasyonu bitirir; uygulamadan çıkınca da kapanır. pywebview yoksa ya
+   da pencere açılamazsa (ör. Linux'ta ekran yok) 3D görünüm tarayıcıda açılır ve uygulama bunu sarı uyarıyla yazar.
+   three.js ve uPlot `viz/vendor/`'dan yerel sunulur (aynı sürümler, MIT): internet gerekmez (yalnızca B612 yazı tipi
+   Google Fonts'tan; yoksa sistem yazı tipi). Colab'daki satır içi sayfa CDN'i kullanmaya devam eder.
 
 Tuşlar: Esc geri (ana ekranda çıkış), F11 tam ekran; kaydırıcılar sürükleyerek ya da tekerlekle.
 

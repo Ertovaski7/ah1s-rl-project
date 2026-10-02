@@ -44,6 +44,7 @@ env._issue_due_commands): güvenli aralığın dışına taşan Δ'nın işareti
 import argparse
 import json
 import math
+import os
 import re
 import sys
 import threading
@@ -1033,10 +1034,24 @@ def page_fragment(boot: dict | None = None) -> str:
     return html
 
 
-def page_document(boot: dict | None = None) -> str:
+# CDN → yerel kopya (viz/vendor; aynı sürümler). Yerel sunucu sayfayı bunlarla verir: masaüstü penceresi / tarayıcı
+# internetsiz de açılır. Colab satır içi sayfası CDN'den yükler (yanında dosya sunulamaz).
+VENDOR = {
+    "https://cdn.jsdelivr.net/npm/three@0.169.0/+esm": "./vendor/three.module.min.js",
+    "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js/+esm": "./vendor/OrbitControls.js",
+    "https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.iife.min.js": "./vendor/uPlot.iife.min.js",
+}
+
+
+def page_document(boot: dict | None = None, local_vendor: bool = True) -> str:
+    html = page_fragment(boot)
+    if local_vendor:
+        for cdn, local in VENDOR.items():
+            if (VIZ_DIR / local.removeprefix("./")).is_file():
+                html = html.replace(cdn, local)
     return ("<!doctype html>\n<html lang=\"tr\">\n<head>\n<meta charset=\"utf-8\">\n"
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n"
-            "</head>\n<body>\n" + page_fragment(boot) + "\n</body>\n</html>\n")
+            "</head>\n<body>\n" + html + "\n</body>\n</html>\n")
 
 
 # =====================================================================
@@ -1120,12 +1135,16 @@ def make_handler(flight: LiveFlight):
     return Handler
 
 
-def serve(flight: LiveFlight, host: str = "127.0.0.1", port: int = 8765, open_browser: bool = False):
+def serve(flight: LiveFlight, host: str = "127.0.0.1", port: int = 8765, open_browser: bool = False,
+          window: bool = False):
     srv = ThreadingHTTPServer((host, port), make_handler(flight))
     srv.daemon_threads = True
     flight.start()
     url = f"http://{'127.0.0.1' if host in ('0.0.0.0', '') else host}:{port}/"
     print(f"AH-1S komut uçuşu: {url}   (model: {flight.policy_path.name}; durdurmak için Ctrl+C)", flush=True)
+    if window:
+        _serve_window(flight, srv, url)
+        return
     if open_browser:
         try:
             import webbrowser
@@ -1137,6 +1156,36 @@ def serve(flight: LiveFlight, host: str = "127.0.0.1", port: int = 8765, open_br
     except KeyboardInterrupt:
         pass
     finally:
+        flight.stop()
+        srv.server_close()
+
+
+def _serve_window(flight: LiveFlight, srv, url: str):
+    """Sayfayı masaüstü penceresinde aç (pywebview: Windows WebView2, macOS WebKit, Linux Qt / GTK). Pencere kapanınca
+    simülasyon biter. pywebview yoksa ya da pencere açılamazsa tarayıcıya düşer; durum "3D_VIEW ..." satırıyla yazılır
+    (ah1s_app bunu okur)."""
+    th = threading.Thread(target=srv.serve_forever, kwargs=dict(poll_interval=0.25), daemon=True)
+    th.start()
+    try:
+        try:
+            import webview
+            if sys.platform.startswith("linux") and not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+                raise RuntimeError("ekran yok (DISPLAY / WAYLAND_DISPLAY)")    # Qt bunda süreci düşürür; önceden yakala
+            webview.create_window("AH-1S Simülasyon — 3D", url, width=1500, height=950, min_size=(960, 640))
+            print("3D_VIEW window", flush=True)
+            webview.start()                              # pencere kapanınca döner
+            print("3D_VIEW closed", flush=True)
+        except Exception as exc:                         # noqa: BLE001 — pywebview yok ya da GUI arka ucu yok
+            reason = "pywebview kurulu değil" if isinstance(exc, ImportError) else f"pencere açılamadı: {exc}"
+            print(f"3D_VIEW browser {reason}", flush=True)
+            import webbrowser
+            webbrowser.open(url)
+            while th.is_alive():
+                th.join(0.5)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        srv.shutdown()
         flight.stop()
         srv.server_close()
 
@@ -1414,6 +1463,7 @@ def main(argv=None):
     p.add_argument("--lon", type=float, default=None, help="başlangıç boylamı (°)")
     p.add_argument("--location-name", default=None, help="konumun sayfada görünen adı")
     p.add_argument("--open", action="store_true", help="tarayıcıyı aç")
+    p.add_argument("--window", action="store_true", help="sayfayı masaüstü penceresinde aç (pywebview); kapanınca biter")
     a = p.parse_args(argv)
     if (a.lat is None) != (a.lon is None):
         p.error("--lat ve --lon birlikte verilmeli")
@@ -1423,7 +1473,7 @@ def main(argv=None):
                                    speed_kt=a.start_speed_kt, wind_kt=a.wind_kt, wind_dir=a.wind_dir, turb=a.turb,
                                    gusts=True if a.gusts else None, fuel=list(a.fuel) if a.fuel else None,
                                    temp_dc=a.temp_dc, location=location))
-    serve(flight, a.host, a.port, a.open)
+    serve(flight, a.host, a.port, a.open, window=a.window)
 
 
 if __name__ == "__main__":

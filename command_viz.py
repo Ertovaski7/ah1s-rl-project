@@ -44,7 +44,6 @@ env._issue_due_commands): güvenli aralığın dışına taşan Δ'nın işareti
 import argparse
 import json
 import math
-import os
 import re
 import sys
 import threading
@@ -118,6 +117,8 @@ COLUMNS = [
     # toplam rüzgâr kuzey / doğu ft/s (ortalama + türbülans + gust), tork psi, yakıt lbs, yana hava hızı ft/s,
     # hız hatası ft/s (süzülmüş), ileri uçuş bayrağı
     ("ua", 2), ("uat", 2), ("uff", 2), ("wn", 2), ("we", 2), ("tq", 2), ("fuel", 1), ("va", 2), ("esp", 2), ("cr", 0),
+    # rota tutma (canlı, 2026-10-02): hedef yer izi ° (ileri uçuşta; yoksa boş)
+    ("crs", 1),
 ]
 COLS = [c for c, _ in COLUMNS]
 AXIS_ERR_COL = {"heading": "e_psi", "speed": "e_u", "altitude": "e_h"}
@@ -157,6 +158,7 @@ def _limits_flight(cfg: FlightEnvConfig) -> dict:
     """Tek ajan: kalkış görevinin sınırları + ileri uçuş bandı, tork / yakıt, türbülans bant katsayıları."""
     L = _limits_takeoff(cfg)
     L["task"] = "flight"
+    L["course_hold"] = bool(getattr(cfg, "course_hold", False))        # sayfa: heading komutu rota mı
     L["flight"] = dict(tol_u_fps=cfg.tol_u_fps, tol_psi_cruise_deg=cfg.tol_psi_cruise_deg, tol_h_cruise_ft=cfg.tol_h_cruise_ft,
                        tol_vs_cruise_fps=cfg.tol_vs_cruise_fps, coupling_cruise=list(cfg.coupling_cruise),
                        tol_turb_scale=dict(cfg.tol_turb_scale), max_airspeed_kt=cfg.max_airspeed_kt,
@@ -360,7 +362,7 @@ class LiveFlight:
     """
 
     def __init__(self, policy_path: str | Path = DEFAULT_POLICY, env_config: str = "v2", level: str | None = None,
-                 policy=None, start: dict | None = None, task: str | None = None):
+                 policy=None, start: dict | None = None, task: str | None = None, course_hold: bool = False):
         self.policy_path = Path(policy_path)
         self.env_config = env_config
         obs_dim, self.env_overrides = None, {}
@@ -373,7 +375,8 @@ class LiveFlight:
                              else {OBS_DIM_M: "maneuver"}.get(obs_dim, "command"))
         self.is_to = self.task in ("takeoff", "flight")          # görev listesi / pencereler kalkış env'inin yapısında
         if self.task == "flight":
-            cfg = FlightEnvConfig(**self.env_overrides)
+            # course_hold: ileri uçuşta heading komutu yer izi; burun rüzgâra göre düzeltilir (eğitimde kapalıydı)
+            cfg = FlightEnvConfig(**{**self.env_overrides, "course_hold": bool(course_hold)})
             self.env = HelicopterEnvFlight(level=level or "F8", config=cfg)
         elif self.task == "takeoff":
             cfg = TakeoffEnvConfig(**self.env_overrides)
@@ -873,7 +876,7 @@ class LiveFlight:
                 vals += [info["airspeed_kt"], info["u_target_kt"] if info.get("cruise") else None, info["trim_speed_kt"],
                          float(f["atmosphere/total-wind-north-fps"]), float(f["atmosphere/total-wind-east-fps"]),
                          info["torque_psi"], info["fuel_lbs"], info["lateral_airspeed"], info["err_speed"],
-                         1.0 if info.get("cruise") else 0.0]
+                         1.0 if info.get("cruise") else 0.0, info.get("course_deg")]
             vals += [None] * (len(COLUMNS) - len(vals))
             return [round(float(v), nd) if _finite(v) else None for v, (_, nd) in zip(vals, COLUMNS)]
         f = self.env.fdm
@@ -1135,16 +1138,12 @@ def make_handler(flight: LiveFlight):
     return Handler
 
 
-def serve(flight: LiveFlight, host: str = "127.0.0.1", port: int = 8765, open_browser: bool = False,
-          window: bool = False):
+def serve(flight: LiveFlight, host: str = "127.0.0.1", port: int = 8765, open_browser: bool = False):
     srv = ThreadingHTTPServer((host, port), make_handler(flight))
     srv.daemon_threads = True
     flight.start()
     url = f"http://{'127.0.0.1' if host in ('0.0.0.0', '') else host}:{port}/"
     print(f"AH-1S komut uçuşu: {url}   (model: {flight.policy_path.name}; durdurmak için Ctrl+C)", flush=True)
-    if window:
-        _serve_window(flight, srv, url)
-        return
     if open_browser:
         try:
             import webbrowser
@@ -1156,36 +1155,6 @@ def serve(flight: LiveFlight, host: str = "127.0.0.1", port: int = 8765, open_br
     except KeyboardInterrupt:
         pass
     finally:
-        flight.stop()
-        srv.server_close()
-
-
-def _serve_window(flight: LiveFlight, srv, url: str):
-    """Sayfayı masaüstü penceresinde aç (pywebview: Windows WebView2, macOS WebKit, Linux Qt / GTK). Pencere kapanınca
-    simülasyon biter. pywebview yoksa ya da pencere açılamazsa tarayıcıya düşer; durum "3D_VIEW ..." satırıyla yazılır
-    (ah1s_app bunu okur)."""
-    th = threading.Thread(target=srv.serve_forever, kwargs=dict(poll_interval=0.25), daemon=True)
-    th.start()
-    try:
-        try:
-            import webview
-            if sys.platform.startswith("linux") and not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
-                raise RuntimeError("ekran yok (DISPLAY / WAYLAND_DISPLAY)")    # Qt bunda süreci düşürür; önceden yakala
-            webview.create_window("AH-1S Simülasyon — 3D", url, width=1500, height=950, min_size=(960, 640))
-            print("3D_VIEW window", flush=True)
-            webview.start()                              # pencere kapanınca döner
-            print("3D_VIEW closed", flush=True)
-        except Exception as exc:                         # noqa: BLE001 — pywebview yok ya da GUI arka ucu yok
-            reason = "pywebview kurulu değil" if isinstance(exc, ImportError) else f"pencere açılamadı: {exc}"
-            print(f"3D_VIEW browser {reason}", flush=True)
-            import webbrowser
-            webbrowser.open(url)
-            while th.is_alive():
-                th.join(0.5)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        srv.shutdown()
         flight.stop()
         srv.server_close()
 
@@ -1441,6 +1410,13 @@ def main(argv=None):
         a = p.parse_args(argv[1:])
         record_missions(a.out, a.every, a.only, a.maneuver_model, a.robust_model, a.takeoff_model, a.flight_model)
         return
+    p = live_parser()
+    a = p.parse_args(argv)
+    serve(live_from_args(a, p), a.host, a.port, a.open)
+
+
+def live_parser() -> argparse.ArgumentParser:
+    """Canlı uçuşun komut satırı (main ve masaüstü uygulamasının 3D penceresi, ah1s_app.sim_window, ortak)."""
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--model", type=Path, default=DEFAULT_POLICY,
                    help="PPO modeli (.zip); görev (komut / manevra) modelin observation boyutundan anlaşılır")
@@ -1463,17 +1439,23 @@ def main(argv=None):
     p.add_argument("--lon", type=float, default=None, help="başlangıç boylamı (°)")
     p.add_argument("--location-name", default=None, help="konumun sayfada görünen adı")
     p.add_argument("--open", action="store_true", help="tarayıcıyı aç")
-    p.add_argument("--window", action="store_true", help="sayfayı masaüstü penceresinde aç (pywebview); kapanınca biter")
-    a = p.parse_args(argv)
+    p.add_argument("--nose-heading", action="store_true",
+                   help="uçuş görevi: heading komutu burun yönü (eğitimdeki gibi); varsayılan: ileri uçuşta yer izi (rota), "
+                        "burun rüzgâra göre düzeltilir")
+    return p
+
+
+def live_from_args(a, p: argparse.ArgumentParser | None = None) -> LiveFlight:
     if (a.lat is None) != (a.lon is None):
-        p.error("--lat ve --lon birlikte verilmeli")
+        if p is not None:
+            p.error("--lat ve --lon birlikte verilmeli")
+        raise ValueError("--lat ve --lon birlikte verilmeli")
     location = dict(name=a.location_name or f"{a.lat:.3f}, {a.lon:.3f}", lat=a.lat, lon=a.lon) if a.lat is not None else None
-    flight = LiveFlight(a.model, env_config=a.env_config,
-                        start=dict(alt=a.start_alt, speed=a.start_speed, heading=a.start_heading, start=a.start,
-                                   speed_kt=a.start_speed_kt, wind_kt=a.wind_kt, wind_dir=a.wind_dir, turb=a.turb,
-                                   gusts=True if a.gusts else None, fuel=list(a.fuel) if a.fuel else None,
-                                   temp_dc=a.temp_dc, location=location))
-    serve(flight, a.host, a.port, a.open, window=a.window)
+    return LiveFlight(a.model, env_config=a.env_config,
+                      start=dict(alt=a.start_alt, speed=a.start_speed, heading=a.start_heading, start=a.start,
+                                 speed_kt=a.start_speed_kt, wind_kt=a.wind_kt, wind_dir=a.wind_dir, turb=a.turb,
+                                 gusts=True if a.gusts else None, fuel=list(a.fuel) if a.fuel else None,
+                                 temp_dc=a.temp_dc, location=location), course_hold=not a.nose_heading)
 
 
 if __name__ == "__main__":

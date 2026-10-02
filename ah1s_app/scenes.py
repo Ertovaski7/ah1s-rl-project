@@ -239,7 +239,7 @@ class FlightSetupScene(Scene):
 
 
 # ---------------------------------------------------------------------
-# simülasyon: süreç durumu, tarayıcı bağlantısı, canlı değerler
+# simülasyon: süreç durumu, 3D pencere, canlı değerler
 # ---------------------------------------------------------------------
 class SimRunScene(Scene):
     title = "AH-1S · Sürüş — Simülasyon"
@@ -252,14 +252,12 @@ class SimRunScene(Scene):
         self.sim = SimProcess(sc, view=app.view).start()
         app.sims.append(self.sim)
         self.stop_btn = ui.Button("Durdur ve ayarlara dön", self.back, kind="ghost")
-        self.open_btn = ui.Button("3D'yi tarayıcıda da aç", self.sim.open_page, kind="ghost")
-        self.widgets = [self.stop_btn, self.open_btn]
+        self.widgets = [self.stop_btn]
 
     def layout(self, size):
         w, h = size
         self.stop_btn.layout(pygame.Rect(GAP + 6, 9, 230, 38))
         self.card = pygame.Rect(GAP + 6, 56 + GAP + 6, w - 2 * GAP - 12, h - 56 - 2 * GAP - 12)
-        self.open_btn.layout(pygame.Rect(self.card.right - 330, self.card.top + 18, 310, 44))
 
     def back(self):
         self.app.pop()
@@ -277,7 +275,6 @@ class SimRunScene(Scene):
         state = snap["state"]
         if state == "running" and snap["status"].get("state") == "done":
             state = "done"
-        self.open_btn.enabled = state in ("running", "done")
         c = self.card
         pygame.draw.rect(surf, ui.SURFACE, c, border_radius=10)
         lab, col = self.STATE_TXT.get(state, (state.upper(), ui.TEXT))
@@ -289,17 +286,18 @@ class SimRunScene(Scene):
         y = ui.text(surf, msg, (pill.right + 14, pill.centery), 17, ui.TEXT, anchor="midleft").bottom
         y = max(y, pill.bottom) + 14
         y = ui.text(surf, f"Başlangıç: {summary(self.sc)}", (c.left + 22, y), 15, ui.TEXT_2,
-                    maxw=c.width - 360).bottom + 6
-        view = {"window": "3D görünüm ayrı masaüstü penceresinde; pencereyi kapatınca simülasyon biter.",
-                "browser": f"Masaüstü penceresi açılamadı ({snap['view_note']}); 3D görünüm tarayıcıda.",
-                "closed": "3D pencere kapatıldı.", "pending": "3D görünüm hazırlanıyor…"}.get(snap["view_state"], "")
+                    maxw=c.width - 44).bottom + 6
+        view = {"window": "3D pencere açıldı; PPO ajanı ve JSBSim yükleniyor…",
+                "ready": "3D görünüm ayrı pencerede; pencereyi kapatınca simülasyon biter.",
+                "closed": "3D pencere kapatıldı.", "error": f"3D pencere açılamadı: {snap['view_note']}",
+                "pending": "3D pencere açılıyor…"}.get(snap["view_state"], "")
         if snap["view"] != "window":
-            view = "3D görünüm tarayıcıda." if snap["view"] == "browser" else "3D görünüm kapalı (--view none)."
-        col = ui.WARN if snap["view_state"] == "browser" else ui.TEXT_2
+            view = "3D pencere kapalı (--view none)."
+        col = ui.ERR if snap["view_state"] == "error" else ui.TEXT_2
         y = ui.text(surf, view, (c.left + 22, y), 15, col, maxw=c.width - 44).bottom + 4
-        y = ui.text(surf, f"Görevler ve komutlar (kalkış, hover, ileri uçuş, Δhız / Δheading / Δirtifa, iniş) 3D görünümdeki "
-                          f"formdan; uçuşu PPO ajanı yapar. Adres: {snap['url']}", (c.left + 22, y), 15, ui.MUTED,
-                    maxw=c.width - 44).bottom + 22
+        y = ui.text(surf, "Görevler ve komutlar (kalkış, hover, ileri uçuş, hız / rota / irtifa, iniş) 3D penceredeki formdan; "
+                          "uçuşu PPO ajanı yapar. İleri uçuşta heading komutu rotadır: rüzgârda burun rüzgâra döner, "
+                          "helikopter komut edilen yöne gider.", (c.left + 22, y), 15, ui.MUTED, maxw=c.width - 44).bottom + 22
         # canlı değerler
         t = snap["telemetry"]
         cells = [("Süre", t.get("t"), "{:.0f} s"), ("İrtifa (AGL)", t.get("h"), "{:.0f} ft"),

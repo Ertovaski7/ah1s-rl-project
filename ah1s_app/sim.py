@@ -1,10 +1,9 @@
 """Canlı simülasyonu ayrı süreçte başlatır ve izler.
 
 Simülasyon mevcut canlı sunucudur (command_viz.py: JSBSim + PPO uçuş ajanı + 3D sayfa). Uygulama onu seçilen
-başlangıç koşullarıyla ayrı bir Python sürecinde açar; 3D sayfa o sürecin masaüstü penceresinde açılır (pywebview;
-açılamazsa tarayıcıda) ve pencere kapanınca simülasyon biter. Uygulama HTTP API'sinden (api/hello, api/state) son
-telemetri satırını okur. Ağır bağımlılıklar (jsbsim, torch) yalnızca o süreçte yüklenir;
-menüler onlarsız da çalışır.
+başlangıç koşullarıyla ayrı bir Python sürecinde açar (ah1s_app.sim_window): 3D pencere hemen açılır, ajan arka planda
+yüklenir; pencere kapanınca simülasyon biter. Tarayıcı kullanılmaz. Uygulama HTTP API'sinden (api/hello, api/state) son
+telemetri satırını okur. Ağır bağımlılıklar (jsbsim, torch) yalnızca o süreçte yüklenir; menüler onlarsız da çalışır.
 """
 
 from __future__ import annotations
@@ -17,7 +16,6 @@ import sys
 import threading
 import time
 import urllib.request
-import webbrowser
 
 from .config import FLIGHT_MODEL, LIVE_SERVER, REPO_ROOT, StartConditions
 
@@ -59,7 +57,7 @@ class SimProcess:
         self.sc = sc
         self.port = port or free_port()
         self.url = f"http://127.0.0.1:{self.port}/"
-        self.view = view                       # window: masaüstü penceresi · browser: tarayıcı · none: açma
+        self.view = view                       # window: 3D masaüstü penceresi · none: penceresiz (test)
         self.view_state, self.view_note = "pending", ""
         self.state = "starting"
         self.message = "Simülasyon başlatılıyor (JSBSim + PPO ajanı yükleniyor)…"
@@ -72,7 +70,9 @@ class SimProcess:
 
     @property
     def command(self) -> list[str]:
-        return [sys.executable, "-u", str(LIVE_SERVER), *server_args(self.sc, self.port)] + (["--window"] if self.view == "window" else [])
+        if self.view == "window":
+            return [sys.executable, "-u", "-m", "ah1s_app.sim_window", *server_args(self.sc, self.port)]
+        return [sys.executable, "-u", str(LIVE_SERVER), *server_args(self.sc, self.port)]
 
     def start(self) -> "SimProcess":
         self.proc = subprocess.Popen(self.command, cwd=str(REPO_ROOT), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -94,18 +94,12 @@ class SimProcess:
             if self.state in ("starting", "running"):
                 self.state, self.message = "stopped", "Simülasyon durduruldu."
 
-    def open_page(self):
-        try:
-            webbrowser.open(self.url)
-        except Exception:                                   # noqa: BLE001
-            pass
-
     # ---------------- iş parçacıkları ----------------
     def _read_output(self):
         for line in self.proc.stdout:
             line = line.rstrip()
             self.log.append(line)
-            if line.startswith("3D_VIEW "):                  # sunucunun pencere durumu (command_viz._serve_window)
+            if line.startswith("3D_VIEW "):                  # 3D pencerenin durumu (ah1s_app.sim_window)
                 kind, _, note = line[8:].partition(" ")
                 with self._lock:
                     self.view_state, self.view_note = kind, note
@@ -125,6 +119,8 @@ class SimProcess:
                         pass
                     elif self.view_state == "closed" and code == 0:
                         self.state, self.message = "stopped", "3D pencere kapatıldı; simülasyon bitti."
+                    elif self.view_state == "error":
+                        self.state, self.message = "error", f"3D pencere açılamadı: {self.view_note}"
                     else:
                         self.state = "error"
                         self.message = f"Simülasyon süreci kapandı (çıkış kodu {code})."
@@ -145,8 +141,6 @@ class SimProcess:
                         self.telemetry = {k: row[cols[k]] for k in self.TELEMETRY if k in cols}
                     if status.get("state") in ("running", "done") and self.state == "starting":
                         self.state = "running"
-                        if self.view == "browser":
-                            self.open_page()
                     if self.state == "running":
                         self.message = status.get("message") or ""
             except Exception:                               # noqa: BLE001 — sunucu daha açılmadı ya da meşgul

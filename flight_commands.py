@@ -176,6 +176,8 @@ def route_command(env, speed_kt=None, dspeed_kt=None, heading_deg=None, dheading
         parts.append(f"hız → {u_c:.0f} kt")
     if dpsi is not None:
         task["dpsi"] = dpsi
+        if heading_deg is not None:                       # mutlak yön (rota tutmada rota bu olur)
+            task["psi_abs"] = float(heading_deg) % 360.0
         parts.append(f"heading {dpsi:+.0f}°")
     if h_t is not None:
         h_c = min(max(h_t, CMD_MIN_ALT_FT), CMD_MAX_ALT_FT)

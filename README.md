@@ -2095,7 +2095,7 @@ Masaüstü uygulaması; terminalden (repo kökünde):
 
 ```bash
 pip install -r requirements-app.txt      # requirements.txt + pygame + pywebview (Linux'ta Qt WebEngine)
-python -m ah1s_app                       # pencere 1280×720; --fullscreen, --size 1600x900, --view window|browser|none
+python -m ah1s_app                       # pencere 1280×720; --fullscreen, --size 1600x900
 ```
 
 Ekranlar (görseller şimdilik düz renk yer tutucu; görsellik ve UI en sonda):
@@ -2107,16 +2107,28 @@ Ekranlar (görseller şimdilik düz renk yer tutucu; görsellik ve UI en sonda):
    (yerde / hover / ileri uçuş), irtifa, hava hızı, heading, yakıt (iki tanka eşit), rüzgâr hızı ve geldiği yön (kuzeye
    göre), türbülans, gust, sıcaklık farkı. Formun aralıkları canlı sunucunun kabul ettikleri; ajanın eğitim aralığı
    dışındaki seçimler sarı uyarıyla gösterilir (uçuş yine başlar).
-4. **Simülasyon**: "Simülasyonu başlat" canlı sunucuyu (`command_viz.py --window`, `models_flight/flight_v2.zip`) bu
-   koşullarla ayrı süreçte açar; 3D görünüm kendi masaüstü penceresinde açılır (pywebview: Windows WebView2, macOS
-   WebKit, Linux Qt WebEngine). Helikopteri PPO ajanı uçurur; görevler / komutlar 3D penceredeki formdan. pygame penceresi
-   süreyi, irtifayı, hava hızını, heading'i, dikey hızı, yakıtı, torku ve rotor devrini canlı gösterir. 3D pencereyi
-   kapatmak, "Durdur ve ayarlara dön" ya da Esc simülasyonu bitirir; uygulamadan çıkınca da kapanır. pywebview yoksa ya
-   da pencere açılamazsa (ör. Linux'ta ekran yok) 3D görünüm tarayıcıda açılır ve uygulama bunu sarı uyarıyla yazar.
+4. **Simülasyon**: "Simülasyonu başlat" 3D simülasyon penceresini hemen açar (`ah1s_app/sim_window.py`, pywebview:
+   Windows WebView2, macOS WebKit, Linux Qt WebEngine; tarayıcı kullanılmaz). Pencere önce "hazırlanıyor" ekranını
+   gösterir; JSBSim ve PPO ajanı (`models_flight/flight_v2.zip`, canlı sunucu `command_viz.py`) arka planda yüklenir,
+   hazır olunca (bu ortamda ~5 s) simülasyon aynı pencerede açılır. Helikopteri PPO ajanı uçurur; görevler / komutlar
+   3D penceredeki formdan. pygame penceresi süreyi, irtifayı, hava hızını, heading'i, dikey hızı, yakıtı, torku ve rotor
+   devrini canlı gösterir. 3D pencereyi kapatmak, "Durdur ve ayarlara dön" ya da Esc simülasyonu bitirir; uygulamadan
+   çıkınca da kapanır. Pencere açılamazsa (pywebview yok, Linux'ta ekran yok) uygulama nedenini hata olarak yazar.
    three.js ve uPlot `viz/vendor/`'dan yerel sunulur (aynı sürümler, MIT): internet gerekmez (yalnızca B612 yazı tipi
    Google Fonts'tan; yoksa sistem yazı tipi). Colab'daki satır içi sayfa CDN'i kullanmaya devam eder.
 
 Tuşlar: Esc geri (ana ekranda çıkış), F11 tam ekran; kaydırıcılar sürükleyerek ya da tekerlekle.
+
+**Rota tutma (canlı uçuş).** Ölçüm: rüzgârsız uçuşta burun ile yer izi arasındaki fark ~1–2° (ajan ~5 ft/s yana
+kayarak uçuyor: +2.4°); rüzgârda ajan burnu komut edilen heading'de tutuyor ve rüzgâr onu sürüklüyor (15 kt yan rüzgâr,
+70 kt: iz 12.5° kayıyor, yana hava hızı ~0 → saf sürüklenme). Yani helikopter gösterilen yöne gitmiyordu. Canlı uçuşta
+(uygulama ve `command_viz.py`) artık ileri uçuşta heading komutu **rota** (yer izi) sayılır: burun hedefi = rota −
+süzülmüş sürüklenme açısı (yer hızının buruna göre açısı, τ 4 s; rüzgâr + yana kayma), pilotun rüzgâr düzeltmesi gibi
+(`FlightEnvConfig.course_hold`; mutlak heading komutu `psi_abs` ile, Δ önceki rotaya göre). Aynı testte iz: rüzgârsız
+091.3°, 15 kt kuzeyden 090.4° (burun 077.7°), 15 kt güneyden 092.3° (burun 100.7°); hedef 090°. Rüzgârda burun ile iz
+arasındaki fark fiziksel olarak kalır (rüzgâr düzeltme açısı); HUD «ROTA 090° · burun −13°» ve «İZ» ile, 3D'de magenta
+çizgi (rota) ve koyu çizgi (burun) ile gösterir. Eğitim ve değerlendirmede kapalı (davranış birebir aynı); eski davranış
+için `command_viz.py --nose-heading`.
 
 **Konum.** Uçuş seçilen enlem / boylamda başlar (`HelicopterEnvCommand.start_location`, JSBSim `ic/lat-geod-deg`,
 `ic/long-gc-deg`; eğitim ve değerlendirmede `None` → `reset00.xml`, davranış değişmedi). Zemin yüksekliği ve atmosfer
@@ -2127,6 +2139,7 @@ konumu olduğu için seçildi: hava yoğunluğu ve güç payı gerçekteki gibi.
 
 Dosyalar: `ah1s_app/app.py` (pencere, ekran yığını), `scenes.py` (ekranlar), `ui.py` (düğme, kaydırıcı, seçim grubu,
 yer tutucu panel), `config.py` (paneller, konumlar, sınırlar — `flight_curriculum` / `takeoff_curriculum` sabitlerinden),
-`sim.py` (simülasyon süreci + HTTP API'den telemetri), `turkey.py` (kaba Türkiye ana hatları). Menüler jsbsim / torch
-olmadan da açılır; bunlar yalnızca simülasyon sürecinde yüklenir.
+`sim.py` (simülasyon süreci + HTTP API'den telemetri), `sim_window.py` (3D pencere: hemen açılır, simülasyonu arka planda
+yükler), `turkey.py` (kaba Türkiye ana hatları). Menüler jsbsim / torch olmadan da açılır; bunlar yalnızca simülasyon
+sürecinde yüklenir.
 

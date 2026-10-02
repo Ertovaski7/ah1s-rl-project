@@ -20,7 +20,7 @@ class App:
         self.windowed_size = size
         self.fullscreen = fullscreen
         self.screen = self._make_window()
-        self.view = view                      # simülasyonun 3D görünümü: window | browser | none
+        self.view = view                      # simülasyonun 3D görünümü: window (masaüstü penceresi) | none (test)
         self.last_conditions = None           # Sürüş ekranı son seçimleri hatırlar
         self.sims = []                        # çalışan simülasyon süreçleri (çıkışta kapanır)
         self.stack: list[Scene] = []
@@ -93,8 +93,8 @@ def main(argv=None):
     p = argparse.ArgumentParser(prog="python -m ah1s_app", description="AH-1S simülatör uygulaması (pygame).")
     p.add_argument("--fullscreen", action="store_true", help="tam ekran başla (F11 ile değişir)")
     p.add_argument("--size", default="1280x720", help="pencere boyutu, ör. 1600x900")
-    p.add_argument("--view", choices=["window", "browser", "none"], default="window",
-                   help="simülasyonun 3D görünümü: masaüstü penceresi (varsayılan; pywebview), tarayıcı ya da hiçbiri")
+    p.add_argument("--view", choices=["window", "none"], default="window",
+                   help="simülasyonun 3D penceresi (varsayılan) ya da penceresiz (test)")
     a = p.parse_args(argv)
     w, h = (int(v) for v in a.size.lower().split("x"))
     App((w, h), fullscreen=a.fullscreen, view=a.view).run()

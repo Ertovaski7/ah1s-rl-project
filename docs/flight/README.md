@@ -557,3 +557,18 @@ python train_command_curriculum.py --task flight --out runs/fl_v3 --init-model m
     --no-promote --total-steps 3000000 --n-envs 3 --n-steps 4096 --batch-size 512 --net 256,256 --eval-freq 500000 \
     --eval-episodes 10 --eval-levels F13,F10,F6 --snapshot-freq 500000 --fine-from F6a --env-overrides '{"rotor_dt_mode": "sim"}'
 ```
+
+### 9.4. İleri uçuş komutları: sakin ↔ rüzgâr ↔ türbülans (`probe_cruise_wind.py`, `cruise_wind_v3_v2.json`)
+
+Aynı 8 komut (±30 kt, ±90°, ±200 ft, birleşik +20 kt / +60° / +100 ft, 60 s tut), 300 ft / 80 kt / 9300 lbs.
+
+| çevre | flight_v3 başarı | flight_v2 başarı | tutma hatası medyan (irtifa / heading / hız) v3 | roll std v3 | başarısız komutlar v3 |
+|---|---|---|---|---|---|
+| sakin | 7/8 | 7/8 | 4.0 ft / 1.0° / 1.4 ft/s | 1.9° | birleşik |
+| 15 kt rüzgâr (sağ ön) | 5/8 | 4/8 | 3.0 ft / 2.0° / 1.5 ft/s | 2.1° | +30 kt (heading 4.3° > 3°), −200 ft, birleşik |
+| 25 kt + orta türbülans + gust | 6/8 | 7/8 | 6.3 ft / 1.4° / 4.5 ft/s (bantlar 2×) | 4.7° | +90°, birleşik |
+
+Okuma: (1) Birleşik komut (üç eksen birden) iki modelde ve üç çevrede de başarısız — en zayıf komut türü; (2) 15 kt
+rüzgârda hız değişimi sırasında heading 3° bandının dışına kayıyor (yan rüzgârda burun tutma), tek başına rüzgâr
+türbülanstan daha çok başarısızlık veriyor çünkü bantlar genişlemiyor; (3) türbülansta 60 s tutmada irtifa sapması
+23–31 ft (2× band 24 ft'in sınırında); (4) flight_v3 ile flight_v2 arasında anlamlı fark yok.

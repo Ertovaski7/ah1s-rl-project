@@ -229,6 +229,7 @@ def find_flight_level(level, levels=None) -> int:
 #   F11    | hassasiyet okulu: dönüş / pirouette / kayma / bob, %50 F10 tekrarı | E0–E2, −10…+30 °C
 #   F12    | denge: F10 karışımı + %45 tekrar (F11 ×3, F6, F7, F8, F9)          | F10'un çevresi
 #   F13    | denge + iniş: F10 karışımı + %50 tekrar (F6a ×2, F6 ×2, F11 ×2, F8, F9) | F10'un çevresi
+#   F14    | rüzgâr / gust altında iniş okulu + %50 tekrar (F13, F10, F8, F9)  | E2 / E3, −10…+30 °C
 #
 # F11 / F12 (2026-10-01): F11'de 3.5 M adım hassasiyeti getirdi (yerinde dönüşte kayma 18 → 6 ft) ama genel becerileri
 # aşındırdı (seçim takımında tüm görevler 18/21 → 8/21: inişte collective ~0.2'de kalıp kızaklarda ağırlık < %70,
@@ -359,6 +360,19 @@ DEFAULT_FLIGHT_LEVELS.append(replace(
     description="Denge + iniş (2026-10-01): F10 karışımı; tekrar %50 — F6a ×2, F6 ×2, F11 ×2, F8, F9",
     rehearse=("F6a", "F6a", "F6", "F6", "F11", "F11", "F8", "F9"), p_rehearse=0.5))
 
+# F14 (2026-10-02): rüzgâr ve gust altında iniş okulu. Sorun: 25 kt + orta türbülans + gust'ta 150–300 ft'ten inişte
+# flight_v2 / flight_v3 24 inişin 3–4'ünde kuyruk çarpması ya da devrilme (burun yukarı frenleme). Episode: hover'dan
+# (12–300 ft) ya da ileri uçuştan duruş → iniş, çevre E2 / E3 (rüzgâr 0–25 kt, hafif / orta türbülans, gust). Episode'ların
+# yarısı F13 / F10 / F8 / F9 tekrarı: ileri uçuş ve hassasiyet korunsun (unutmaya karşı).
+DEFAULT_FLIGHT_LEVELS.append(FlightLevel(
+    name="F14", description="Rüzgâr / gust altında iniş okulu (2026-10-02): hover 12–300 ft → iniş (%60) ya da ileri uçuş "
+                            "30–80 kt → duruş → iniş (%40); rüzgâr 0–25 kt, hafif / orta türbülans, gust; %50 tekrar "
+                            "F13 / F10 / F8 / F9",
+    p_hover_start=1.0, hover_start_alt_ft=(12.0, 300.0), n_tasks=(0, 1), task_probs={"move": 0.5, "bob": 0.5},
+    move_ft=(15.0, 40.0), bob_ft=(10.0, 30.0), p_land=1.0, p_cruise_start=0.4, cruise_start_kt=(30.0, 80.0),
+    cruise_start_alt_ft=(100.0, 400.0), n_cruise=(0, 0), p_stop=1.0, p_land_after_stop=1.0, stop_decel=(2.0, 3.0),
+    climb_fps=8.0, descent_fps=5.0, lag_s=4.0, fuel_lbs=_FUEL, env_probs={"E2": 0.4, "E3": 0.6}, hover_precision=0.5,
+    delta_T_C=(-10.0, 30.0), promote_threshold=0.6, rehearse=("F13", "F10", "F8", "F9"), p_rehearse=0.5))
 
 __all__ = ["FlightLevel", "DEFAULT_FLIGHT_LEVELS", "ENV_STAGES", "find_flight_level", "flight_time_target",
            "cruise_yaw_rate_dps", "deadline_of", "CRUISE_MIN_KT", "CRUISE_MAX_KT", "CRUISE_MIN_ALT_FT",

@@ -545,7 +545,10 @@ def main(argv=None):
                                                  n_envs=model.n_envs)
         model.batch_size = args.batch_size
         model.n_epochs = args.n_epochs
-        print(f"[model] yüklendi: {model_path}  (n_steps {model.n_steps}, batch {model.batch_size}, epoch {model.n_epochs})")
+        # 2026-10-02: PPO.load --seed'i uygulamıyordu (torch / numpy / env tohumları); çok seed'li ince ayar için gerekli
+        model.set_random_seed(args.seed)
+        print(f"[model] yüklendi: {model_path}  (n_steps {model.n_steps}, batch {model.batch_size}, epoch {model.n_epochs}, "
+              f"seed {args.seed})")
     else:
         model = PPO(
             "MlpPolicy", venv, learning_rate=args.lr, n_steps=args.n_steps, batch_size=args.batch_size,

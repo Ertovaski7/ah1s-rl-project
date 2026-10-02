@@ -25,7 +25,7 @@ Süre hedefleri: `flight_time_target`.
 """
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
@@ -37,6 +37,16 @@ CRUISE_MIN_KT = 30.0             # ileri uçuş komutlarının hız zarfı (hava
 CRUISE_MAX_KT = 110.0
 CRUISE_MIN_ALT_FT = 100.0        # CG AGL
 CRUISE_MAX_ALT_FT = 1000.0
+# Doğal komut zarfı (2026-10-01; canlı / arayüz komutları — eğitim örneklemesi seviyenin zarfıyla, yukarıdaki sabitler
+# F1–F9 için birebir). Hız: AH-1S en yüksek düz uçuş hızı ~128 kt (Vertipedia) / ~130 KTAS @ 10,000 lbs 8 TOW (DTIC
+# ADA025476, YAH-1S 1975); bu modelde 130 kt ~38–40 psi (gerçekte TOW rampalarıyla ~%100). 10 kt altı → duruş (hover).
+# İrtifa: CG AGL; ileri uçuşta en az 50 ft, hover 12 ft (kızaklar ~6 ft). Vne (güvenlik): 170 kt (TOW ya da > 9500 lbs;
+# aircav.com).
+CMD_MIN_KT = 10.0
+CMD_MAX_KT = 130.0
+CMD_MIN_ALT_FT = 50.0
+CMD_MAX_ALT_FT = 1500.0
+VNE_KT = 170.0
 
 # çevre aşamaları (physics_ext seçenekleri olarak env'e verilir; rüzgâr yönü başlangıç heading'ine göre rastgele)
 ENV_STAGES = {
@@ -80,6 +90,14 @@ class FlightLevel(TakeoffLevel):
     cruise_descent_fps: float = 10.0
     cruise_lag_s: float = 3.0
     cruise_hold_s: float = 5.0
+    # --- örnekleme zarfı (_flip'li görevlerde Δ bunun dışına düşerse ters çevrilir; F1–F9: eski sabitler) ----------
+    cruise_kt_env: tuple = (CRUISE_MIN_KT, CRUISE_MAX_KT)
+    cruise_alt_env: tuple = (CRUISE_MIN_ALT_FT, CRUISE_MAX_ALT_FT)
+    # --- hover hassasiyeti: hover görevlerinde kuplaj sınırları ve hover bandının konum toleransı bu katsayıyla ------
+    # (türbülans ölçeğinin üstüne; 0.5 → yerinde dönüşte konum kayması ≤ 10 ft, hover bandı 3–6 ft; ADS-33 ±3 / ±6 ft)
+    hover_precision: float = 1.0
+    # --- hava sıcaklığı (standart günden sapma, °C; (0, 0) → kapalı, RNG'ye dokunmaz) ---------------------------------
+    delta_T_C: tuple = (0.0, 0.0)
 
     # ------------------------------------------------------------------------------------------
     def sample_env(self, rng) -> tuple[str, dict]:
@@ -95,6 +113,8 @@ class FlightLevel(TakeoffLevel):
         if st.get("gust_rate", 0.0) > 0.0:
             opts["gust_rate_per_min"] = float(st["gust_rate"])
             opts["gust_kt"] = tuple(st["gust_kt"])
+        if tuple(self.delta_T_C) != (0.0, 0.0):                    # (eski seviyelerde ek rastgele sayı yok)
+            opts["delta_T_C"] = float(rng.uniform(*self.delta_T_C))
         return name, opts
 
     def sample_start(self, rng) -> dict:
@@ -118,6 +138,7 @@ class FlightLevel(TakeoffLevel):
             d.pop(drop, None)
             if len([k for k in ("du_kt", "dpsi", "dh") if k in d]) == 0:
                 d["dpsi"] = float(rng.uniform(*self.dpsi_deg))
+        d["_flip"] = True              # örneklenen görev: seviyenin zarfı + ters çevirme (canlı komut kırpılır)
         return d
 
     def _cruise_block(self, rng) -> list[dict]:
@@ -141,7 +162,7 @@ class FlightLevel(TakeoffLevel):
         if start == "ground" and self.p_chain > 0.0 and rng.random() < self.p_chain:
             tasks = [dict(kind="takeoff", h=float(rng.uniform(*self.chain_takeoff_ft)))]
             tasks.append(dict(kind="cruise", u_kt=float(rng.uniform(*self.accel_kt)),
-                              dh=float(rng.uniform(*self.accel_climb_ft)), accel=True))
+                              dh=float(rng.uniform(*self.accel_climb_ft)), accel=True, _flip=True))
             tasks += self._cruise_block(rng)
             tasks.append(dict(kind="stop", decel=float(rng.uniform(*self.stop_decel))))
             if rng.random() < self.p_land_after_stop:
@@ -150,7 +171,7 @@ class FlightLevel(TakeoffLevel):
         if start == "hover" and self.p_accel > 0.0 and rng.random() < self.p_accel:
             tasks = [dict(kind="hold")]
             tasks.append(dict(kind="cruise", u_kt=float(rng.uniform(*self.accel_kt)),
-                              dh=float(rng.uniform(*self.accel_climb_ft)), accel=True))
+                              dh=float(rng.uniform(*self.accel_climb_ft)), accel=True, _flip=True))
             tasks += self._cruise_block(rng)
             if self.p_stop > 0.0 and rng.random() < self.p_stop:
                 tasks.append(dict(kind="stop", decel=float(rng.uniform(*self.stop_decel))))
@@ -201,6 +222,16 @@ def find_flight_level(level, levels=None) -> int:
 #   F7     | karma (tüm görevler)                                            | E1 / E2
 #   F8     | karma + zincir, rüzgâr + türbülans                              | E1 / E2 / E3
 #   F9     | cila: F8 + daha çok hover manevrası, sakin hover manevrası tekrarı | E1 / E2 / E3
+#   F10    | doğal zarf (10–130 kt, 50–1500 ft, Δψ ≤ 270°), pirouette, hover   | E0–E3, hava sıcaklığı
+#          | hassasiyeti ×0.5, hover dönüşü ≤ 360° (2026-10-01)                | standart −10…+30 °C
+#   F11    | hassasiyet okulu: dönüş / pirouette / kayma / bob, %50 F10 tekrarı | E0–E2, −10…+30 °C
+#   F12    | denge: F10 karışımı + %45 tekrar (F11 ×3, F6, F7, F8, F9)          | F10'un çevresi
+#   F13    | denge + iniş: F10 karışımı + %50 tekrar (F6a ×2, F6 ×2, F11 ×2, F8, F9) | F10'un çevresi
+#
+# F11 / F12 (2026-10-01): F11'de 3.5 M adım hassasiyeti getirdi (yerinde dönüşte kayma 18 → 6 ft) ama genel becerileri
+# aşındırdı (seçim takımında tüm görevler 18/21 → 8/21: inişte collective ~0.2'de kalıp kızaklarda ağırlık < %70,
+# ileri uçuşta irtifa bandına oturamama, hızlanmada daha uzun 56 psi aşımı). F12 F10 karışımına dönüp hassasiyeti
+# F11 tekrarıyla korur.
 #
 # Hover ve ileri uçuş F1'den itibaren birlikte (2026-09-29, fl_v1 / fl_v2): hover'da eğitilmiş ağ ileri uçuşa
 # geçince ilk seviyede ileri uçuş %0'da kaldı ve hover başarısı (deterministik F2) %100 → %25'e düştü (ağın ileri uçuş
@@ -289,9 +320,45 @@ DEFAULT_FLIGHT_LEVELS: list[FlightLevel] = [
         p_land_after_stop=0.3, p_touch_start=0.05, p_low_hover_start=0.05, climb_fps=10.0, descent_fps=5.0, lag_s=4.0,
         fuel_lbs=_FUEL, env_probs={"E1": 0.3, "E2": 0.4, "E3": 0.3}, promote_threshold=0.6,
         rehearse=("F2", "F3", "F5", "F6", "F7", "F8"), p_rehearse=0.35),
+    FlightLevel(
+        name="F10", description="Doğal zarf + hassasiyet + sıcak gün (2026-10-01): F9 karışımı; ileri uçuş 10–130 kt, "
+                                "50–1500 ft, Δhız ≤ 50 kt, Δψ ≤ 270°, Δh ≤ 600 ft; hover dönüşü ≤ 360°, pirouette; hover "
+                                "hassasiyeti ×0.5; hava sıcaklığı standart −10…+30 °C",
+        p_hover_start=0.4, hover_start_alt_ft=(15.0, 800.0), takeoff_alt_ft=(10.0, 1000.0), n_tasks=(1, 3),
+        task_probs={"turn": 0.3, "move": 0.2, "bob": 0.2, "pirouette": 0.3}, turn_deg=(30.0, 360.0),
+        pirouette_radius_ft=(80.0, 120.0), pirouette_s=(40.0, 60.0),
+        p_target_change=0.2, p_land=0.3, p_cruise_start=0.3, cruise_start_kt=(15.0, 125.0),
+        cruise_start_alt_ft=(60.0, 1450.0), n_cruise=(1, 4), p_cruise_interrupt=0.25, du_kt=(10.0, 50.0),
+        dpsi_deg=(20.0, 270.0), dh_ft=(50.0, 600.0), cruise_kt_env=(CMD_MIN_KT, CMD_MAX_KT),
+        cruise_alt_env=(CMD_MIN_ALT_FT, CMD_MAX_ALT_FT), p_accel=0.4, accel_kt=(15.0, 120.0), accel_climb_ft=(0.0, 300.0),
+        p_stop=0.6, p_chain=0.5, p_land_after_stop=0.3, p_touch_start=0.05, p_low_hover_start=0.05, climb_fps=10.0,
+        descent_fps=5.0, lag_s=4.0, fuel_lbs=_FUEL, env_probs={"E0": 0.15, "E1": 0.25, "E2": 0.35, "E3": 0.25},
+        hover_precision=0.5, delta_T_C=(-10.0, 30.0), promote_threshold=0.6,
+        rehearse=("F2", "F3", "F5", "F6", "F7", "F8", "F9"), p_rehearse=0.3),
+    FlightLevel(
+        name="F11", description="Hassasiyet okulu (2026-10-01): hover'da 2–4 görev — yerinde dönüş 30–360° (%40), pirouette "
+                                "(%30), kayma, bob; hover hassasiyeti ×0.5; sakin / hafif rüzgâr; −10…+30 °C; %50 F10 tekrarı",
+        p_hover_start=0.7, hover_start_alt_ft=(12.0, 150.0), takeoff_alt_ft=(10.0, 100.0), n_tasks=(2, 4),
+        task_probs={"turn": 0.4, "pirouette": 0.3, "move": 0.15, "bob": 0.15}, turn_deg=(30.0, 360.0),
+        pirouette_radius_ft=(80.0, 120.0), pirouette_s=(40.0, 60.0), climb_fps=8.0, descent_fps=5.0, lag_s=4.0,
+        p_land=0.2, fuel_lbs=_FUEL, env_probs={"E0": 0.4, "E1": 0.4, "E2": 0.2}, hover_precision=0.5,
+        delta_T_C=(-10.0, 30.0), promote_threshold=0.6, rehearse=("F10",), p_rehearse=0.5),
 ]
+# F12 (2026-10-01): F10'un kendisi (görevler, doğal zarf, çevre, hassasiyet ×0.5), tekrar F11 ağırlıklı — bkz. yukarıdaki not
+DEFAULT_FLIGHT_LEVELS.append(replace(
+    DEFAULT_FLIGHT_LEVELS[[lv.name for lv in DEFAULT_FLIGHT_LEVELS].index("F10")], name="F12",
+    description="Denge (2026-10-01): F10 karışımı; tekrar %45 — F11 (×3, hassasiyet), F6 (iniş), F7, F8, F9",
+    rehearse=("F11", "F11", "F11", "F6", "F7", "F8", "F9"), p_rehearse=0.45))
+# F13 (2026-10-01): F12 + iniş tekrarı. F11 soyunda ajan yerde collective'i ~0.2'de tutuyor (action −0.85; fl10'da −1.0 →
+# collective 0.02, kızaklarda ağırlık %96) → kızaklarda ağırlık %61–64 < %70 → F6a / F6'da iniş 0/8. Tekrar %50: F6a ×2
+# (oturma okulu), F6 ×2, F11 ×2, F8, F9.
+DEFAULT_FLIGHT_LEVELS.append(replace(
+    DEFAULT_FLIGHT_LEVELS[[lv.name for lv in DEFAULT_FLIGHT_LEVELS].index("F12")], name="F13",
+    description="Denge + iniş (2026-10-01): F10 karışımı; tekrar %50 — F6a ×2, F6 ×2, F11 ×2, F8, F9",
+    rehearse=("F6a", "F6a", "F6", "F6", "F11", "F11", "F8", "F9"), p_rehearse=0.5))
 
 
 __all__ = ["FlightLevel", "DEFAULT_FLIGHT_LEVELS", "ENV_STAGES", "find_flight_level", "flight_time_target",
            "cruise_yaw_rate_dps", "deadline_of", "CRUISE_MIN_KT", "CRUISE_MAX_KT", "CRUISE_MIN_ALT_FT",
-           "CRUISE_MAX_ALT_FT", "GROUND_H_FT", "MIN_HOVER_H_FT", "MAX_HOVER_H_FT", "TANK_CAPACITY_LBS", "KT"]
+           "CRUISE_MAX_ALT_FT", "GROUND_H_FT", "MIN_HOVER_H_FT", "MAX_HOVER_H_FT", "TANK_CAPACITY_LBS", "KT",
+           "CMD_MIN_KT", "CMD_MAX_KT", "CMD_MIN_ALT_FT", "CMD_MAX_ALT_FT", "VNE_KT"]

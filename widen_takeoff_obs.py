@@ -16,6 +16,9 @@ Kullanım
   # manevra modeli (2026-09-29, yedek plan: iki ajanlı zincir için tork gözlemi, obs 24 → 25):
   python widen_takeoff_obs.py --task maneuver --model models_maneuver/maneuver_robust_final.zip --out runs/mq/init.zip \\
       --env '{"aircraft": "repo", "power_cap_psi": 56, "torque_obs": true}'
+  # tek ajanlı uçuş (2026-10-01): hava yoğunluğu gözlemi, obs 42 → 43
+  python widen_takeoff_obs.py --task flight --model models_flight/flight_final.zip --out runs/fl10/init.zip \\
+      --env '{"density_obs": true}'
 """
 
 import argparse
@@ -42,6 +45,9 @@ def widen(model_path, out_path, env_overrides: dict, check: int = 200, seed: int
     if task == "maneuver":
         from helicopter_env_maneuver import HelicopterEnvManeuver, ManeuverEnvConfig
         env = HelicopterEnvManeuver(level="M5", config=ManeuverEnvConfig(**ov))
+    elif task == "flight":
+        from helicopter_env_flight import FlightEnvConfig, HelicopterEnvFlight
+        env = HelicopterEnvFlight(level="F8", config=FlightEnvConfig(**ov))
     else:
         from helicopter_env_takeoff import HelicopterEnvTakeoff, TakeoffEnvConfig
         env = HelicopterEnvTakeoff(level="K9", config=TakeoffEnvConfig(**ov))
@@ -89,7 +95,7 @@ def main(argv=None):
     ap.add_argument("--model", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--env", default="{}", help="env ayarları (JSON), modelinkilerin üstüne")
-    ap.add_argument("--task", choices=["takeoff", "maneuver"], default="takeoff")
+    ap.add_argument("--task", choices=["takeoff", "maneuver", "flight"], default="takeoff")
     args = ap.parse_args(argv)
     info = widen(args.model, args.out, json.loads(args.env), task=args.task)
     print(json.dumps(info, indent=1, ensure_ascii=False))

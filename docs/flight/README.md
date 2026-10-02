@@ -8,6 +8,9 @@ bitince motor ayrılır). Rüzgâr / gust / türbülans seviyenin çevre aşamas
 
 > Durum (2026-09-29): **eğitim bitti** — sonuç modeli `models_flight/flight_final.zip` (fl_v9 4.5 M). Sonuç tablosu ve
 > şekiller bölüm 6'da.
+>
+> **Güncelleme (2026-10-01): yeni sonuç modeli `models_flight/flight_v2.zip`** — doğal komut zarfı + komut
+> yönlendirici, sıcak gün (hava yoğunluğu gözlemi), hover hassasiyeti; held-out test takımı. Bölüm 8.
 
 ## 1. Env
 
@@ -176,6 +179,7 @@ yeterli ±6 ft; eğitimdeki dönüş görevinin kuplaj sınırı 20 ft — daha 
 ### 6.5. Bilinen sınırlar / açık konular
 
 - **Yerinde dönüş ve pirouette hassasiyeti** ADS-33'ün altında (konum kayması); eğitim toleransı sıkılaştırılabilir.
+  (→ 2026-10-01: flight_v2, bölüm 8.)
 - **Tork:** 9700 lbs'de (tavana 3 psi) rüzgârlı geçişlerde 56 psi 2–3 psi aşılıyor (en uzun 8.5 s). Doğrusal ek ceza aşımı
   fl_v8'e göre azalttı, sıfırlamadı. AH-1S'in 56 psi üstü geçici sınırı (süre) el kitabından doğrulanmadı — **varsayım
   yok, yalnızca ölçüm raporlandı.**
@@ -212,4 +216,247 @@ python docs/flight/fig_flight.py --model models_flight/flight_final.zip \
 python docs/flight/fig_flight.py --scripted                                        # aynı zincir, PID pilot
 python command_viz.py record                                                       # demo uçuşları (fl_* dahil)
 python command_viz.py --model models_flight/flight_final.zip --start ground --wind-kt 15 --turb light   # canlı 3D
+```
+
+## 8. Doğal komut zarfı, komut yönlendirici, held-out takım, hover hassasiyeti — `flight_v2` (2026-10-01, branch `natural-limits`)
+
+Kullanıcı isteği: Δ komutlarda yapay sınırlar kalksın, yalnızca doğal sınırlar kalsın; arayüz kolaylığı; ayrı test
+takımı; hover hassasiyeti; JSBSim'in kullanmadığımız özellikleri. Ölçümler ve öneriler: `sim_oneriler_2026-10-01.md`.
+
+**Özet.** Yeni sonuç modeli `models_flight/flight_v2.zip` (gözlem 43: + hava yoğunluğu). flight_final'e göre held-out
+takımda: güvenli 35/35 (aynı), tüm görevler 26 → 28/35, sıcak gün grubu görev 19 → 30/31, 56 psi üstü 50 → 30 s;
+yerinde dönüşte en büyük konum kayması 32 → 6 ft, pirouette 19 → 10 ft; ADS-33 hovering turn 4 yetersiz → 3 yeterli.
+Bedeli: ileri uçuşta hız değişimleri biraz yavaş (seçim takımında görevlerin "istenen"i 102 → 98/105, hepsi yine en az
+"yeterli"; held-out seviyelerde F3 / F5 / F7 / F8 1–2 episode düşük) ve ADS-33 inişinde temas noktası 3–3.6 ft yanda.
+Genel görevlerde zamanlama öncelikliyse ara model `models_flight/flight_f10.zip` (F10 3 M: hassasiyeti flight_final gibi).
+
+### 8.1. Doğal zarf
+
+| eksen | eski (eğitim örneklemesi) | doğal komut zarfı | kaynak |
+|---|---|---|---|
+| hız (hava hızı) | 30–110 kt (ileri uçuş) | 0 = hover; 10–130 kt | AH-1S en yüksek düz uçuş ~128 kt (Vertipedia), YAH-1S 10,000 lbs ~130 KTAS (DTIC ADA025476) |
+| irtifa (CG AGL) | ileri uçuş 100–1000, hover 12–1000 ft | ileri uçuş 50–1500, hover 12–1500 ft | kullanıcı (0–1500 ft) |
+| heading | — | serbest; tek komutta ±360° | |
+| güvenlik | hava hızı 130 kt | Vne 170 kt (TOW ya da > 9500 lbs) | aircav.com |
+
+Komutlar artık **asla ters çevrilmiyor**: env'in eski "zarf dışına düşerse Δ'yı ters çevir" kuralı yalnızca müfredatın
+örneklediği görevlerde (`_flip` bayrağı; F1–F9 birebir — 16 örneklenen episode'da obs / ödül / sonuç aynı, `power_aware_climb`
+kapalıyken), canlı / arayüz komutu doğal sınıra kırpılıyor ve pencereye `clipped` yazılıyor. Eskiden: 40 kt'ta −20 kt → 60 kt,
+100 kt'ta +30 kt → 70 kt, 900 ft'te +200 ft → 702 ft, 250 ft'te −200 ft → 451 ft, hover 30 ft'te bob −25 ft → 55 ft.
+
+**Eğitimsiz genelleme** (flight_final, yalnızca zarf sabitleri açılarak, sakin hava): 120 kt ✓, 130 kt ✗ (128 kt'a çıktı,
+bantta oturmadı), 40 → 25 / 15 / 10 kt ✓, 20 kt'ta +90° ✓, hover → 20 kt ✓, 1000 → 1500 ft hover ✓, 1500 ft'te hover /
+ileri uçuş ✓, 100 → 1500 ft tırmanış ✓, 300 → 50 ft ✓, 120 kt'ta +90° ✓; 1500 ft'ten dikey iniş son sınırı kaçırdı (yüksekten
+iniş için yönlendirici önce ileri uçuşta alçaltmalı — açık).
+
+### 8.2. Komut yönlendirici — `flight_commands.py`
+
+Arayüzün tek giriş noktası: `route_command(env, speed_kt | dspeed_kt, heading_deg | dheading_deg, alt_ft | dalt_ft)`,
+`route_action(env, "takeoff" | "land" | "stop" | "pirouette")`, `apply(env, sonuç)`. Rejim: yerde (≥ 3 kızak noktası,
+kızak < 1 ft) / ileri uçuş (ileri uçuş penceresi ya da hava hızı ≥ 25 kt) / hover.
+
+| rejim | hız | heading | irtifa | iniş / hover eylemleri |
+|---|---|---|---|---|
+| yerde | reddedilir (önce kalkış) | — | kalkış | — |
+| hover | ≥ 10 kt → (önce yerinde dönüş) + hızlanma | yerinde dönüş | climb_to | land / hold / pirouette |
+| ileri uçuş | < 10 kt → duruş (+ hover komutları); 10–130 kt → cruise u | cruise Δψ (mutlak heading → en kısa yön) | cruise h | önce duruş, sonra görev |
+
+Eskiden rejime uymayan komut episode'u bitiriyordu (80 kt'ta hover dönüşü / hold / iniş → 0.1 s'de `speed_limit`) ya da
+istenmeyen hızlanma yapıyordu (hover'da cruise Δψ → 30 kt). `command_viz.py` canlı modu bütün uçuş görevlerini
+yönlendiriciden geçiriyor; sayfada "Komut" satırı (sayı = mutlak, +/− ile başlarsa Δ), pirouette düğmesi, yeniden
+başlatmada sıcaklık farkı; yönlendiricinin açıklaması (kırpma dahil) görev ipucunda. Kontrol: `docs/flight/check_natural_limits.py`.
+
+### 8.3. Env / fizik değişiklikleri
+
+- `power_aware_climb` (varsayılan açık): ileri uçuş / hızlanma pencerelerinde istenen tırmanış hızı güç payıyla sınırlı —
+  0.8·(56 − psi_düz(u, W))/0.62 ft/s (trim tablosunun düz uçuş torku; 9700 lbs'de 0 kt 3.6, 20 kt 13 ft/s); hızlanmanın süre
+  hedefinde tırmanış ETL'den (35 kt) sonra. 2026-09-30 bulgusu: 9700 lbs'deki 56 psi aşımlarının hepsi hızlanma
+  penceresinde, 0–32 kt'ta, ödülün vs_des'i 12.5 ft/s tavandayken.
+- `pirouette` görevi (ADS-33): hedef noktası çember üzerinde ilerler, hedef heading merkeze; hedefin hızı gözlemde
+  (38–39) ve yönlendirmede, heading'in dönüş hızı yaw yönlendirmesine ileri besleme; tur sırasında hareketli hedeften
+  uzaklık / heading farkı sınırı (`pir_lim`), tur bitince başlangıç noktasında hover bandı. **Açısal hız yamuk profilli**
+  (`ramp_s`, varsayılan 4 s; tur t_c + ramp_s): ilk sürümde hedef 14 ft/s'ye anında çıkıp turun sonunda anında
+  duruyordu — fl11 3 M sürekli rejimde hedefin 6–8 ft yakınında, ama başta ~13 ft geride kalıp sonda ~8 ft aşıyordu
+  (en büyük uzaklık 18.6 ft). Rampayla aynı model, eğitimsiz: 10.4 ft.
+- Hover hassasiyeti: seviyenin `hover_precision`'ı kuplaj sınırlarını ve hover bandının konum toleransını ölçekler (F10 /
+  F11: 0.5 → yerinde dönüşte konum ≤ 10 ft, hover bandı 3–6 ft, pirouette'te hareketli hedefe ≤ 10 ft).
+- Yerinde dönüşte yaw hızı cezası (`pen_turn_rate`; fl10b'de 1.0, F11 koşularında 2.0): |r| > 1.5·1.25·15 = 28 °/s
+  üstü. Neden: ajan 180°'yi ~5 s'de 40–44 °/s ile dönüp konumu 15–25 ft kaydırıyordu; dönüş ödülü (indirimli ilerleme +
+  heading çekirdeği) hızlı dönmeyi kârlı kılıyordu; yaw hızı yönlendirmesi (18.75 °/s) zayıf kalıyordu. ADS-33 istenen
+  180°/10 s. F11 (hassasiyet okulu): hover'da 2–4 görev (dönüş %40, pirouette %30, kayma, bob), %50 F10 tekrarı.
+- Tırmanışta tork geri beslemesi (`torque_feedback_climb`) ve yoğunluk düzeltmesi (`torque_density_climb`), F11
+  koşularında açık: istenen tırmanış hızı, filtreli tork 54.5 psi'yi geçince düşürülür
+  (vs_des ≤ vs + (54.5 − psi_f)/0.62); güç payı hesabında hover torku hava yoğunluğuyla artar
+  (+15·(0.935 − σ)/0.935 psi). Neden: fl10 3 M'de 1000 → 1500 ft hover tırmanışında 17.9 s kesintisiz 56 psi üstü.
+- Hava sıcaklığı: `physics_ext` `atmo` bölümü / `delta_T_C` seçeneği → JSBSim `atmosphere/delta-T`; `density_obs` (obs 43:
+  (ρ/ρ0 − 0.9)/0.05). Seçenekler (eğitimde kapalı): `wind_shear` (MIL-F-8785C log profili), `turb_from_wind` (türbülans
+  W20'si ortalama rüzgârdan).
+- Gust erteleme: JSBSim 1−cos gust'ı sürerken gelen gust öncekinin bitişine ertelenir (JSBSim yönü güncellemiyor, genliği
+  basamakla değiştiriyor, süreyi yeniden başlatmıyordu).
+- Reset hover PID'inin 2. evresi (yalnızca 1. evre başarısızsa): güçlü yan rüzgârda (15–25 kt) hover artık kuruluyor.
+- Canlı: yerde başlayıp görev yokken iniş bayrağı 1 (ajan kızaklar ~0.7 ft'te süzülüyordu).
+- `max_airspeed_kt` = Vne 170 kt.
+- `torque_feedback_climb`, `pen_turn_rate` yalnızca ödülü değiştirir. `torque_density_climb` görevlerin **süre
+  hedeflerini de** değiştirir (sıcak günde / yüksekte tırmanış hedefi daha yavaş → son sınır daha geç: 9700 lbs, +30 °C'de
+  kalkışın son sınırı 35 → 67 s). Bu yüzden modeller arası karşılaştırmada hepsi `torque_density_climb` **kapalı**
+  ölçütlerle değerlendirildi (`--env '{"torque_density_climb": false}'`; aşağıdaki tablolar).
+
+### 8.4. Eğitim koşuları (hepsi ince ayar modu: lr 1e-4, KL 0.02; 2 env; `--no-promote`; tek seed)
+
+| koşu | başlangıç | seviye / env ayarları | adım (süre) | ne oldu |
+|---|---|---|---|---|
+| fl10 | flight_final; gözlem 42 → 43 (`widen_takeoff_obs.py --task flight`, yoğunluk sütunu sıfır) | F10 | 3.0 M (79 dk) | seçim 18/21 · 104/105; held-out sıcak gün grubu görev 19/31 → 27/31; yerinde dönüş kayması 21 → 16 ft (ADS-33 dışı) → **`flight_f10.zip`** |
+| fl10b | fl10 3 M | F10, `pen_turn_rate` 1.0 | 1.0 M (28 dk) | dönüş kayması iyileşmedi (16 → 23 ft) |
+| fl11 | fl10b 1 M | F11; `pen_turn_rate` 2.0, `torque_feedback_climb`, `torque_density_climb` (bundan sonra hep açık) | 3.5 M (92 dk) | yerinde dönüş 0/8 → 7/8 (kayma 6.4 ft); **ama seçim 8/21 · 89/105** — iniş 6/13, ileri uçuşta irtifa 1/8, hızlanmada 56 psi üstü 2 kat |
+| fl12 | fl11 3.5 M | F11 + pirouette rampası | 1.5 M (39 dk) | pirouette eğitim başarısı %3–6 → %85; dönüş kayması 4.3 ft (1 M); **F6 inişi 0/8** |
+| fl13 | fl12 1.5 M | F12 | 1.0 M (28 dk) | seçim 5/21 (0.5 M; iniş 0/13) → durduruldu |
+| fl14 | fl13 1 M | F13 | 2.0 M (52 dk) | iniş geri geldi (F6a / F6 8/8, 0.5 M'den itibaren); seçim 11 / 15 / 13 / 14 (21'de; 0.5 / 1 / 1.5 / 2 M), 2 M'de bir senaryoda düşme → **`flight_v2.zip` = fl14 1.5 M** |
+| fl15 | fl14 2 M | F13 | 1.5 M (43 dk) | 56 psi üstü 17–25 s'ye indi, ama ileri uçuş hız / irtifa değişimleri yavaşladı (seçim istenen 88–95/105) ve yerinde dönüş 3/8'e düştü (1.5 M) |
+
+Soy: flight_final (11.8 M) + fl10 3.0 + fl10b 1.0 + fl11 3.5 + fl12 1.5 + fl13 1.0 + fl14 1.5 = **~23 M adım, ~10 saat
+CPU**. Seçim yalnızca seçim takımı + hassasiyet ölçümü + iniş kapısı (F6a / F6 8 episode) + seed 70000'li F8 / F10 ile
+yapıldı; held-out takım ve seed 500000'li seviyeler son modelde bir kez koşuldu (istisna: fl10 3 M'in held-out sonucu
+tork çalışmasına yön verdi).
+
+**İniş bozulmasının nedeni (ölçüldü):** F11 soyunda ajan yere oturduktan sonra collective action'ını −0.85'te tutuyordu
+(collective 0.21, kızaklarda ağırlık %61–64 < %70 → iniş bandı hiç sağlanmıyor); fl10'da −1.0 (collective 0.02, %96).
+Ödül bunu açıkça cezalandırıyor (yerde adım başına ~1.5 daha az ödül) — öğrenilmiş bir kayma, ödül çelişkisi değil.
+Eğitim istatistiği bunu gizledi: stokastik policy'nin gürültüsü collective'i zaman zaman aşağı itiyordu (F11'de
+"iniş %78–89"), deterministik F6'da 0/8. **Ders:** her anlık görüntüde bütün becerilerin deterministik kontrolü (iniş
+dahil). Çare: F13 (F6a oturma okulu + F6 tekrarı) → 0.5 M adımda F6a / F6 8/8.
+
+**Tork geri beslemesi yere yakın riskli (ölçüldü, fl14 2 M):** 9700 lbs, 25 kt rüzgâr + orta türbülans, alçak hover'dan
+hızlanma: ilk 2 s'de tork 59–60 psi → geri besleme istenen tırmanışı 1.5 ft/s'ye kısıyor → ajan torku düşürürken
+−8…−9 ft/s ile 39 ft'ten 14 ft'e indi → `low_altitude`. Aynı senaryo flight_final / flight_f10 / flight_v2'de güvenli.
+Öneri (uygulanmadı — yeniden eğitim gerektirir): geri beslemeyi yere yakın (< 50 ft) ve hızlanmanın ETL öncesinde kapatmak.
+
+### 8.5. Hassasiyet — `docs/flight/precision_probe.py` (`precision_2026-10-01.json`)
+
+Sakin hava, kızaklar 10 ft; yerinde dönüş +180°, −180°, −270°, +360° ve pirouette (100 ft, 45 s + 4 s rampa) iki yöne;
+8800 / 9700 lbs → 8 dönüş + 4 pirouette; F10 toleransları (hassasiyet ×0.5: dönüşte konum ≤ 10 ft, pirouette'te
+hareketli hedefe ≤ 10 ft). Kayma = görev sırasında hedef noktadan en büyük yatay uzaklık.
+
+| model | yerinde dönüş başarı | kayma ort. (en büyük) | en büyük yaw hızı ort. | pirouette başarı | hareketli hedefe uzaklık ort. (en büyük) |
+|---|---|---|---|---|---|
+| flight_final | 0/8 | 21.3 ft (30.2) | 36 °/s | 0/4 | 15.1 ft (19.6) |
+| flight_f10 (fl10 3 M) | 0/8 | 15.9 ft (25.7) | 34 °/s | 1/4 | 12.9 ft (15.8) |
+| fl11 3.5 M | 7/8 | 6.4 ft (11.7) | 32 °/s | 2/4 | 10.2 ft (11.9) |
+| fl12 1 M | 8/8 | 4.3 ft (6.6) | 29 °/s | 2/4 | 10.0 ft (11.9) |
+| **flight_v2 (fl14 1.5 M)** | **8/8** | **5.8 ft (7.6)** | 27 °/s | **4/4** | **8.5 ft (9.1)** |
+| fl15 1.5 M | 3/8 | 10.2 ft (11.9) | 24 °/s | 3/4 | 9.4 ft (10.3) |
+
+(pirouette'i rampasız görmüş modeller için de ölçüm rampalı — eğitimsiz.)
+
+### 8.6. Sonuçlar — flight_final / flight_f10 / flight_v2
+
+Karşılaştırma ölçütü hepsinde aynı (`torque_density_climb` kapalı); deterministik. Held-out takım (`--suite test`, 35
+senaryo, 4 grup: zincir / öğe / doğal zarf / sıcak gün — F1–F10'un örneklemediği kombinasyonlar, ayrı seed'ler) ve
+held-out seviye istatistikleri (seed 500000+, seviye başına 10 episode) son model seçildikten sonra koşuldu (seçimde
+kullanılmadı; aynı model iki ölçütle koşuldu, tablolar `torque_density_climb` kapalı olanı).
+
+**Held-out takım + seviyeler** (`eval_test_final.json`, `eval_test_f10.json`, `eval_test_v2.json`):
+
+| ölçüt | flight_final | flight_f10 | **flight_v2** |
+|---|---|---|---|
+| güvenli (düşme / sınır aşımı yok) | 35/35 | 35/35 | **35/35** |
+| test/zincir (tüm görevler · görev) | 7/8 · 51/52 | 7/8 · 51/52 | 5/8 · 43/52 |
+| test/öğe | 8/9 · 17/19 | 8/9 · 22/22 | 7/9 · 21/22 |
+| test/doğal (doğal zarfın uçları) | 9/11 · 21/23 | 10/11 · 22/23 | 10/11 · 22/23 |
+| test/sıcak (−10…+30 °C) | 2/7 · 19/31 | 3/7 · 27/31 | **6/7 · 30/31** |
+| toplam: tüm görevler · görev (istenen) · görev (yeterli+) | 26/35 · 108/125 · 120/125 | 28/35 · 122/128 · 128/128 | 28/35 · 116/128 · 126/128 |
+| 56 psi üstü toplam (en uzun kesintisiz; tepe) | 50 s (9.6 s; 60.9) | 76 s (17.9 s; 60.6) | **30 s (6.7 s; 61.5)** |
+| en büyük kayma: yerinde dönüş / pirouette | 32.3 / 19.3 ft | 19.6 / 15.4 ft | **5.8 / 9.9 ft** |
+| seviyeler F3 / F5 / F6 / F7 / F8 / F10 (episode, %) | 100 / 100 / 100 / 100 / 90 / 50 | 100 / 100 / 100 / 100 / 90 / 60 (1 `low_altitude`) | 80 / 90 / 100 / 80 / 80 / 50 |
+
+(flight_final / flight_f10'un iki pirouette senaryosu rampalı görevle yeniden koşuldu; `n` farkı: flight_final'de
+kesilen pencereler sayılmıyor.)
+
+**Seçim takımı** (21 senaryo; `eval_final.json`, `eval_secim_f10.json`, `eval_secim_fl11.json`, `eval_secim_v2.json`):
+
+| ölçüt | flight_final | flight_f10 | fl11 3.5 M | **flight_v2** |
+|---|---|---|---|---|
+| güvenli | 21/21 | 21/21 | 21/21 | 21/21 |
+| tüm görevler · görev (istenen) · görev (yeterli+) | 17/21 · 102/105 · 105/105 | 18/21 · 104/105 · 105/105 | 8/21 · 89/105 · 97/105 | 13/21 · 98/105 · 105/105 |
+| kısa zincir / uzun zincir (tüm görevler) | 6/6 · 4/6 | 6/6 · 5/6 | 2/6 · 0/6 | 6/6 · 0/6 |
+| iniş | 13/13 | 13/13 | 6/13 | 13/13 |
+| ileri uçuşta hız / irtifa değişimi (istenen · yeterli+) | 6/8 · 8/8 / 7/8 · 8/8 | 8/8 · 8/8 / 7/8 · 8/8 | 6/8 · 8/8 / 1/8 · 7/8 | 4/8 · 8/8 / 6/8 · 8/8 |
+| 56 psi üstü toplam (en uzun) | 43 s (8.5) | 40 s (5.7) | 76 s (7.8) | 46 s (6.7) |
+
+**Hassasiyet** (8.5): yerinde dönüş 0/8 → **8/8** (kayma 21.3 → **5.8 ft**), pirouette 0/4 → **4/4** (15.1 → **8.5 ft**).
+
+**ADS-33 karnesi** (`evaluate_ads33.py --heavy`, sakin hava, 8800 / 9700 lbs; pirouette env görevi + rampa, 38 + 4 s;
+`docs/ads33/karne_flight_final_gorev.json`, `karne_flight_f10.json`, `karne_flight_v2.json`):
+
+| MTE (×4 / ×2) | flight_final | flight_f10 | **flight_v2** |
+|---|---|---|---|
+| hover | 4 yeterli | 1 istenen, 3 yeterli | **2 istenen, 2 yeterli** |
+| hovering turn (180°) | 4 yetersiz (konum 9–22 ft) | 4 yetersiz (6–16 ft) | **3 yeterli** (konum 4.1–4.9 ft), 1 yetersiz (irtifa 5.1 ft) |
+| vertical (±25 ft) | 1 istenen, 1 yeterli | 2 yeterli | 2 yeterli |
+| pirouette | 4 yeterli | 4 yeterli | 4 yeterli |
+| landing | 1 istenen, 1 yeterli | 2 yeterli | 2 yetersiz (temas yanal 3.0–3.6 ft) |
+| toplam istenen / yeterli / yetersiz | 2 / 10 / 4 | 1 / 11 / 4 | 2 / 11 / 3 |
+
+**Doğal zarf + yönlendirici** (`check_natural_limits.py`, flight_v2): 40 kt'ta −20 kt → 20 kt; 100 kt'ta +45 kt → 130 kt
+(kırpma); 900 ft'te +800 ft → 1500 ft (kırpma); 250 ft'te −300 ft → 50 ft (kırpma); hover 30 ft'te bob −25 ft → 12 ft;
+yönlendirici: 80 kt'ta "in" → duruş + iniş (kızak 4), heading 270 → 271°, hız 0 + 100 ft → hover 101 ft, hover'da
+Δψ +90 / Δh +200 → 89° / 302 ft, hover'da 60 kt + heading 90 → 59 kt / 91°, pirouette → tur tamam; hiçbiri episode'u
+bitirmedi.
+
+### 8.7. Tork sınırı öğrenmeyi bozuyor mu? (kullanıcı sorusu)
+
+**Hayır — sınır kalmalı.** Ölçümler:
+- Güç tavanı (56 psi, `fcs/throttle-max-norm`) ve tork cezası açıkken bütün görevler öğrenildi; flight_v2 seçim
+  takımında bütün görevleri en az "yeterli" yapıyor (105/105), held-out takımda güvenli 35/35.
+- Aşım küçük ve kısa: toplam sürenin ~%0.5–1.4'ü; türbülanssız tepe 57–60 psi (%102–107); 60 psi üstü yalnızca orta
+  türbülansta anlık. 56 psi üstü geçiş, devirin düşmesiyle (rotor kinetik enerjisi; en düşük 306–311 rpm) — güç tavanı
+  zaten motor gücünü kesiyor.
+- Aşımın yeri (`evaluate_flight.py` pencere başına yeni alanlar `torque_max`, `t_over56_s`): 9500–9700 lbs'de hover →
+  ileri uçuş hızlanmasının ilk 5–8 s'si (0–25 kt, ETL öncesi, en çok güç isteyen bölge) ve 1000 → 1500 ft hover
+  tırmanışı. Hızlanmayı daha çabuk yapan model ETL'ye daha erken geçip daha az aşıyor (fl10: 4 s'de 15 kt, aşım 4.5 s;
+  fl14 0.5 M: 4 s'de 11 kt, 9.6 s).
+- Ödül yönlendirmesi işe yarıyor: 1500 ft hover tırmanışında kesintisiz aşım 17.9 s (flight_f10) → 1.1 s (flight_v2);
+  held-out takımda 56 psi üstü toplam 50 s (flight_final) → 30 s (flight_v2; en uzun kesintisiz 9.6 → 6.7 s).
+- Neden değiştirmeyelim: 56 psi gerçek AH-1S sınırı (%100; %88'e kadar sürekli) ve mentor şartı; gevşetmek modeli
+  gerçek dışı yapar, ajan zaten öğreniyor. Bir sonraki adım gerekirse ödülde: hızlanmanın ETL öncesinde "güç farkında
+  ivme" (tırmanma değil önce hızlan — ağır helikopterin gerçek kalkış tekniği) ve geri beslemeyi yere yakın kapatmak
+  (8.4).
+
+### 8.8. Bilinen sınırlar / açık konular
+
+- **flight_v2'nin bedeli:** ileri uçuşta hız değişimleri biraz yavaş — seçim takımında hız değişimi 4/8 "istenen"
+  (8/8 "yeterli"), uzun zincirlerin hiçbiri "tüm görevler istenen" değil; held-out seviyelerde F3 / F5 / F7 / F8
+  episode başarısı 1–2 / 10 düşük (başarısızlıklar ileri uçuş görevlerinde, güvenlik değil). Türbülanslı kısa held-out
+  zincirde ileri uçuşta dönüş 2 kez başarısız. ADS-33 inişinde temas noktası yanal 3.0–3.6 ft (yetersiz; flight_final
+  istenen / yeterli). Genel görevlerde zamanlama öncelikliyse `flight_f10.zip` (hassasiyeti flight_final gibi).
+- Hassasiyet ile genel beceriler arasında denge kırılgan: aynı soydaki anlık görüntüler arasında yerinde dönüş 3/8–8/8,
+  seçim istenen 88–99/105 oynuyor (tek seed, deterministik ölçümler 8–21 senaryo).
+- Pirouette ADS-33'te 4/4 "yeterli", "istenen" değil (radyal 11–11.5 ft > 10 ft ya da irtifa > 3 ft).
+- `torque_density_climb` görev süre hedeflerini değiştiriyor (8.3) — karşılaştırmalarda kapalı ölçüt.
+- Held-out takım bir kez (fl10 3 M'de) tork çalışmasına yön verdi; sonuç modeli seçimi ondan bağımsız.
+
+### 8.9. Çalıştırma
+
+```bash
+python physics_ext.py && python helicopter_env_flight.py                  # birim / duman testleri
+python docs/flight/check_natural_limits.py                                # doğal zarf + yönlendirici (flight_v2)
+python docs/flight/precision_probe.py models_flight/flight_v2.zip models_flight/flight_final.zip
+# değerlendirme — karşılaştırma ölçütü: torque_density_climb kapalı
+python evaluate_flight.py --model models_flight/flight_v2.zip --suite secim --env '{"torque_density_climb": false}'
+python evaluate_flight.py --model models_flight/flight_v2.zip --suite test --env '{"torque_density_climb": false}' \
+    --json docs/flight/eval_test_v2.json
+python evaluate_flight.py --model models_flight/flight_v2.zip --levels F3,F5,F6,F7,F8,F10 --episodes 10 --no-scenarios \
+    --seed0 500000 --env '{"torque_density_climb": false}'
+python evaluate_ads33.py --model models_flight/flight_v2.zip --heavy --json docs/ads33/karne_flight_v2.json
+python docs/flight/compare_eval.py flight_final=docs/flight/eval_test_final.json flight_v2=docs/flight/eval_test_v2.json
+# eğitim soyu (8.4; her koşu bir öncekinin modelinden, ince ayar)
+python widen_takeoff_obs.py --task flight --model models_flight/flight_final.zip --out runs/fl10/init.zip \
+    --env '{"density_obs": true}'
+python train_command_curriculum.py --task flight --out runs/fl10 --init-model runs/fl10/init.zip \
+    --level F10 --no-promote --total-steps 3000000 --n-envs 2 \
+    --n-steps 4096 --batch-size 512 --net 256,256 --eval-freq 1000000 --eval-episodes 10 --eval-levels F10,F8,F6 \
+    --snapshot-freq 1000000 --fine-from F6a
+# fl10b: --level F10 --env-overrides '{"pen_turn_rate": 1.0}' (1 M) · fl11: --level F11 --env-overrides
+# '{"pen_turn_rate": 2.0, "torque_feedback_climb": true, "torque_density_climb": true}' (3.5 M) · fl12: F11 (1.5 M) ·
+# fl13: F12 (1 M) · fl14: F13 (1.5 M → flight_v2) — aynı bayraklarla, --init-model bir öncekinin son modeli
+python command_viz.py --start ground --wind-kt 15 --turb light            # canlı 3D (varsayılan model flight_v2)
 ```

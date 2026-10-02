@@ -35,7 +35,8 @@ LAND_PROFILE_K = 0.25          # 1/s
 LAND_PROFILE_MIN_FPS = 1.0     # son ~4 ft: 1 ft/s
 LAND_SETTLE_S = 3.0            # temas → collective aşağı, dört nokta, oturma
 MIN_HOVER_H_FT = 12.0          # hover hedefi bunun altına inmez (kızaklar ~6 ft yukarıda)
-MAX_HOVER_H_FT = 1000.0
+MAX_HOVER_H_FT = 1000.0         # eğitim örneklemesinin üst sınırı (eski seviyeler birebir)
+MAX_TARGET_H_FT = 1500.0        # hedef irtifa kırpması (doğal sınır, 2026-10-01; canlı komutlar ve F10)
 TANK_CAPACITY_LBS = 890.0      # iki tank; boş ağırlık 8500 lbs → 8500–10280 lbs, CG 169.5–175.2 in
 
 
@@ -61,6 +62,8 @@ class TakeoffLevel:
     turn_deg: tuple = (30.0, 180.0)
     move_ft: tuple = (15.0, 60.0)
     bob_ft: tuple = (15.0, 50.0)
+    pirouette_radius_ft: tuple = (100.0, 100.0)   # task_probs'ta "pirouette" varsa (ADS-33: 100 ft)
+    pirouette_s: tuple = (40.0, 60.0)              # çemberin süresi (ADS-33 istenen: tur + sabitlenme ≤ 45 s)
     p_target_change: float = 0.0           # kalkış sürerken yeni irtifa (bir ya da iki kez)
     n_target_changes: tuple = (1, 2)
     change_frac: tuple = (0.25, 0.75)      # önceki süre hedefinin bu kesrinde
@@ -138,7 +141,11 @@ class TakeoffLevel:
             d = float(rng.uniform(*self.move_ft))
             ang = float(rng.choice((0.0, 90.0, 180.0, 270.0)) + rng.uniform(-20.0, 20.0) * float(rng.random() < 0.3))
             return dict(kind="move", dx=d * math.cos(math.radians(ang)), dy=d * math.sin(math.radians(ang)))
-        return dict(kind="bob", dh=float(rng.uniform(*self.bob_ft) * rng.choice((-1.0, 1.0))))
+        if kind == "pirouette":           # ADS-33 pirouette: burun merkeze, çember boyunca yana uçuş (2026-10-01)
+            return dict(kind="pirouette", radius=float(rng.uniform(*self.pirouette_radius_ft)),
+                        circle_s=float(rng.uniform(*self.pirouette_s)), direction=float(rng.choice((-1.0, 1.0))))
+        # _flip: zarf dışına düşerse Δ ters çevrilir (yalnızca örneklenen görev; canlı komut kırpılır)
+        return dict(kind="bob", dh=float(rng.uniform(*self.bob_ft) * rng.choice((-1.0, 1.0))), _flip=True)
 
     def sample_schedule(self, rng, start: str) -> list[dict]:
         if start in ("touch", "low"):                               # iniş son aşaması: yalnızca otur
@@ -334,5 +341,5 @@ def find_takeoff_level(level, levels=None) -> int:
 
 __all__ = ["TakeoffLevel", "DEFAULT_TAKEOFF_LEVELS", "find_takeoff_level", "task_time_target", "deadline_of",
            "depart_time_target",
-           "land_profile_time", "GROUND_H_FT", "MIN_HOVER_H_FT", "MAX_HOVER_H_FT", "TANK_CAPACITY_LBS",
+           "land_profile_time", "GROUND_H_FT", "MIN_HOVER_H_FT", "MAX_HOVER_H_FT", "MAX_TARGET_H_FT", "TANK_CAPACITY_LBS",
            "LAND_PROFILE_K", "LAND_PROFILE_MIN_FPS", "LAND_SETTLE_S"]

@@ -141,12 +141,16 @@ ileri uçuşa geçiş → ileri uçuşta Δhız / Δheading / Δirtifa → duru�
 açık, rüzgâr / türbülans curriculum'un çevre ekseninde. **Sonuç modeli `models_flight/flight_final.zip`:** sabit
 değerlendirme takımında 21/21 senaryo güvenli, 17/21'inde tüm görevler, görev başarısı 102/105 (kural tabanlı PID pilot
 65/104); uzun zincir (kalkış → 80–100 kt Δ'lar → duruş → iniş) sakin havada ve 15 kt rüzgârda 4/4. Ayrıntı: **bölüm 32**.
+**2026-10-01 — `models_flight/flight_v2.zip`:** doğal komut zarfı (10–130 kt, 50–1500 ft, ±360°; canlı komutlar
+kırpılır, ters çevrilmez) + komut yönlendirici (`flight_commands.py`), hava sıcaklığı / yoğunluğu, hover hassasiyeti
+(yerinde dönüşte kayma 32 → 6 ft), ayrı held-out test takımı (35 senaryo: güvenli 35/35). Ayrıntı: **bölüm 33**.
 
 ```bash
 python physics_ext.py                                                  # katmanın birim testleri
 python docs/physics_ext/probe_e_trim_table.py --aircraft repo --power-cap 56   # probe'lar (a–e aynı biçimde)
-python evaluate_flight.py --model models_flight/flight_final.zip       # sabit senaryo takımı (zincirler, rüzgâr, ağırlık)
-python command_viz.py --model models_flight/flight_final.zip --wind-kt 15 --turb light   # canlı 3D, rüzgâr oku / tork / yakıt
+python evaluate_flight.py --model models_flight/flight_v2.zip          # seçim takımı (zincirler, rüzgâr, ağırlık)
+python evaluate_flight.py --model models_flight/flight_v2.zip --suite test   # held-out takım (doğal zarf, sıcak gün)
+python command_viz.py --wind-kt 15 --turb light                        # canlı 3D (varsayılan flight_v2), rüzgâr / tork / yakıt
 ```
 
 ---
@@ -201,10 +205,11 @@ ah1s-rl-project/
 │   Ortak fizik katmanı ve tek ajanlı sürekli uçuş (bölüm 32)
 ├── physics_ext.py                           Tork / yakıt (el kitabı grafiği) / rüzgâr / gust / Dryden türbülansı; config ile açılır
 ├── trim_table.py                            Hava hızı × ağırlık trim tablosu (probe e çıktısını okur)
-├── helicopter_env_flight.py                 Tek ajan env'i: kalkış env'i + cruise / stop görevleri, obs 42, referans hızıyla trim
-├── flight_curriculum.py                     Seviyeler F1 … F8 (+ F6a oturma okulu, F9 cila) × çevre aşamaları E0 … E3
-├── evaluate_flight.py                       21 sabit senaryo (zincirler × rüzgâr × ağırlık + öğeler) + seviye istatistikleri
-├── models_flight/                           flight_final.zip (tek ajan, sonuç modeli)
+├── helicopter_env_flight.py                 Tek ajan env'i: kalkış env'i + cruise / stop / pirouette, obs 42 / 43, referans hızıyla trim
+├── flight_curriculum.py                     Seviyeler F1 … F13 (F6a oturma okulu, F9 cila, F10 doğal zarf, F11–F13 hassasiyet) × E0 … E3
+├── flight_commands.py                       Komut yönlendirici: mutlak / Δ komut + kalk / in / dur / pirouette → rejime göre görev
+├── evaluate_flight.py                       Seçim takımı (21) + held-out takım (35, --suite test) + seviye istatistikleri
+├── models_flight/                           flight_v2.zip (sonuç, 2026-10-01), flight_f10.zip (ara), flight_final.zip (2026-09-29)
 ├── docs/physics_ext/                        Probe'lar (a)–(e), trim tabloları, rapor
 ├── docs/flight/                             PID pilot (RL değil) kontrolü, şekiller, değerlendirme JSON'ları, koşu günlükleri
 │
@@ -1989,4 +1994,69 @@ python evaluate_ads33.py --model models_flight/flight_final.zip --heavy        #
 python docs/flight/fig_flight.py --model models_flight/flight_final.zip \
     --runs docs/flight/runs/fl_v3:2765704 docs/flight/runs/fl_v6:500000 docs/flight/runs/fl_v8 docs/flight/runs/fl_v9:4500000
 python command_viz.py --model models_flight/flight_final.zip --start ground --wind-kt 15 --turb light   # canlı 3D
+```
+
+---
+
+# 33. Doğal komut zarfı, held-out test, hover hassasiyeti — `flight_v2` (2026-10-01)
+
+Kullanıcı isteği: Δirtifa / Δheading / Δhız komutlarında yapay sınır kalksın, yalnızca doğal sınırlar kalsın (arayüz
+kolaylığı); tork sınırı öğrenmeyi bozuyorsa gözden geçir; ayrı (held-out) test; hover hassasiyeti; JSBSim'de olup
+kullanmadığımız özellikler. Ayrıntı: `docs/flight/README.md` bölüm 8; simülasyon önerileri:
+`docs/flight/sim_oneriler_2026-10-01.md`.
+
+## 33.1. Doğal zarf ve komut yönlendirici
+
+- **Zarf:** hız 0 (hover) / 10–130 kt (AH-1S en yüksek düz uçuş ~128–130 kt), irtifa ileri uçuşta 50–1500, hover'da
+  12–1500 ft, heading serbest (tek komutta ±360°); güvenlik sınırı Vne 170 kt.
+- **Hata düzeltmesi:** env, zarf dışına düşen Δ'nın işaretini çeviriyordu (müfredat kolaylığı canlı komutlara sızmış:
+  40 kt'ta "−20 kt" → 60 kt, 900 ft'te "+200 ft" → 702 ft). Artık yalnızca müfredatın örneklediği görevlerde (`_flip`;
+  F1–F9 birebir), canlı komutlar doğal sınıra **kırpılıyor** ve pencereye `clipped` yazılıyor.
+- **`flight_commands.py`:** `route_command(env, speed_kt | dspeed_kt, heading_deg | dheading_deg, alt_ft | dalt_ft)`,
+  `route_action(env, "takeoff" | "land" | "stop" | "pirouette")` → rejime (yerde / hover / ileri uçuş) göre görev
+  dizisi. Eskiden ileri uçuşta hover komutu 0.1 s'de episode'u bitiriyordu (`speed_limit`). `command_viz.py` canlı modu
+  bütün komutları buradan geçiriyor (mutlak ya da +/− ile Δ; pirouette düğmesi; sıcaklık farkı).
+
+## 33.2. Fizik / env
+
+- Hava sıcaklığı: JSBSim `atmosphere/delta-T` (`physics_ext` `atmo`, `delta_T_C`); F10–F13 −10…+30 °C; gözleme hava
+  yoğunluğu (obs 43). Gust'ların üst üste binmesi düzeltildi (yeni gust öncekinin bitişine ertelenir). Seçenekler
+  (eğitimde kapalı): yer yakını rüzgâr kesmesi (MIL-F-8785C log), türbülans şiddeti ortalama rüzgârdan.
+- Güç farkında tırmanış yönlendirmesi (trim tablosunun düz uçuş torku), tırmanışta tork geri beslemesi ve yoğunluk
+  düzeltmesi; yerinde dönüşte yaw hızı cezası; hover hassasiyeti (tolerans ×0.5); **pirouette** görevi (hareketli hedef,
+  yamuk açısal hız profili); reset hover PID'inin güçlü yan rüzgâr evresi.
+
+## 33.3. Eğitim ve sonuç
+
+Soy (ince ayar, tek seed): flight_final → **F10** 3 M (doğal zarf + sıcak gün = `flight_f10.zip`) → F10 + yaw cezası 1 M
+→ **F11** hassasiyet okulu 3.5 M → F11 + pirouette rampası 1.5 M → F12 1 M → **F13** 1.5 M (`flight_v2.zip`); toplam
+~23 M adım, ~10 saat CPU. Bulgu: hassasiyet okulu (F11) yerinde dönüşü 0/8 → 7/8'e çıkardı ama genel becerileri
+aşındırdı — ajan yere oturduktan sonra collective'i tam indirmiyordu (kızaklarda ağırlık %61–64 < %70, deterministik
+F6 inişi 0/8; stokastik eğitim istatistiği bunu gizledi). F13 (F6a oturma okulu + F6 + F11 tekrarı) 0.5 M adımda düzeltti.
+
+| held-out takım (35) + seviyeler (seed 500000+) | flight_final | flight_f10 | **flight_v2** |
+|---|---|---|---|
+| güvenli | 35/35 | 35/35 | **35/35** |
+| tüm görevler · görev (istenen / yeterli+) | 26/35 · 108 / 120 (125) | 28/35 · 122 / 128 (128) | 28/35 · 116 / 126 (128) |
+| sıcak gün grubu (görev) | 19/31 | 27/31 | **30/31** |
+| 56 psi üstü toplam (en uzun) | 50 s (9.6 s) | 76 s (17.9 s) | **30 s (6.7 s)** |
+| en büyük kayma: yerinde dönüş / pirouette | 32.3 / 19.3 ft | 19.6 / 15.4 ft | **5.8 / 9.9 ft** |
+| seviyeler F3 / F5 / F6 / F7 / F8 / F10 (%) | 100/100/100/100/90/50 | 100/100/100/100/90/60 (1 düşme) | 80/90/100/80/80/50 |
+| seçim takımı (21): tüm görevler · görev (istenen / yeterli+) | 17/21 · 102 / 105 | 18/21 · 104 / 105 | 13/21 · 98 / 105 |
+| ADS-33 istenen / yeterli / yetersiz (16 MTE) | 2 / 10 / 4 | 1 / 11 / 4 | 2 / 11 / 3 |
+
+- **Hassasiyet** (`docs/flight/precision_probe.py`, 8 dönüş + 4 pirouette): yerinde dönüş 0/8 → **8/8** (kayma 21.3 →
+  5.8 ft), pirouette 0/4 → **4/4** (15.1 → 8.5 ft). ADS-33 hovering turn: 4 yetersiz → 3 yeterli (konum 4.1–4.9 ft).
+- **Bedeli:** ileri uçuşta hız değişimleri biraz yavaş ("istenen" yerine "yeterli"), ADS-33 inişinde temas noktası
+  3–3.6 ft yanda. Zamanlama öncelikliyse `flight_f10.zip`.
+- **Tork sınırı kalmalı:** bütün görevler sınır açıkken öğrenildi; aşımlar toplam sürenin ~%0.5–1.4'ü, çoğu 9500–9700
+  lbs'de hover → ileri uçuş hızlanmasının ETL öncesi ilk saniyelerinde; ödül yönlendirmesi en uzun kesintisiz aşımı
+  17.9 → 6.7 s'ye indirdi. Yere yakın tork geri beslemesi bir ara modelde düşmeye yol açtı (öneri: < 50 ft'te kapat).
+
+```bash
+python docs/flight/check_natural_limits.py                     # doğal zarf + yönlendirici (flight_v2)
+python docs/flight/precision_probe.py models_flight/flight_v2.zip models_flight/flight_final.zip
+python evaluate_flight.py --model models_flight/flight_v2.zip --suite test --env '{"torque_density_climb": false}'
+python evaluate_ads33.py --model models_flight/flight_v2.zip --heavy
+python docs/flight/compare_eval.py flight_final=docs/flight/eval_test_final.json flight_v2=docs/flight/eval_test_v2.json
 ```

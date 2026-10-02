@@ -19,9 +19,10 @@ zaman serilerini görürsün. Aynı sayfa kayıtlı uçuşları da oynatır.
       Env, modelin zip'inde taşıdığı ayarlarla kurulur (dayanıklı model: collective ±0.45).
   komut (models_command_curriculum/v2_R1_final.zip): helicopter_env_command.py, 15 ft/s civarı.
   kalkış (models_takeoff/…): helicopter_env_takeoff.py — yerden kalkış, hover manevraları, iniş (4 kumanda doğrudan).
-  uçuş (models_flight/flight_final.zip, 2026-09-29): helicopter_env_flight.py — tek ajan: kalkış → hover → ileri uçuşa
-      geçiş → ileri uçuşta Δhız / Δheading / Δirtifa → duruş → iniş; rüzgâr / türbülans / yakıt / tork. Sayfada rüzgâr
-      oku, yakıt ve tork göstergeleri; yeniden başlatmada rüzgâr, türbülans ve yakıt seçilir.
+  uçuş (models_flight/flight_v2.zip 2026-10-01, yoksa flight_final.zip 2026-09-29): helicopter_env_flight.py — tek ajan:
+      kalkış → hover → ileri uçuşa geçiş → ileri uçuşta Δhız / Δheading / Δirtifa → duruş → iniş; rüzgâr / türbülans /
+      yakıt / tork. Sayfada rüzgâr oku, yakıt ve tork göstergeleri; yeniden başlatmada rüzgâr, türbülans, yakıt ve hava
+      sıcaklığı seçilir. Komutlar flight_commands.py yönlendiricisinden geçer (doğal zarf: 10–130 kt, 50–1500 ft).
 
 Kullanım
 --------
@@ -64,8 +65,10 @@ from helicopter_env_command import CONTROL_DT, CommandEnvConfig, HelicopterEnvCo
 from helicopter_env_maneuver import (ENV_OVERRIDES_ATTR, OBS_DIM_M, HelicopterEnvManeuver,  # noqa: E402
                                      ManeuverEnvConfig)
 from helicopter_env_takeoff import OBS_DIM_T, HelicopterEnvTakeoff, TakeoffEnvConfig  # noqa: E402
-from helicopter_env_flight import OBS_DIM_F, FlightEnvConfig, HelicopterEnvFlight  # noqa: E402
-from flight_curriculum import CRUISE_MAX_ALT_FT, CRUISE_MAX_KT, CRUISE_MIN_ALT_FT, CRUISE_MIN_KT  # noqa: E402
+from helicopter_env_flight import FLIGHT_OBS_DIMS, OBS_DIM_F, FlightEnvConfig, HelicopterEnvFlight  # noqa: E402
+from flight_commands import apply as apply_route, route_command, route_task  # noqa: E402
+from flight_curriculum import (CMD_MAX_ALT_FT, CMD_MAX_KT, CMD_MIN_ALT_FT, CMD_MIN_KT, CRUISE_MAX_ALT_FT,  # noqa: E402
+                               CRUISE_MAX_KT, CRUISE_MIN_ALT_FT, CRUISE_MIN_KT)
 from maneuver_curriculum import DEFAULT_MANEUVER_LEVELS  # noqa: E402
 from takeoff_curriculum import DEFAULT_TAKEOFF_LEVELS, GROUND_H_FT, TANK_CAPACITY_LBS  # noqa: E402
 
@@ -76,7 +79,11 @@ COMMAND_POLICY = REPO_ROOT / "models_command_curriculum" / "v2_R1_final.zip"
 MANEUVER_POLICY = REPO_ROOT / "models_maneuver" / "maneuver_M5_final.zip"
 ROBUST_POLICY = REPO_ROOT / "models_maneuver" / "maneuver_robust_final.zip"     # collective ±0.45 + S4 ince ayar (README 29)
 TAKEOFF_POLICY = REPO_ROOT / "models_takeoff" / "takeoff_final.zip"              # yerden kalkış / hover / iniş, 4 kumanda (README 30)
-FLIGHT_POLICY = REPO_ROOT / "models_flight" / "flight_final.zip"                 # tek ajan: kalkış → ileri uçuş → iniş (README 32)
+# tek ajan: kalkış → ileri uçuş → iniş (README 32); 2026-10-01: flight_v2 (doğal zarf, sıcak gün, hover hassasiyeti —
+# docs/flight/README.md bölüm 8), yoksa flight_final
+FLIGHT_POLICY = next((p for p in (REPO_ROOT / "models_flight" / "flight_v2.zip",
+                                  REPO_ROOT / "models_flight" / "flight_final.zip") if p.exists()),
+                     REPO_ROOT / "models_flight" / "flight_final.zip")
 # varsayılan: dayanıklı manevra modeli; yoksa M5 manevra modeli; o da yoksa eski komut modeli
 DEFAULT_POLICY = next((p for p in (ROBUST_POLICY, MANEUVER_POLICY) if p.exists()), COMMAND_POLICY)
 # görev başına varsayılan başlangıç (eğitim aralığının içinde)
@@ -162,6 +169,9 @@ def _limits_flight(cfg: FlightEnvConfig) -> dict:
                         du_kt=35.0, dpsi_deg=180.0, dh_ft=300.0, accel_kt=[40.0, 80.0], wind_kt=[0.0, 25.0],
                         turb=["none", "light", "moderate"], weight_lbs=[8800.0, 9700.0], fuel_lbs=[150.0, 600.0],
                         start_alt_ft=[12.0, 1000.0])
+    # doğal komut zarfı (2026-10-01; flight_commands bu sınırlara kırpar — F10 ile eğitildi)
+    L["command"] = dict(speed_kt=[0.0, CMD_MAX_KT], cruise_min_kt=CMD_MIN_KT, cruise_alt_ft=[CMD_MIN_ALT_FT, CMD_MAX_ALT_FT],
+                        hover_alt_ft=[12.0, CMD_MAX_ALT_FT], dpsi_deg=360.0)
     return L
 
 
@@ -235,7 +245,11 @@ def task_text(t: dict) -> str:
             p.append(f"Δψ {t['dpsi']:+.0f}°")
         if t.get("dh"):
             p.append(f"Δh {t['dh']:+.0f} ft")
+        if t.get("h") is not None:
+            p.append(f"irtifa → {t['h']:.0f} ft")
         return "ileri uçuş: " + (", ".join(p) or "devam")
+    if k == "pirouette":
+        return f"pirouette {t.get('radius', 100):.0f} ft / {t.get('circle_s', 45):.0f} s"
     if k == "stop":
         return "dur (hover)"
     return {"land": "iniş", "hold": "hover tut"}.get(k, str(k))
@@ -355,7 +369,7 @@ class LiveFlight:
         # görev modelin observation boyutundan anlaşılır (komut 19, manevra 24, kalkış 29; kalkışa 2026-09-28'de
         # tork (+1) ve hareketli hedef hızı (+2) eklendi → 30 / 31 / 32)
         takeoff_dims = {OBS_DIM_T, OBS_DIM_T + 1, OBS_DIM_T + 2, OBS_DIM_T + 3}
-        self.task = task or ("flight" if obs_dim == OBS_DIM_F else "takeoff" if obs_dim in takeoff_dims
+        self.task = task or ("flight" if obs_dim in FLIGHT_OBS_DIMS else "takeoff" if obs_dim in takeoff_dims
                              else {OBS_DIM_M: "maneuver"}.get(obs_dim, "command"))
         self.is_to = self.task in ("takeoff", "flight")          # görev listesi / pencereler kalkış env'inin yapısında
         if self.task == "flight":
@@ -465,7 +479,7 @@ class LiveFlight:
     # ---------------- kalkış görevi (yerden kalkış / hover / iniş) ----------------
 
     TASK_KINDS = ("takeoff", "climb_to", "turn", "move", "bob", "land", "recover")
-    FLIGHT_KINDS = ("cruise", "accel", "stop", "hold")
+    FLIGHT_KINDS = ("cruise", "accel", "stop", "hold", "komut", "pirouette")
 
     def _request_task(self, d: dict) -> dict:
         kind = str(d.get("kind") or "")
@@ -473,9 +487,21 @@ class LiveFlight:
             return dict(ok=False, message="Bilinmeyen görev.")
         try:
             num = lambda k, default=0.0: float(d.get(k, default) if d.get(k, default) not in (None, "") else default)  # noqa: E731
-            if kind == "cruise":                    # ileri uçuşta Δ (ölçülen duruma göre; verilmeyen eksen hedefine devam)
+            if kind == "komut":                     # 2026-10-01: rejimden bağımsız tek komut (flight_commands yönlendirir)
+                task = dict(kind="komut")
+                for k2 in ("speed_kt", "dspeed_kt", "heading_deg", "dheading_deg", "alt_ft", "dalt_ft"):
+                    if d.get(k2) not in (None, ""):
+                        task[k2] = num(k2)
+                if len(task) == 1:
+                    return dict(ok=False, message="Komut: hız, heading ya da irtifa ver (mutlak ya da Δ).")
+            elif kind == "pirouette":
+                task = dict(kind="pirouette", radius=num("radius", 100.0), circle_s=num("circle_s", 45.0),
+                            direction=1.0 if num("direction", 1.0) >= 0 else -1.0)
+                if not (50.0 <= task["radius"] <= 200.0 and 30.0 <= task["circle_s"] <= 90.0):
+                    return dict(ok=False, message="Pirouette: yarıçap 50–200 ft, süre 30–90 s.")
+            elif kind == "cruise":                  # ileri uçuşta Δ (ölçülen duruma göre; verilmeyen eksen hedefine devam)
                 task = dict(kind="cruise")
-                for k2, lim in (("du_kt", 60.0), ("dpsi", 360.0), ("dh", 500.0)):
+                for k2, lim in (("du_kt", 130.0), ("dpsi", 360.0), ("dh", 1500.0)):
                     v = num(k2)
                     if v:
                         if abs(v) > lim:
@@ -485,10 +511,10 @@ class LiveFlight:
                     return dict(ok=False, message="İleri uçuş: en az bir eksende (Δhız / Δψ / Δh) sıfırdan farklı değer gir.")
             elif kind == "accel":                   # hover'dan / düşük hızdan ileri uçuşa geçiş
                 task = dict(kind="cruise", u_kt=num("u_kt", 60.0), dh=num("dh", 100.0), accel=True)
-                if not CRUISE_MIN_KT <= task["u_kt"] <= CRUISE_MAX_KT:
-                    return dict(ok=False, message=f"Hızlanma hedefi {CRUISE_MIN_KT:.0f}–{CRUISE_MAX_KT:.0f} kt olmalı.")
-                if not -200.0 <= task["dh"] <= 500.0:
-                    return dict(ok=False, message="Hızlanırken tırmanış −200…+500 ft olmalı.")
+                if not CMD_MIN_KT <= task["u_kt"] <= CMD_MAX_KT:
+                    return dict(ok=False, message=f"Hızlanma hedefi {CMD_MIN_KT:.0f}–{CMD_MAX_KT:.0f} kt olmalı.")
+                if not -1500.0 <= task["dh"] <= 1500.0:
+                    return dict(ok=False, message="Hızlanırken tırmanış −1500…+1500 ft olmalı.")
             elif kind == "stop":                    # ileri uçuştan duruş (hover)
                 task = dict(kind="stop", decel=num("decel", 2.5))
                 if not 1.0 <= task["decel"] <= 4.0:
@@ -497,8 +523,8 @@ class LiveFlight:
                 task = dict(kind="hold")
             elif kind in ("takeoff", "climb_to"):
                 task = dict(kind=kind, h=num("h"))
-                if not 12.0 <= task["h"] <= 1000.0:
-                    return dict(ok=False, message="Hedef irtifa 12–1000 ft (CG, yerden) olmalı.")
+                if not 12.0 <= task["h"] <= CMD_MAX_ALT_FT:
+                    return dict(ok=False, message=f"Hedef irtifa 12–{CMD_MAX_ALT_FT:.0f} ft (CG, yerden) olmalı.")
             elif kind == "turn":
                 task = dict(kind=kind, dpsi=num("dpsi"))
                 if not (0.0 < abs(task["dpsi"]) <= 360.0):
@@ -509,8 +535,8 @@ class LiveFlight:
                     return dict(ok=False, message="İleri / sağa kayma ±200 ft içinde ve sıfırdan farklı olmalı.")
             elif kind == "bob":
                 task = dict(kind=kind, dh=num("dh"))
-                if not (0.0 < abs(task["dh"]) <= 300.0):
-                    return dict(ok=False, message="Δh 0 ile ±300 ft arasında olmalı.")
+                if not (0.0 < abs(task["dh"]) <= CMD_MAX_ALT_FT):
+                    return dict(ok=False, message=f"Δh 0 ile ±{CMD_MAX_ALT_FT:.0f} ft arasında olmalı.")
             elif kind == "land":
                 task = dict(kind=kind)
             else:
@@ -540,7 +566,7 @@ class LiveFlight:
             return dict(ok=True, queued=task, message="Görev kuyruğa alındı.")
 
     def _request_reset_takeoff(self, alt, heading, seed, start, fuel, speed_kt=None, wind_kt=None, wind_dir=None,
-                               turb=None, gusts=None, **_ignored) -> dict:
+                               turb=None, gusts=None, temp_dc=None, **_ignored) -> dict:
         opts = dict(self.start_opts)
         fl = self.task == "flight"
         try:
@@ -562,10 +588,14 @@ class LiveFlight:
                     opts["turb"] = turb
                 if gusts is not None:
                     opts["gusts"] = bool(gusts)
+                if temp_dc is not None:                      # standart günden sıcaklık farkı (°C; 2026-10-01)
+                    opts["temp_dc"] = float(temp_dc)
+                    if not -30.0 <= opts["temp_dc"] <= 40.0:
+                        return dict(ok=False, message="Sıcaklık farkı −30…+40 °C olmalı (F10 eğitimi −10…+30).")
                 if not 0.0 <= float(opts.get("wind_kt", 0.0)) <= 40.0:
                     return dict(ok=False, message="Rüzgâr 0–40 kt olmalı (eğitim 0–25 kt).")
-                if opts.get("start") == "cruise" and not CRUISE_MIN_KT <= float(opts.get("speed_kt", 60.0)) <= CRUISE_MAX_KT:
-                    return dict(ok=False, message=f"İleri uçuşta başlangıç hızı {CRUISE_MIN_KT:.0f}–{CRUISE_MAX_KT:.0f} kt olmalı.")
+                if opts.get("start") == "cruise" and not 15.0 <= float(opts.get("speed_kt", 60.0)) <= CMD_MAX_KT:
+                    return dict(ok=False, message=f"İleri uçuşta başlangıç hızı 15–{CMD_MAX_KT:.0f} kt olmalı.")
             if alt is not None:
                 opts["alt"] = float(alt)
             opts["heading"] = None if heading in (None, "", "random") else float(heading) % 360.0
@@ -578,8 +608,8 @@ class LiveFlight:
                 opts["seed"] = int(seed)
         except (TypeError, ValueError):
             return dict(ok=False, message="Başlangıç değerleri sayı olmalı.")
-        if opts.get("start") in ("hover", "cruise") and not 12.0 <= float(opts.get("alt", 100.0)) <= 1000.0:
-            return dict(ok=False, message="Havada başlangıç irtifası 12–1000 ft olmalı.")
+        if opts.get("start") in ("hover", "cruise") and not 12.0 <= float(opts.get("alt", 100.0)) <= CMD_MAX_ALT_FT:
+            return dict(ok=False, message=f"Havada başlangıç irtifası 12–{CMD_MAX_ALT_FT:.0f} ft olmalı.")
         with self.lock:
             self._pending_reset = opts
             self.state = "resetting"
@@ -701,6 +731,8 @@ class LiveFlight:
                             wind_dir_relative=True, turb_level=str(opts.get("turb", "none")))
                 if opts.get("gusts"):
                     phys.update(gust_rate_per_min=1.0, gust_kt=(5.0, 12.0))
+                if opts.get("temp_dc"):
+                    phys["delta_T_C"] = float(opts["temp_dc"])
                 options["physics"] = phys
         else:
             options = dict(commands=[], episode_s=LIVE_EPISODE_S, start_alt_ft=float(opts["alt"]),
@@ -757,6 +789,21 @@ class LiveFlight:
                     ps = math.radians(env._state()["psi_deg"])      # burun eksenine göre itki → kuzey / doğu
                     fw, rt = float(task.pop("fwd", 0.0)), float(task.pop("right", 0.0))
                     task.update(dn=fw * math.cos(ps) - rt * math.sin(ps), de=fw * math.sin(ps) + rt * math.cos(ps))
+                if self.task == "flight" and task.get("kind") != "recover":
+                    # 2026-10-01: rejime göre güvenli görev(ler) (ileri uçuşta hover görevi → önce duruş, hover'da cruise Δ →
+                    # dönüş / irtifa / hızlanma; doğal sınırlara kırpma) — flight_commands
+                    if task.get("kind") == "komut":
+                        res = route_command(env, **{k: v for k, v in task.items() if k != "kind"})
+                    else:
+                        res = route_task(env, task)
+                    if res.ok:
+                        apply_route(env, res)
+                    with self.lock:
+                        self.route_seq = getattr(self, "route_seq", 0) + 1
+                        self.route_msg = dict(id=self.route_seq, ok=bool(res.ok), message=res.message or "Görev verildi.",
+                                              tasks=[t2.get("kind") for t2 in res.tasks], regime=res.regime)
+                        self.events.append(dict(t=self._t(), type="route", ok=bool(res.ok), message=res.message))
+                    continue
                 env.queue_task(task)
                 continue
             axes_d = {a: d[a] for a in AXES}
@@ -844,7 +891,8 @@ class LiveFlight:
     def _status(self) -> dict:
         return dict(state=self.state, message=self.message, paused=self.paused, time_scale=self.time_scale,
                     t=self.rows[-1][0] if self.rows else 0.0, termination=self.termination, flight=self.flight_id,
-                    sim_rate=round(self.sim_rate, 2), pending=len(self._pending_cmds))
+                    sim_rate=round(self.sim_rate, 2), pending=len(self._pending_cmds),
+                    route=getattr(self, "route_msg", None))
 
     # ---------------- görev (kayıt) ----------------
 

@@ -1,0 +1,344 @@
+[
+ {
+  "model": "models_flight/flight_final.zip",
+  "rows": [
+   {
+    "kind": "turn",
+    "arg": 180.0,
+    "weight": 8800.0,
+    "success": false,
+    "max_xy": 14.399265293588963,
+    "max_yaw": 42.8687585362771
+   },
+   {
+    "kind": "turn",
+    "arg": 180.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 13.39290249189357,
+    "max_yaw": 40.91275583431384
+   },
+   {
+    "kind": "turn",
+    "arg": -180.0,
+    "weight": 8800.0,
+    "success": false,
+    "max_xy": 17.551866619683018,
+    "max_yaw": 28.877422017790032
+   },
+   {
+    "kind": "turn",
+    "arg": -180.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 21.923137041396203,
+    "max_yaw": 27.18487389774646
+   },
+   {
+    "kind": "turn",
+    "arg": -270.0,
+    "weight": 8800.0,
+    "success": false,
+    "max_xy": 23.086873007204048,
+    "max_yaw": 29.4720318856857
+   },
+   {
+    "kind": "turn",
+    "arg": -270.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 27.128971736372737,
+    "max_yaw": 28.241761251189484
+   },
+   {
+    "kind": "turn",
+    "arg": 360.0,
+    "weight": 8800.0,
+    "success": false,
+    "max_xy": 30.212019674355535,
+    "max_yaw": 46.58317270520394
+   },
+   {
+    "kind": "turn",
+    "arg": 360.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 23.00123149974206,
+    "max_yaw": 45.87651133695348
+   },
+   {
+    "kind": "pirouette",
+    "arg": 1.0,
+    "weight": 8800.0,
+    "success": false,
+    "max_xy": 19.562342016990442,
+    "max_yaw": 8.68801532564911
+   },
+   {
+    "kind": "pirouette",
+    "arg": 1.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 19.120878694304253,
+    "max_yaw": 8.284369840868086
+   },
+   {
+    "kind": "pirouette",
+    "arg": -1.0,
+    "weight": 8800.0,
+    "success": false,
+    "max_xy": 10.956637630721488,
+    "max_yaw": 11.783536491228467
+   },
+   {
+    "kind": "pirouette",
+    "arg": -1.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 10.625410524942993,
+    "max_yaw": 11.188137806673092
+   }
+  ],
+  "turn": {
+   "ok": 0,
+   "n": 8,
+   "xy_mean": 21.337033420529515,
+   "xy_max": 30.212019674355535,
+   "yaw_mean": 36.25216093314501
+  },
+  "pirouette": {
+   "ok": 0,
+   "n": 4,
+   "xy_mean": 15.066317216739794,
+   "xy_max": 19.562342016990442
+  }
+ },
+ {
+  "model": "models_flight/flight_f10.zip",
+  "rows": [
+   {
+    "kind": "turn",
+    "arg": 180.0,
+    "weight": 8800.0,
+    "success": false,
+    "max_xy": 14.586590986147336,
+    "max_yaw": 41.25633455460248
+   },
+   {
+    "kind": "turn",
+    "arg": 180.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 12.789625798545492,
+    "max_yaw": 35.06062023984037
+   },
+   {
+    "kind": "turn",
+    "arg": -180.0,
+    "weight": 8800.0,
+    "success": false,
+    "max_xy": 11.146270163865468,
+    "max_yaw": 28.80234017033348
+   },
+   {
+    "kind": "turn",
+    "arg": -180.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 15.425930818512324,
+    "max_yaw": 27.11049749523208
+   },
+   {
+    "kind": "turn",
+    "arg": -270.0,
+    "weight": 8800.0,
+    "success": false,
+    "max_xy": 12.988710606465258,
+    "max_yaw": 28.369106106830703
+   },
+   {
+    "kind": "turn",
+    "arg": -270.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 16.908955006963556,
+    "max_yaw": 26.89323573779152
+   },
+   {
+    "kind": "turn",
+    "arg": 360.0,
+    "weight": 8800.0,
+    "success": false,
+    "max_xy": 25.654648409156717,
+    "max_yaw": 44.026373700705044
+   },
+   {
+    "kind": "turn",
+    "arg": 360.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 18.01693607187907,
+    "max_yaw": 43.03010581081787
+   },
+   {
+    "kind": "pirouette",
+    "arg": 1.0,
+    "weight": 8800.0,
+    "success": false,
+    "max_xy": 15.832973985915785,
+    "max_yaw": 10.051413770429294
+   },
+   {
+    "kind": "pirouette",
+    "arg": 1.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 14.703062674059362,
+    "max_yaw": 9.247864851738305
+   },
+   {
+    "kind": "pirouette",
+    "arg": -1.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 9.510631956959973,
+    "max_yaw": 11.601710927291936
+   },
+   {
+    "kind": "pirouette",
+    "arg": -1.0,
+    "weight": 9700.0,
+    "success": false,
+    "max_xy": 11.38251755479677,
+    "max_yaw": 10.08728802404141
+   }
+  ],
+  "turn": {
+   "ok": 0,
+   "n": 8,
+   "xy_mean": 15.939708482691902,
+   "xy_max": 25.654648409156717,
+   "yaw_mean": 34.31857672701919
+  },
+  "pirouette": {
+   "ok": 1,
+   "n": 4,
+   "xy_mean": 12.857296542932973,
+   "xy_max": 15.832973985915785
+  }
+ },
+ {
+  "model": "models_flight/flight_v2.zip",
+  "rows": [
+   {
+    "kind": "turn",
+    "arg": 180.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 6.159735932705066,
+    "max_yaw": 27.885139951548943
+   },
+   {
+    "kind": "turn",
+    "arg": 180.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 6.379999578486192,
+    "max_yaw": 26.485959015326852
+   },
+   {
+    "kind": "turn",
+    "arg": -180.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 4.631618360753609,
+    "max_yaw": 24.850252329351083
+   },
+   {
+    "kind": "turn",
+    "arg": -180.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 3.4415431296665115,
+    "max_yaw": 26.105611837040833
+   },
+   {
+    "kind": "turn",
+    "arg": -270.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 5.938910326644205,
+    "max_yaw": 25.859249472212294
+   },
+   {
+    "kind": "turn",
+    "arg": -270.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 4.960423607799002,
+    "max_yaw": 25.91966201805224
+   },
+   {
+    "kind": "turn",
+    "arg": 360.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 7.417299369839811,
+    "max_yaw": 29.20399018337895
+   },
+   {
+    "kind": "turn",
+    "arg": 360.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 7.639975962821267,
+    "max_yaw": 28.617358643810874
+   },
+   {
+    "kind": "pirouette",
+    "arg": 1.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 9.059876073046837,
+    "max_yaw": 9.861449748158698
+   },
+   {
+    "kind": "pirouette",
+    "arg": 1.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 8.11933755132841,
+    "max_yaw": 12.221110247961894
+   },
+   {
+    "kind": "pirouette",
+    "arg": -1.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 7.824907472407053,
+    "max_yaw": 9.249924379294791
+   },
+   {
+    "kind": "pirouette",
+    "arg": -1.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 9.103238372840574,
+    "max_yaw": 10.518957905244095
+   }
+  ],
+  "turn": {
+   "ok": 8,
+   "n": 8,
+   "xy_mean": 5.821188283589457,
+   "xy_max": 7.639975962821267,
+   "yaw_mean": 26.86590293134026
+  },
+  "pirouette": {
+   "ok": 4,
+   "n": 4,
+   "xy_mean": 8.526839867405718,
+   "xy_max": 9.103238372840574
+  }
+ }
+]

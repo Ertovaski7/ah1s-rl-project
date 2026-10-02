@@ -170,7 +170,7 @@ ah1s-rl-project/
 ├── evaluate_command_policy.py               Step response değerlendirmesi (+ a=0 karşılaştırması)
 ├── diagnose_command_env.py                  Eğitimsiz sağlık kontrolü (başlatma, açık-döngü tepkiler, hız)
 ├── command_viz.py                           Canlı 3D görselleştirme: sunucu + Colab + kayıt (bölüm 27; komut ve manevra)
-├── viz/                                     Sayfa (command_viz.html), helikopter modeli (heli_bell.glb), demo uçuşları
+├── viz/                                     Sayfa (command_viz.html), AH-1S modeli (ah1s_model.js + önizleme ah1s_model.html), demo uçuşları
 ├── models_command_curriculum/               Bu curriculum'un ilk koşularından modeller (v2_R1_final önerilen)
 ├── docs/command_curriculum/                 İlk koşuların kanıtları (ilerleme CSV, doğrulama, grafikler)
 │
@@ -1115,7 +1115,7 @@ Tek uçuşta 6 ardışık komut (+90°, +8 ft/s, +100 ft, −45° & −60 ft, �
 
 # 27. Canlı 3D görselleştirme — `command_viz.py` (2026-09-23)
 
-Ajanı tarayıcıda izlemek için: istediğin an **Δheading / Δhız / Δirtifa** ver, helikopterin (low-poly Bell modeli)
+Ajanı tarayıcıda izlemek için: istediğin an **Δheading / Δhız / Δirtifa** ver, helikopterin (low-poly AH-1S modeli)
 3D hareketini, ajanın kumandalarını ve komutun metriklerini gör. Uçuş gerçek JSBSim + PPO; sayfa yalnızca gösterir.
 Görev modelden anlaşılır (observation boyutu): **manevra** modeli (varsayılan: dayanıklı model, bölüm 29; önceki M5 modeli bölüm 28) ya da eski **komut** modeli (bölüm 26). Env, modelin zip'inde kayıtlı ayarlarla kurulur (dayanıklı model: collective ±0.45).
 
@@ -1152,9 +1152,18 @@ Colab (localhost / paylaşım linki yok; eski dashboard gibi kernel callback'ler
 - Telemetri: her kontrol adımında (0.075 s) 31 sütun — konum (doğu / kuzey ft, JSBSim enlem / boylamından), irtifa,
   heading, u / v / dikey hız, roll / pitch / yaw rate, rotor rpm, hedefler, hatalar, PPO action, filtrelenmiş action,
   kumandalar, ödül. Sunucu yalnızca standart kütüphane (`http.server`); sayfa three.js 0.169 + uPlot 1.6 (CDN).
-- `viz/heli_bell.glb`: `viz/tools/obj_to_glb.py` ile Heli_bell.obj'den üretildi (zemin düzlemi atıldı; gövde, ana ve
-  kuyruk rotoru ayrı node, rotor pivotları göbekte; orijin ≈ ağırlık merkezi; boy 13.6 m = AH-1S). Görsel amaçlı: uçuş
-  dinamiği JSBSim AH-1S modelinden.
+- `viz/ah1s_model.js` (2026-10-02): low-poly AH-1S Cobra, three.js ile prosedürel (~3.5k üçgen; fotoğraflardan: dar tandem
+  kokpit, düz panelli kanopi, burunda TSU, M197 taret, stub kanatta roket podu + 4'lü TOW, egzoz, süpürülmüş dikey
+  stabilize). Rotor göbekleri, kızak temas noktaları, CG, rotor çapları / veterleri / burulma JSBSim AH-1S dosyalarından;
+  yerde CG 6.3 ft. Gövde (`body`), ana rotor (`main_rotor`) ve kuyruk rotoru (`tail_rotor`) ayrı gruplar, rotor pivotları
+  göbekte; kuyruk rotoru sağda. Arayüz `heli.setState({ rotorRPM, collective, cyclic })` + her karede `heli.update(dt)`:
+  ana rotor verilen devirde (nominal 324 rpm) döner, kuyruk rotoru orantılı (× 1660 / 324); collective (0…1) kanat
+  hatvesini (θ0 = 0.14 + 0.22·c rad), cyclic `{ lon, lat }` (−1…1) disk eğimini (0.125 / 0.05 rad) gösterir; kazançlar
+  `Systems/rotor_control.xml`'den. Sayfa her karede kaydın `rpm`, `c0`, `c1`, `c2` sütunlarını verir. Bir karede ~90°'den
+  fazla dönen rotorda kanatlar soluklaşır, bulanık disk koyulaşır (stroboskop yerine). `command_viz.py` sayfayı sunarken
+  modülü satır içine alır (Colab sayfanın yanında dosya sunamaz). Tek başına önizleme: `viz/ah1s_model.html`
+  (`python -m http.server -d viz` → `/ah1s_model.html`); rpm, collective, cyclic, kamera açıları, pivot eksenleri.
+  Önceki Bell modeli (`viz/heli_bell.glb`, `viz/tools/obj_to_glb.py`) artık sayfada kullanılmıyor.
 - Kayıt modu: sayfa `command_viz.py` olmadan açılırsa (ör. yayımlanmış sayfa) `viz/demo_flights.json`'daki uçuşları oynatır.
   Manevra modeli: 60 kt'ta yatışlı dönüşler, slalom, düşük hızda çeviklik (pedal dönüşü, bob-up / bob-down, ani duruş),
   hızlanma / yavaşlama / irtifa, tırmanarak dönüş (80 kt) ve eski modelin 6 komutluk görevi. Karşılaştırma için eski komut

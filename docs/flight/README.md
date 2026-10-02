@@ -572,3 +572,43 @@ Okuma: (1) Birleşik komut (üç eksen birden) iki modelde ve üç çevrede de b
 rüzgârda hız değişimi sırasında heading 3° bandının dışına kayıyor (yan rüzgârda burun tutma), tek başına rüzgâr
 türbülanstan daha çok başarısızlık veriyor çünkü bantlar genişlemiyor; (3) türbülansta 60 s tutmada irtifa sapması
 23–31 ft (2× band 24 ft'in sınırında); (4) flight_v3 ile flight_v2 arasında anlamlı fark yok.
+
+### 9.5. Rüzgâr / gust altında iniş okulu, üç seed, regresyon kapısı — `flight_v4` (2026-10-02)
+
+Kullanıcı endişesi: bir episode türü düzeltilirken diğeri bozulmamalı. Ajan tek bir sinir ağıdır; iniş eğitimi aynı
+ağırlıkları değiştirir, ileri uçuş da etkilenir ("unutma"). Tekrar (rehearsal) bunu azaltır, sıfırlamaz. Çare: her yeni
+modeli sabit bir **regresyon kapısından** geçirmek (`docs/flight/gate.py`): seçim takımı (21) + iniş stres taraması (24) +
+held-out (35); her görev kategorisinde başarı referansın en çok 1 altına inebilir, güvensiz (düşme / sınır aşımı) sayısı
+artamaz. Geçmeyen model alınmaz.
+
+Deney: F14 (rüzgâr 0–25 kt, hafif / orta türbülans, gust altında iniş; %50 F13 / F10 / F8 / F9 tekrarı), flight_v3'ten
+1.5 M adım, **üç seed** (1, 2, 3; `--seed` artık yüklenen modele de uygulanıyor), referans flight_v3.
+
+| aday | iniş stresi (24) | güvensiz | seçim: tüm · görev | held-out: tüm · görev | geriledi | kapı |
+|---|---|---|---|---|---|---|
+| flight_v3 (referans) | 18/24 | 3 | 17/21 · 100/105 | 29/35 · 117/128 | — | — |
+| seed 1, 1.0 M | 8/24 | 2 | iniş 2/13 | iniş 5/15 | iniş çöktü (collective yere oturunca tam inmiyor, fl11'deki hata) | KALDI |
+| seed 2, 1.0 M | 18/24 | 0 | dönüş 9/14, irtifa 1/8 | dönüş 6/15 | ileri uçuş | KALDI |
+| seed 3, 1.0 M | 18/24 | 5 | — | — | güvenlik | KALDI |
+| seed 1, 1.5 M | 16/24 | 1 | hızlanma 14/14 ↑ | birleşik 13/13 ↑ | iniş stresi −2 | KALDI |
+| seed 2, 1.5 M | 17/24 | 1 | dönüş 10/14, hız 3/8 | dönüş 5/15 | ileri uçuş | KALDI |
+| **seed 3, 1.5 M** | 18/24 | 2 | 17/21 · 101/105 | **30/35 · 119/128** (yeterli+ 128/128) | yok | **GEÇTİ** |
+
+Aynı eğitim, üç seed, üç farklı bozulma: ince ayar kararsız; kapı olmadan seçim şans işi. **Sonuç modeli
+`models_flight/flight_v4.zip` = seed 3, 1.5 M.** Ek kontroller: yeni seed'li seviyeler F3 %80 / F5 %90 / F6 %100 / F7 %90 /
+F8 %90 / F10 %85 (flight_v3 80 / 95 / 100 / 85 / 80 / 80); yerinde dönüş 8/8 (kayma 6.8 ft, flight_v3 5.3), pirouette 4/4
+(8.5 ft); hızlanmada irtifa kaybı 0.1 ft (flight_v3 8.2; bunun yerine 13–18 ft tırmanıyor); iniş son 5 ft'te 2.4–2.6 ft/s
+(3.7–3.9), temas medyanı −1.3 ft/s. Bedeli: 56 psi üstü süre held-out'ta 45 → 60 s, seçimde 61 → 78 s.
+
+Gust'lı iniş kazaları (25 kt + orta türbülans + gust, 50–150 ft'ten): 2/24 (devrilme) — flight_v2 4, flight_v3 3; F14
+okulu bunu azaltmadı, yalnızca kötüleştirmedi. Açık konu.
+
+Dosyalar: `eval_secim_v4.json`, `eval_test_v4.json`, `landing_stress_v4.json`, `precision_v4.json`, `accel_v4.json`,
+`eval_levels_v4.json`, kapı çıktıları `docs/flight/gate/`, koşular `runs/fl_v4_s1..s3`.
+
+```bash
+python docs/flight/gate.py --ref models_flight/flight_v3.zip --cand <aday.zip> --out /tmp/gate_aday     # yeni model kapısı
+python train_command_curriculum.py --task flight --out runs/fl_v4_s3 --init-model models_flight/flight_v3.zip --level F14 \
+    --no-promote --total-steps 1500000 --n-envs 1 --vec dummy --n-steps 4096 --batch-size 512 --net 256,256 --eval-freq 0 \
+    --snapshot-freq 500000 --fine-from F6a --seed 3
+```

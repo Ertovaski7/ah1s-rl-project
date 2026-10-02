@@ -20,7 +20,8 @@ from takeoff_curriculum import TANK_CAPACITY_LBS  # noqa: E402
 
 LIVE_SERVER = REPO_ROOT / "command_viz.py"
 # tek ajan (kalkış → hover → ileri uçuş → iniş); command_viz.FLIGHT_POLICY ile aynı seçim
-FLIGHT_MODEL = next((p for p in (REPO_ROOT / "models_flight" / "flight_v3.zip",
+FLIGHT_MODEL = next((p for p in (REPO_ROOT / "models_flight" / "flight_v4.zip",
+                                 REPO_ROOT / "models_flight" / "flight_v3.zip",
                                  REPO_ROOT / "models_flight" / "flight_v2.zip",
                                  REPO_ROOT / "models_flight" / "flight_final.zip") if p.exists()),
                     REPO_ROOT / "models_flight" / "flight_final.zip")

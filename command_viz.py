@@ -80,7 +80,8 @@ ROBUST_POLICY = REPO_ROOT / "models_maneuver" / "maneuver_robust_final.zip"     
 TAKEOFF_POLICY = REPO_ROOT / "models_takeoff" / "takeoff_final.zip"              # yerden kalkış / hover / iniş, 4 kumanda (README 30)
 # tek ajan: kalkış → ileri uçuş → iniş (README 32); 2026-10-01: flight_v2 (doğal zarf, sıcak gün, hover hassasiyeti —
 # docs/flight/README.md bölüm 8), yoksa flight_final
-FLIGHT_POLICY = next((p for p in (REPO_ROOT / "models_flight" / "flight_v3.zip",                 # 2026-10-02 (README 35)
+FLIGHT_POLICY = next((p for p in (REPO_ROOT / "models_flight" / "flight_v4.zip",                 # 2026-10-02 (README 35.4)
+                                  REPO_ROOT / "models_flight" / "flight_v3.zip",
                                   REPO_ROOT / "models_flight" / "flight_v2.zip",
                                   REPO_ROOT / "models_flight" / "flight_final.zip") if p.exists()),
                      REPO_ROOT / "models_flight" / "flight_final.zip")

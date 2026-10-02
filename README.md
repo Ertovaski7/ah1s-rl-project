@@ -2207,3 +2207,15 @@ gust, 150–300 ft; flight_v2'de de 4/24) azaltmadı ve genel görevleri gerilet
 
 Açık konular: gust'lı inişte burun yukarı frenleme kazaları (ortak zayıflık), hızlanma rampası (2.5 ft/s²) ile sınırlı
 çeviklik, tek seed. Canlı uygulama ve `command_viz.py` varsayılanı artık `flight_v3` (yoksa flight_v2).
+
+## 35.4. Rüzgâr / gust altında iniş okulu, üç seed, regresyon kapısı — `flight_v4`
+
+Kullanıcı endişesi: iniş düzelirken ileri uçuş bozulmamalı. Ajan tek ağdır; bir beceri için güncellenen ağırlıklar
+diğerini de değiştirir. Çare: **regresyon kapısı** (`docs/flight/gate.py`): seçim takımı + 24 iniş + held-out; hiçbir
+kategori referansın 1'den fazla altına inemez, güvensiz sayısı artamaz. F14 (rüzgâr / gust altında iniş, %50 tekrar)
+flight_v3'ten üç seed ile 1.5 M adım eğitildi. Üç seed üç farklı şekilde bozuldu (biri inişi, biri ileri uçuşu, biri
+güvenliği); yalnızca seed 3'ün 1.5 M modeli kapıyı geçti → **`models_flight/flight_v4.zip`** (canlı uygulama ve
+`command_viz.py` varsayılanı). Held-out 35/35 güvenli · 30/35 · 119/128 (flight_v3 29/35 · 117/128), seviyeler
+F7 / F8 / F10 %90 / 90 / 85 (85 / 80 / 80), hızlanmada irtifa kaybı 0.1 ft (8.2), iniş son 5 ft'te 2.4–2.6 ft/s (3.7–3.9).
+Bedeli: 56 psi üstü süre arttı (held-out 45 → 60 s). Gust'lı iniş kazaları 2/24 (flight_v3 3/24): azalmadı. Ayrıntı:
+`docs/flight/README.md` 9.5. Rüzgârlı ileri uçuş karşılaştırması: 9.4.

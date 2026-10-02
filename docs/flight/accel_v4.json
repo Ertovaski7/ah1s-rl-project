@@ -1,0 +1,95 @@
+{
+ "model": "/tmp/claude-0/-home-user-ah1s-rl-project/3c2ae793-4a98-541c-a552-99b9f532856e/scratchpad/snap_v4_s3_1500k.zip",
+ "env": {
+  "density_obs": true,
+  "pen_turn_rate": 2.0,
+  "torque_feedback_climb": true,
+  "torque_density_climb": false,
+  "rotor_dt_mode": "sim",
+  "next_at_deadline": false
+ },
+ "rows": [
+  {
+   "id": "acc_20_120",
+   "success": true,
+   "settle_s": 72.1,
+   "deadline": 87.8,
+   "term": "time_limit",
+   "max_alt_loss_ft": 0.1,
+   "max_alt_gain_ft": 13.4,
+   "max_pitch": 17.7,
+   "t90_speed_s": 63.0,
+   "loss_first10s_ft": 0.1,
+   "dv_first10s_kt": 33.9
+  },
+  {
+   "id": "dec_120_20",
+   "success": true,
+   "settle_s": 66.1,
+   "deadline": 87.1,
+   "term": "time_limit",
+   "max_alt_loss_ft": 8.3,
+   "max_alt_gain_ft": 10.7,
+   "max_pitch": 5.5,
+   "t90_speed_s": 54.9,
+   "loss_first10s_ft": -0.4,
+   "dv_first10s_kt": 22.3
+  },
+  {
+   "id": "hover_to_100",
+   "success": true,
+   "settle_s": 69.0,
+   "deadline": 88.1,
+   "term": "time_limit",
+   "max_alt_loss_ft": 0.2,
+   "max_alt_gain_ft": 18.0,
+   "max_pitch": 20.0,
+   "t90_speed_s": 61.1,
+   "loss_first10s_ft": -0.0,
+   "dv_first10s_kt": 33.7
+  },
+  {
+   "id": "acc_60_100",
+   "success": true,
+   "settle_s": 29.2,
+   "deadline": 38.3,
+   "term": "time_limit",
+   "max_alt_loss_ft": -0.5,
+   "max_alt_gain_ft": 6.1,
+   "max_pitch": 10.8,
+   "t90_speed_s": 27.6,
+   "loss_first10s_ft": -0.5,
+   "dv_first10s_kt": 21.0
+  },
+  {
+   "id": "land_300",
+   "success": true,
+   "settle_s": 54.7,
+   "deadline": 90.3,
+   "term": "time_limit",
+   "touchdown_vs": -1.613393063479157,
+   "xy_td": 2.31,
+   "max_sink_by_band": {
+    "15-20ft": 5.01,
+    "10-15ft": 3.91,
+    "5-10ft": 2.89,
+    "0-5ft": 2.6
+   }
+  },
+  {
+   "id": "land_50_wind",
+   "success": true,
+   "settle_s": 11.6,
+   "deadline": 27.3,
+   "term": "time_limit",
+   "touchdown_vs": -1.7144623053822188,
+   "xy_td": 1.84,
+   "max_sink_by_band": {
+    "15-20ft": 5.27,
+    "10-15ft": 4.41,
+    "5-10ft": 3.37,
+    "0-5ft": 2.39
+   }
+  }
+ ]
+}

@@ -10,7 +10,7 @@
 // Gövde biçimi fotoğraflardan: dar tandem kokpit, düz panelli kanopi, burunda TSU nişangâhı, M197 taret,
 // stub kanatlarda roket podu (iç) + 4'lü TOW (dış), motor girişleri, egzoz, süpürülmüş dikey stabilize, ventral fin.
 //
-// Çerçeve: metre, +Z burun, +Y yukarı, +X sol (iskele); glTF ve eski heli_bell.glb ile aynı.
+// Çerçeve: metre, +Z burun, +Y yukarı, +X sol (iskele); glTF ile aynı.
 // Orijin: CG istasyonu (FS 172); yerde CG yüksekliği 6.3 ft (takeoff_curriculum.GROUND_H_FT) → kızak altı y = −1.92 m.
 //
 // Gruplar (her biri ayrı THREE.Group, adıyla bulunur):

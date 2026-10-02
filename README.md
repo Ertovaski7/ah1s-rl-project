@@ -170,7 +170,7 @@ ah1s-rl-project/
 ├── evaluate_command_policy.py               Step response değerlendirmesi (+ a=0 karşılaştırması)
 ├── diagnose_command_env.py                  Eğitimsiz sağlık kontrolü (başlatma, açık-döngü tepkiler, hız)
 ├── command_viz.py                           Canlı 3D görselleştirme: sunucu + Colab + kayıt (bölüm 27; komut ve manevra)
-├── viz/                                     Sayfa (command_viz.html), AH-1S modeli (ah1s_model.js + önizleme ah1s_model.html), demo uçuşları
+├── viz/                                     Sayfa (command_viz.html), AH-1S modeli (ah1s_model.js + önizleme ah1s_model.html), arazi (terrain.js), demo uçuşları
 ├── models_command_curriculum/               Bu curriculum'un ilk koşularından modeller (v2_R1_final önerilen)
 ├── docs/command_curriculum/                 İlk koşuların kanıtları (ilerleme CSV, doğrulama, grafikler)
 │
@@ -1163,7 +1163,19 @@ Colab (localhost / paylaşım linki yok; eski dashboard gibi kernel callback'ler
   fazla dönen rotorda kanatlar soluklaşır, bulanık disk koyulaşır (stroboskop yerine). `command_viz.py` sayfayı sunarken
   modülü satır içine alır (Colab sayfanın yanında dosya sunamaz). Tek başına önizleme: `viz/ah1s_model.html`
   (`python -m http.server -d viz` → `/ah1s_model.html`); rpm, collective, cyclic, kamera açıları, pivot eksenleri.
-  Önceki Bell modeli (`viz/heli_bell.glb`, `viz/tools/obj_to_glb.py`) artık sayfada kullanılmıyor.
+- `viz/terrain.js` (2026-10-02): sahnenin arka planı, hafif dağlık arazi (Güneydoğu Anadolu fotoğraflarından: kuru otlu
+  yamaçlar, benek benek meşeler, vadilerde düz damlı köyler, kavaklar, teraslı tarlalar, toprak yollar). Yalnızca görsel:
+  JSBSim düz zeminde uçar; kayıttaki `h` AGL olduğundan helikopter arazinin bu kadar üstüne çizilir (alçakta kesin zemin,
+  kızaklar yere oturur; 20–250 ft arasında ±500 ft ortalamasına geçer, irtifada üçgen kenarlarında sarsılmaz). Bu yüzden
+  düz uçuşta helikopter arazi biçimini izler (sırt aşarken görünürde yükselir); HUD'daki irtifa ve dikey hız fiziktekidir.
+  HUD'un sağ altında helikopterin altındaki arazinin piste göre yüksekliği yazar. Pist çevresi 1500 ft yarıçapta düz vadi
+  tabanı. Arazi deterministik (sabit tohum: aynı yer, aynı tepe / köy / yol), helikopteri izleyen pencereyle sonsuz:
+  ±12 000 ft çekirdekte 200 ft kafes, dışarıda seyrekleşen ağ (±60 000 ft, sis 42 000 ft'te kapatır). Ağaçlar uzakta
+  zemin shader'ında benek, kameranın ±4500 ft çevresinde aynı beneklerin üstünde low-poly 3D taç. Köyler 9000 ft'lik
+  hücrelerde vadi tabanına yerleşir (14–50 ev; bazen 90–160 evlik kasaba, camili); yollar eğimden kaçınan A* ile.
+  Hepsi örneklemeli (instanced) çizilir: ~230–320 bin üçgen, ~18 çizim çağrısı. Pencere kayması birkaç kareye bölünür;
+  70 kt'lık 2 dakikalık uçuş taklidinde arazi güncellemesi ortalama 0.03 ms / kare, en kötü kare ~23 ms (yazılım GPU'lu
+  test ortamında).
 - Kayıt modu: sayfa `command_viz.py` olmadan açılırsa (ör. yayımlanmış sayfa) `viz/demo_flights.json`'daki uçuşları oynatır.
   Manevra modeli: 60 kt'ta yatışlı dönüşler, slalom, düşük hızda çeviklik (pedal dönüşü, bob-up / bob-down, ani duruş),
   hızlanma / yavaşlama / irtifa, tırmanarak dönüş (80 kt) ve eski modelin 6 komutluk görevi. Karşılaştırma için eski komut

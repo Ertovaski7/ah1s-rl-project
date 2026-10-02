@@ -65,6 +65,7 @@ R_EARTH_FT = 20_902_231.0
 REPO_AIRCRAFT_DIR = str(Path(__file__).resolve().parent / "aircraft")
 GE_MODELS = {"calibrated": 1.0, "stock": 0.0}     # "off": ge/enable = 0
 ELECTRIC_HP = 1500.0                              # Engines/electric_1500hp.xml (T53 yerine)
+ROTOR_INFLOW_LAG_S = 0.09                         # Engines/ah1s_rotor.xml <inflowlag> (yer etkisi çarpanı için)
 KT_FPS = 1.68781
 NOMINAL_RPM = 324.0
 HOVER_TRIM = (0.603, -0.151, 0.192, 0.410)       # OGE hover, 8500 lbs, SAS (probe 2026-09-24)
@@ -150,6 +151,23 @@ class TakeoffEnvConfig:
     # başarı ölçütünü doğrudan ödüllendirir. (to_v6: yerdeki adım başına ödül yüzünden ajan son 1–2 ft'i
     # 4–5 ft/s ile "düşüyordu"; ölçüt ≤ 4 ft/s.)
     w_task_success: float = 30.0
+    # 2026-10-02 (ödül dengesi): adım başına pozitif yakınlık ödülü getirinin ~%98'i, görev bonusu ~%2 idi (ölçüm:
+    # kısa zincir getiri 709, bonus 12). Ajan görevi erken bitirince bir sonraki görev hemen başlıyor ve episode kısalıyordu
+    # → erken bitirmek getiriyi düşürüyordu; flight_v2 ileri uçuş görevlerini son sınırın %70–90'ında bitiriyordu.
+    #   next_at_deadline: görev başarıyla bitse de bir sonraki görev son sınır + tutma süresinde başlar (end_at_deadline'ın
+    #     her pencereye genellenmişi): erken varan ajan hedefte daha çok adım geçirir → daha çok ödül; episode uzunluğu
+    #     başarıdan bağımsız. (Sabit "_t" takvimli görevler ve kesen "_frac" görevler etkilenmez.)
+    #   w_task_early: başarı anında ek bonus · (1 − banda giriş / son sınır): zamanlamayı doğrudan ödüllendirir.
+    # İkisi de 0 / False → eski davranış (eski modellerin değerlendirmesi ödüle bağlı değil; eğitimde fark eder).
+    next_at_deadline: bool = False
+    w_task_early: float = 0.0
+    # İnişin son metreleri (2026-10-02, kullanıcı isteği): kızak < land_final_hs_ft iken izin verilen alçalma hızı
+    # land_final_v0 + land_final_slope · kızak yüksekliği (20 ft: 4.0, 10 ft: 2.5, 5 ft: 1.75, 1 ft: 1.15 ft/s); üstü
+    # pen_land_final · (aşım / 1 ft/s)². Yalnızca iniş penceresinde havadayken → manevra kabiliyetini etkilemez.
+    pen_land_final: float = 0.0
+    land_final_hs_ft: float = 20.0
+    land_final_v0_fps: float = 1.0
+    land_final_slope: float = 0.15
     # yere yakınken alçalma hızı sınırı (flare): izin = 1.5 + 0.2·kızak yüksekliği ft/s (40 ft'te 9.5, 10 ft'te 3.5)
     pen_sink: float = 3.0                         # · ((−ḣ − izin) / 3)², kızak yüksekliği < 60 ft iken
     sink_base_fps: float = 1.5
@@ -203,6 +221,12 @@ class TakeoffEnvConfig:
     ground_effect: str = "calibrated"             # yalnızca "repo": "calibrated" (Hayden + C-B) | "stock" | "off"
     power_cap_psi: float = 0.0                    # yalnızca "repo": motor gücü tavanı, bu torkun nominal devirdeki
                                                   # gücü (0 → tavan yok = 1500 hp). Aşılmak istenirse rotor devri düşer.
+    # Rotor zaman adımı (2026-10-02): "legacy" = set_dt load_model'den sonra → FGRotor 1/120 s ile integre eder, simülasyon
+    # 0.0075 s ilerler (rotor tarafı ~%11 hızlı; eski modellerin fiziği, yer etkisi kalibrasyonu buna göre). "sim" = set_dt
+    # load_model'den önce → rotor ve simülasyon aynı dt'de; repo uçağının yer etkisi çarpanı (ge/inflow-amplification
+    # A = e/(1−e), e = exp(−dt/0.09)) gerçek rotor dt'sine göre yazılır. Ölçüm (kolektif basamağı 0 → 0.62, 8800 lbs):
+    # 4 s'de irtifa 19.3 → 20.3 ft, tork aynı ±0.1 psi. Eski modeller değerlendirilirken varsayılan ("legacy") kalır.
+    rotor_dt_mode: str = "legacy"
     # --- tork (modelin kendi göstergesi) --------------------------------------------------------------
     torque_obs: bool = False                      # obs'un sonuna (psi − 50) / 10 → OBS_DIM_T + 1
     torque_cont_psi: float = 50.0                 # el kitabı: sürekli
@@ -249,6 +273,9 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
 
     def __init__(self, level=0, levels=None, config: TakeoffEnvConfig | None = None, rehearsal: bool = False):
         gym.Env.__init__(self)
+        # HelicopterEnvCommand.__init__ çağrılmıyor (farklı obs / config); oradaki canlı-uygulama alanı burada da olmalı
+        # (2026-10-02 regresyonu: 8c583eb start_location'ı temel sınıfa ekleyince takeoff / flight env'leri reset'te çöktü)
+        self.start_location: tuple[float, float] | None = None
         self.levels: list[TakeoffLevel] = list(levels or DEFAULT_TAKEOFF_LEVELS)
         self.cfg = config or TakeoffEnvConfig()
         self.level_index = find_takeoff_level(level, self.levels)
@@ -261,6 +288,8 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             raise ValueError(f"ground_effect: {sorted(GE_MODELS)} ya da 'off' ({self.cfg.ground_effect})")
         if self.cfg.aircraft == "stock" and self.cfg.power_cap_psi > 0.0:
             raise ValueError("power_cap_psi yalnızca aircraft='repo' ile (governor gaz tavanı repo kopyasında)")
+        if self.cfg.rotor_dt_mode not in ("legacy", "sim"):
+            raise ValueError(f"rotor_dt_mode: 'legacy' ya da 'sim' ({self.cfg.rotor_dt_mode})")
         self.obs_dim = OBS_DIM_T + int(bool(self.cfg.torque_obs)) + 2 * int(bool(self.cfg.track_obs))
         self.ext = PhysicsExt(self.cfg.physics, CONTROL_DT)     # kapalıyken hiçbir şey yapmaz (RNG'ye de dokunmaz)
         self.observation_space = spaces.Box(-5.0, 5.0, shape=(self.obs_dim,), dtype=np.float32)
@@ -353,10 +382,18 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
     def _aircraft_dir(self) -> str | None:
         return REPO_AIRCRAFT_DIR if self.cfg.aircraft == "repo" else None
 
+    def _rotor_dt_before_load(self) -> bool:
+        return self.cfg.rotor_dt_mode == "sim"
+
     def _configure_aircraft(self, fdm):
         cfg = self.cfg
         if cfg.aircraft != "repo":
             return
+        if cfg.rotor_dt_mode == "sim":
+            # yer etkisi çarpanı rotorun gerçek iç dt'sine göre (Systems/ground_effect.xml başlığı): A = e / (1 − e);
+            # "legacy" modda XML'deki değer (1/120 s için 10.3077) olduğu gibi kalır → eski modeller bit düzeyinde aynı
+            e = math.exp(-(CONTROL_DT / 10.0) / ROTOR_INFLOW_LAG_S)
+            fdm["ge/inflow-amplification"] = e / (1.0 - e)
         fdm["ge/model"] = GE_MODELS.get(cfg.ground_effect, 1.0)
         fdm["ge/enable"] = 0.0 if cfg.ground_effect == "off" else 1.0
         fdm["fcs/throttle-max-norm"] = float(np.clip(psi_to_throttle(cfg.power_cap_psi), 0.05, 1.0)) \
@@ -879,13 +916,27 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             if w["on_time"] and w["streak"] >= w["hold_s"] - 1e-9:
                 w["complete"] = True                            # başarıyla bitti → kısa aradan sonra sıradaki
                 self._close_window(w)
-                self._schedule_next(t)
+                self._schedule_next(self._next_after_success(w, t))
             elif elapsed > w["deadline"] and not w["on_time"]:
                 # son sınır geçti, bantta değil → başarısız; ajan yine de hedefe varmaya çalışsın diye sıradaki görev
                 # (ya da episode sonu) son sınır + tutma süresi kadar sonra
                 w["complete"] = True
                 self._close_window(w)
                 self._schedule_next(w["t"] + w["deadline"] + w["hold_s"])
+
+    def _next_after_success(self, w: dict, t: float) -> float:
+        """Başarıyla biten pencereden sonra sıradaki görevin en erken zamanı (next_at_deadline: son sınır + tutma)."""
+        if self.cfg.next_at_deadline:
+            return max(t, w["t"] + w["deadline"] + w["hold_s"])
+        return t
+
+    def _success_bonus(self, w: dict) -> float:
+        """Görev başarı bonusu (ham): sabit + erken bitirme payı · (1 − banda giriş / son sınır)."""
+        cfg = self.cfg
+        b = cfg.w_task_success
+        if cfg.w_task_early > 0.0 and np.isfinite(w.get("settle_s", float("nan"))) and w["deadline"] > 0.0:
+            b += cfg.w_task_early * max(0.0, 1.0 - float(w["settle_s"]) / float(w["deadline"]))
+        return float(b)
 
     def _schedule_next(self, t_next: float):
         cfg = self.cfg
@@ -1012,7 +1063,7 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             w_open = self.windows[-1] if not self.windows[-1]["closed"] else None
             self._update_window(s, e, t_after)
             if w_open is not None and w_open["closed"] and w_open["success"]:
-                reward += cfg.w_task_success * cfg.reward_scale         # görev başarıyla tamamlandı
+                reward += self._success_bonus(w_open) * cfg.reward_scale  # görev başarıyla tamamlandı (+ erken bitirme)
         self._prev_wow, self._prev_vs = s["wow"], s["vs"]
 
         fuel_out = self.ext.engine_is_out and cfg.fuel_exhausted_ends
@@ -1138,6 +1189,9 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
         if kind == "land" and s["wow"] == 0:
             sink += cfg.pen_land_sink * (max(0.0, -s["vs"] - (abs(vs_des) + 2.0)) / 3.0) ** 2
             couple += cfg.pen_land_xy * (max(0.0, e["xy"] - 2.0) / 4.0) ** 2
+            if cfg.pen_land_final > 0.0 and s["hs"] < cfg.land_final_hs_ft:        # son metreler: alçaldıkça yavaşla
+                allow = cfg.land_final_v0_fps + cfg.land_final_slope * max(0.0, s["hs"])
+                sink += cfg.pen_land_final * max(0.0, -s["vs"] - allow) ** 2
         ground = 0.0
         contact_now = s["wow"] > 0 and self._prev_wow == 0 and self._airborne_once
         if s["wow"] > 0:

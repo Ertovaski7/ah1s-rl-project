@@ -323,14 +323,24 @@ class HelicopterEnvCommand(gym.Env):
     def _configure_aircraft(self, fdm):
         """load_model'den sonra, run_ic'den önce çağrılır (repo uçağının ayarları için kanca)."""
 
+    def _rotor_dt_before_load(self) -> bool:
+        """True → set_dt load_model'den önce (rotor dt = simülasyon dt'si). Temel env: eski davranış (False)."""
+        return False
+
     def _create_fdm(self):
         fdm = jsbsim.FGFDMExec(None)
         fdm.set_debug_level(0)
         aircraft_dir = self._aircraft_dir()
         if aircraft_dir:
             fdm.set_aircraft_path(aircraft_dir)
-        # NOT: set_dt load_model'den SONRA → FGRotor'un iç dt'si JSBSim varsayılanı 1/120 s kalır (inflow gecikmesi
-        # ve yer etkisi gücü buna göre; aircraft/ah1s/Systems/ground_effect.xml bu dt için kalibre). Değiştirme.
+        # Rotor zaman adımı: FGRotor / FGTransmission dt'yi load_model anında FGFDMExec'ten alır. Eski davranış
+        # (_rotor_dt_before_load() False): set_dt load_model'den SONRA → rotor 1/120 s ile integre ederken simülasyon
+        # 0.0075 s ilerler (rotor tarafı ~%11 hızlı). Eski modeller bu fizikle eğitildi; aircraft/ah1s'in yer etkisi
+        # kalibrasyonu da buna göre. 2026-10-02: alt sınıflar (TakeoffEnvConfig.rotor_dt_mode = "sim") set_dt'yi
+        # load_model'den ÖNCE çağırtır → rotor ve simülasyon aynı dt'de; yer etkisi çarpanı _configure_aircraft'ta
+        # gerçek rotor dt'sine göre yeniden hesaplanır.
+        if self._rotor_dt_before_load():
+            fdm.set_dt(JSBSIM_DT)
         if not fdm.load_model("ah1s"):
             raise RuntimeError("AH-1S modeli yüklenemedi.")
         if not fdm.load_ic("reset00.xml", True):

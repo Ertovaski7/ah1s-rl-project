@@ -7,7 +7,7 @@ FLIGHT COMMANDS — arayüz için komut yönlendirici (command router), 2026-10-
 Arayüzü yazacak kişi env'in iç görev türlerini (takeoff / climb_to / turn / bob / move / cruise / stop / land /
 pirouette) bilmek zorunda kalmasın diye TEK giriş noktası. Kullanıcı yalnızca uçuş komutu verir:
 
-    hız      : mutlak (speed_kt) ya da Δ (dspeed_kt)       — 0 = hover; 10–130 kt ileri uçuş (hava hızı)
+    hız      : mutlak (speed_kt) ya da Δ (dspeed_kt)       — 0 = hover; 10–120 kt ileri uçuş (hava hızı; trim tablosu sınırı)
     heading  : mutlak (heading_deg, en kısa yön) ya da Δ (dheading_deg, tek komutta ±360°)
     irtifa   : mutlak (alt_ft) ya da Δ (dalt_ft), CG AGL  — hover 12–1500 ft, ileri uçuş 50–1500 ft
     eylemler : kalk (takeoff), in (land), dur / hover (stop), pirouette
@@ -19,7 +19,7 @@ sınırlara KIRPAR (asla ters çevirmez) ve gerekirse ara görev ekler:
     yerde        | —  (önce kalkış)                 | —                  | kalkış (h)      | —
     hover        | ≥ 10 kt → (dönüş) + hızlanma     | yerinde dönüş      | climb_to (h)    | land / hold / pirouette
     ileri uçuş   | < 10 kt → duruş (hover)          | cruise Δψ          | cruise h        | önce duruş, sonra görev
-                 | 10–130 kt → cruise u             |                    |                 |
+                 | 10–120 kt → cruise u             |                    |                 |
 
 Neden (2026-09-30 ölçümleri): env'e doğrudan verilen komutlar (1) zarf dışına düşünce ters çevriliyordu (40 kt'ta
 "−20 kt" → 60 kt), (2) rejime uymayınca episode bitiyordu (80 kt'ta hover dönüşü → 0.1 s'de speed_limit) ya da istenmeyen

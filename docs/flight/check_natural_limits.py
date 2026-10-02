@@ -55,7 +55,7 @@ def main(argv=None):
             ("40 kt, Δhız −20 kt", dict(start="cruise", start_speed_kt=40.0, start_alt_ft=400.0, tasks=[ch]),
              dict(kind="cruise", du_kt=-20.0), "20 kt"),
             ("100 kt, Δhız +45 kt", dict(start="cruise", start_speed_kt=100.0, start_alt_ft=400.0, tasks=[ch]),
-             dict(kind="cruise", du_kt=45.0), "130 kt (kırpma)"),
+             dict(kind="cruise", du_kt=45.0), "120 kt (kırpma; zarf 2026-10-02'den beri 120 kt)"),
             ("900 ft, Δirtifa +800 ft", dict(start="cruise", start_speed_kt=80.0, start_alt_ft=900.0, tasks=[ch]),
              dict(kind="cruise", dh=800.0), "1500 ft (kırpma)"),
             ("250 ft, Δirtifa −300 ft", dict(start="cruise", start_speed_kt=80.0, start_alt_ft=250.0, tasks=[ch]),

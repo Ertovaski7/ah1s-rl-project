@@ -144,7 +144,9 @@ TEST_SCENARIOS += [
     ("t_hizlan90", "test/öğe", "40 ft hover → 90 kt (+120 ft), 18 kt sağdan rüzgâr + hafif türbülans", "hover40",
      [HOLD, ACC(90, 120)], W_T["9300"], dict(wind_kt=18.0, wind_dir_deg=90.0, turb_level="light"), 150.0),
     # doğal sınırlar (F1–F9 görmedi)
-    ("d_130kt", "test/doğal", "400 ft / 100 kt → 130 kt", "cruise100@400", [CHOLD, CR(u_kt=130)], W_T["9300"], "t_sakin",
+    # 2026-10-02: zarf 120 kt (trim tablosu sınırı); eski id d_130kt — komut 130 kt zaten 120'ye kırpıldığı için fiziksel
+    # test aynı, yalnızca "clipped" bayrağı kalkar
+    ("d_120kt", "test/doğal", "400 ft / 100 kt → 120 kt", "cruise100@400", [CHOLD, CR(u_kt=120)], W_T["9300"], "t_sakin",
      120.0),
     ("d_15kt", "test/doğal", "300 ft / 40 kt → 15 kt → +90°", "cruise40@300", [CHOLD, CR(u_kt=15), CR(dpsi=90)],
      W_T["9300"], "t_sakin", 150.0),
@@ -309,10 +311,14 @@ def run_one(env, policy, sc, seed=0):
     ps = info.get("physics_summary") or {}
     keep = [w for w in wins if w["ads33"] != "kesildi" or w["category"] == "interrupted"]
     wins = keep
+    safe = info.get("termination") in ("time_limit", "fuel_exhausted")
+    # 2026-10-02: canlı modda (30 s hover senaryoları) süre bitince yarım kalan oto-tutma penceresi env'in
+    # episode_success'ini düşürüyordu (hover_sakin 5/5 görev ama "tüm görevler ✗"); kesilenler sayılmaz
+    episode_ok = bool(safe and wins and all(w["success"] for w in wins if w["ads33"] != "kesildi"))
     return dict(
         id=sid, group=group, title=title, env=env_name if isinstance(env_name, str) else "özel",
-        safe=info.get("termination") in ("time_limit", "fuel_exhausted"), termination=info.get("termination"),
-        episode_ok=bool(info.get("episode_success")), n_ok=sum(w["success"] for w in wins), n=len(wins),
+        safe=safe, termination=info.get("termination"),
+        episode_ok=episode_ok, n_ok=sum(w["success"] for w in wins), n=len(wins),
         n_adequate=sum(w["ads33"] in ("istenen", "yeterli") for w in wins), windows=wins, duration=dur,
         torque_max=float(q.max()), torque_p95=float(np.percentile(q, 95)), t_over50_s=float((q > 50.0).sum() * CONTROL_DT),
         t_over56_s=float(over.sum() * CONTROL_DT), longest_over56_s=float(longest * CONTROL_DT), rpm_min=float(rpm.min()),

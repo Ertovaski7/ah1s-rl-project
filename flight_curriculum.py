@@ -40,10 +40,12 @@ CRUISE_MAX_ALT_FT = 1000.0
 # Doğal komut zarfı (2026-10-01; canlı / arayüz komutları — eğitim örneklemesi seviyenin zarfıyla, yukarıdaki sabitler
 # F1–F9 için birebir). Hız: AH-1S en yüksek düz uçuş hızı ~128 kt (Vertipedia) / ~130 KTAS @ 10,000 lbs 8 TOW (DTIC
 # ADA025476, YAH-1S 1975); bu modelde 130 kt ~38–40 psi (gerçekte TOW rampalarıyla ~%100). 10 kt altı → duruş (hover).
+# 2026-10-02: üst sınır 130 → 120 kt — trim tablosu (probe e) 120 kt'a kadar ölçüldü; 120 kt üstünde çizelge kırpılıp
+# ileri besleme yanlış kalıyordu (held-out d_130kt: 128 kt'a çıkıp bantta oturamadı). Kullanıcı kararı: zarf = tablo.
 # İrtifa: CG AGL; ileri uçuşta en az 50 ft, hover 12 ft (kızaklar ~6 ft). Vne (güvenlik): 170 kt (TOW ya da > 9500 lbs;
 # aircav.com).
 CMD_MIN_KT = 10.0
-CMD_MAX_KT = 130.0
+CMD_MAX_KT = 120.0
 CMD_MIN_ALT_FT = 50.0
 CMD_MAX_ALT_FT = 1500.0
 VNE_KT = 170.0
@@ -222,7 +224,7 @@ def find_flight_level(level, levels=None) -> int:
 #   F7     | karma (tüm görevler)                                            | E1 / E2
 #   F8     | karma + zincir, rüzgâr + türbülans                              | E1 / E2 / E3
 #   F9     | cila: F8 + daha çok hover manevrası, sakin hover manevrası tekrarı | E1 / E2 / E3
-#   F10    | doğal zarf (10–130 kt, 50–1500 ft, Δψ ≤ 270°), pirouette, hover   | E0–E3, hava sıcaklığı
+#   F10    | doğal zarf (10–120 kt, 50–1500 ft, Δψ ≤ 270°), pirouette, hover   | E0–E3, hava sıcaklığı
 #          | hassasiyeti ×0.5, hover dönüşü ≤ 360° (2026-10-01)                | standart −10…+30 °C
 #   F11    | hassasiyet okulu: dönüş / pirouette / kayma / bob, %50 F10 tekrarı | E0–E2, −10…+30 °C
 #   F12    | denge: F10 karışımı + %45 tekrar (F11 ×3, F6, F7, F8, F9)          | F10'un çevresi
@@ -321,16 +323,16 @@ DEFAULT_FLIGHT_LEVELS: list[FlightLevel] = [
         fuel_lbs=_FUEL, env_probs={"E1": 0.3, "E2": 0.4, "E3": 0.3}, promote_threshold=0.6,
         rehearse=("F2", "F3", "F5", "F6", "F7", "F8"), p_rehearse=0.35),
     FlightLevel(
-        name="F10", description="Doğal zarf + hassasiyet + sıcak gün (2026-10-01): F9 karışımı; ileri uçuş 10–130 kt, "
+        name="F10", description="Doğal zarf + hassasiyet + sıcak gün (2026-10-01): F9 karışımı; ileri uçuş 10–120 kt (2026-10-02; önce 130), "
                                 "50–1500 ft, Δhız ≤ 50 kt, Δψ ≤ 270°, Δh ≤ 600 ft; hover dönüşü ≤ 360°, pirouette; hover "
                                 "hassasiyeti ×0.5; hava sıcaklığı standart −10…+30 °C",
         p_hover_start=0.4, hover_start_alt_ft=(15.0, 800.0), takeoff_alt_ft=(10.0, 1000.0), n_tasks=(1, 3),
         task_probs={"turn": 0.3, "move": 0.2, "bob": 0.2, "pirouette": 0.3}, turn_deg=(30.0, 360.0),
         pirouette_radius_ft=(80.0, 120.0), pirouette_s=(40.0, 60.0),
-        p_target_change=0.2, p_land=0.3, p_cruise_start=0.3, cruise_start_kt=(15.0, 125.0),
+        p_target_change=0.2, p_land=0.3, p_cruise_start=0.3, cruise_start_kt=(15.0, 115.0),
         cruise_start_alt_ft=(60.0, 1450.0), n_cruise=(1, 4), p_cruise_interrupt=0.25, du_kt=(10.0, 50.0),
         dpsi_deg=(20.0, 270.0), dh_ft=(50.0, 600.0), cruise_kt_env=(CMD_MIN_KT, CMD_MAX_KT),
-        cruise_alt_env=(CMD_MIN_ALT_FT, CMD_MAX_ALT_FT), p_accel=0.4, accel_kt=(15.0, 120.0), accel_climb_ft=(0.0, 300.0),
+        cruise_alt_env=(CMD_MIN_ALT_FT, CMD_MAX_ALT_FT), p_accel=0.4, accel_kt=(15.0, 110.0), accel_climb_ft=(0.0, 300.0),
         p_stop=0.6, p_chain=0.5, p_land_after_stop=0.3, p_touch_start=0.05, p_low_hover_start=0.05, climb_fps=10.0,
         descent_fps=5.0, lag_s=4.0, fuel_lbs=_FUEL, env_probs={"E0": 0.15, "E1": 0.25, "E2": 0.35, "E3": 0.25},
         hover_precision=0.5, delta_T_C=(-10.0, 30.0), promote_threshold=0.6,

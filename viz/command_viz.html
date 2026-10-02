@@ -131,7 +131,6 @@ h2{font-family:var(--font-inst);font-size:12px;letter-spacing:.08em;text-transfo
 .banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:min(460px,86%);padding:14px 16px;text-align:center;
   pointer-events:auto;display:grid;gap:10px;font-family:var(--font-ui)}
 .banner b{font-family:var(--font-inst)}
-.loading{position:absolute;inset:auto 0 42% 0;text-align:center;font:13px var(--font-inst);color:var(--ink-2)}
 
 /* ---------- command form ---------- */
 .form{display:grid;gap:10px}
@@ -330,7 +329,6 @@ a{color:var(--s1)}
         <div class="compass glass" title="Kuzey"><svg viewBox="-17 -17 34 34" id="compassSvg" aria-label="Kuzey oku"><path d="M0,-14 L6,6 L0,2 L-6,6 Z" fill="#f2f6f8"/><text x="0" y="15.5" text-anchor="middle" font-size="7" fill="#f2f6f8" font-family="B612, sans-serif">N</text></svg></div>
         <div class="banner glass" id="banner" hidden><div id="bannerTxt"></div><div><button class="btn primary" type="button" id="bannerBtn">Yeniden başlat</button></div></div>
       </div>
-      <div class="loading" id="loading">Helikopter modeli yükleniyor…</div>
     </div>
 
     <div class="side">
@@ -467,7 +465,7 @@ a{color:var(--s1)}
       <div><b>Metrikler</b>: yükselme = hedefe giden yolun %10'undan %90'ına süre; aşma = hedefin ötesine geçen kısım (|Δ|'nın %'si); oturma = tolerans bandına girip bir daha çıkmadığı an (komuttan itibaren); son hata = pencerenin son tutma süresi (komut 10 s, manevra 5 s) boyunca ortalama.</div>
       <div id="noteSafety"><b>Güvenlik</b>: yatış 40°, yunuslama 30°, irtifa 50 ft altı, rotor 280–380 rpm, komut bandından 75 ft / 12 ft/s sapma, heading'in 30°'den fazla ters yöne gitmesi → uçuş biter. Güvenli aralık dışına taşan Δ'nın işareti env tarafından çevrilir (eğitimdeki gibi).</div>
       <div><b>HUD</b>: magenta = komut / hedef (aviyonik geleneği). Heading bandındaki ◇ ve «İZ» yer izidir (helikopterin gerçekten gittiği yön); burun yönünden farkı yana kaymadır — hız kutusundaki «yanal» değeri.</div>
-      <div class="muted">3D model: low-poly Bell (AH-1S yerine görsel amaçlı), boyu AH-1S'e (13.6 m) ölçeklendi. Uçuş dinamiği JSBSim AH-1S modeli.</div>
+      <div class="muted">3D model: low-poly AH-1S (viz/ah1s_model.js); rotor göbekleri, kızaklar ve rotor boyutları JSBSim AH-1S modelinden. Ana rotor kayıttaki devirle döner (nominal 324 rpm), kuyruk rotoru orantılı (× 1660 / 324); kanat hatvesi collective'i, disk eğimi cyclic'i gösterir. Uçuş dinamiği JSBSim AH-1S modeli.</div>
     </div>
   </section>
 </div>
@@ -475,8 +473,9 @@ a{color:var(--s1)}
 <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.169.0/+esm";
-import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/loaders/GLTFLoader.js/+esm";
 import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js/+esm";
+// command_viz.py sayfayı sunarken bu modülü satır içine alır (Colab'da ayrı dosya sunulamaz)
+import { createAH1S } from "./ah1s_model.js";
 
 // =====================================================================
 // yardımcılar
@@ -735,7 +734,6 @@ class HttpTransport {
   command(d) { return this._post("api/command", d); }
   reset(o) { return this._post("api/reset", o); }
   control(o) { return this._post("api/control", o); }
-  async model() { const r = await fetch("heli_bell.glb"); if (!r.ok) throw new Error("model " + r.status); return r.arrayBuffer(); }
 }
 class ColabTransport {
   constructor() { this.kind = "colab"; this.pollMs = 260; }
@@ -746,17 +744,6 @@ class ColabTransport {
   reset(o) { return this._call("ah1s_viz.reset", [o]); }
   control(o) { return this._call("ah1s_viz.control", [o]); }
   save() { return this._call("ah1s_viz.save"); }
-  async model() { const { b64 } = await this._call("ah1s_viz.model"); const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer; }
-}
-async function staticModel() {
-  for (const url of ["heli_bell.glb.b64.json", "heli_bell.glb"]) {      // yayımlanmış sayfa .glb sunmaz → base64 JSON
-    try {
-      const r = await fetch(url); if (!r.ok) continue;
-      if (url.endsWith(".glb")) return await r.arrayBuffer();
-      const { b64 } = await r.json(); const s = atob(b64); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u.buffer;
-    } catch (e) { /* sonraki */ }
-  }
-  throw new Error("model bulunamadı");
 }
 
 // =====================================================================
@@ -813,7 +800,8 @@ class FlightScene {
     // helikopter
     this.heli = new THREE.Group(); this.heli.rotation.order = "YXZ"; this.scene.add(this.heli);
     this.holder = new THREE.Group(); this.holder.rotation.y = Math.PI; this.holder.scale.setScalar(FT_PER_M); this.heli.add(this.holder);
-    this.rotor = null; this.tail = null; this._placeholder();
+    // AH-1S: gövde, ana rotor, kuyruk rotoru ayrı gruplar (metre, +Z burun); rotorlar setState / update ile döner
+    this.model = createAH1S({ livery: "tr" }); this.holder.add(this.model.root);
     // gölge
     const sh = document.createElement("canvas"); sh.width = sh.height = 128; const g = sh.getContext("2d");
     const grd = g.createRadialGradient(64, 64, 4, 64, 64, 64); grd.addColorStop(0, "rgba(0,0,0,0.55)"); grd.addColorStop(1, "rgba(0,0,0,0)");
@@ -849,24 +837,8 @@ class FlightScene {
     this.stem = lineOf(2, this.stemMat);
     this.ringMat = new THREE.MeshBasicMaterial({ color: 0xb5179e, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
     this.ring = new THREE.Mesh(new THREE.RingGeometry(58, 66, 72), this.ringMat); this.ring.rotation.x = -Math.PI / 2; this.scene.add(this.ring);
-    this.discMat = new THREE.MeshBasicMaterial({ color: 0x0b1115, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false });
     this.tmp = new THREE.Vector3(); this.tmp2 = new THREE.Vector3();
     new ResizeObserver(() => this.resize()).observe(host); this.resize();
-  }
-  _placeholder() {
-    const m = new THREE.MeshStandardMaterial({ color: 0x4493a4, roughness: 0.6 });
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(1.2, 4.5, 6, 12), m); body.rotation.x = Math.PI / 2;
-    const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.4, 7, 8), m); boom.rotation.x = Math.PI / 2; boom.position.set(0, 0.6, -5.5);
-    this.placeholder = new THREE.Group(); this.placeholder.add(body, boom); this.holder.add(this.placeholder);
-  }
-  setModel(gltfScene) {
-    if (this.placeholder) { this.holder.remove(this.placeholder); this.placeholder = null; }
-    this.holder.add(gltfScene);
-    this.rotor = gltfScene.getObjectByName("main_rotor"); this.tail = gltfScene.getObjectByName("tail_rotor");
-    if (this.rotor) {
-      const disc = new THREE.Mesh(new THREE.CircleGeometry(7.45, 64), this.discMat); disc.rotation.x = -Math.PI / 2;
-      disc.position.copy(this.rotor.position); disc.position.y += 0.05; this.rotor.parent.add(disc);
-    }
   }
   setTheme() {
     const C = n => new THREE.Color(tok(n) || "#888");
@@ -889,7 +861,7 @@ class FlightScene {
     const trail = C("--trail"); this.trailMat.color = trail; this.trackMat.color = trail; this.curtMat.color = C("--curtain");
     this.curMat.color = C("--cue-ink");
     const tg = C("--target"); this.tgtMat.color = tg; this.stemMat.color = tg; this.ringMat.color = tg;
-    this.discMat.color = C("--cue-ink");
+    this.model.setDiscColor(C("--cue-ink"));
   }
   resize() {
     const w = this.host.clientWidth, h = this.host.clientHeight; if (!w || !h) return;
@@ -925,9 +897,9 @@ class FlightScene {
     const pos = this._world(s, this.tmp);
     this.heli.position.copy(pos);
     this.heli.rotation.set(THREE.MathUtils.degToRad(s.theta || 0), -THREE.MathUtils.degToRad(s.psi), -THREE.MathUtils.degToRad(s.phi || 0), "YXZ");
-    const spin = reduceMotion ? 0.25 : 1;
-    if (this.rotor) this.rotor.rotation.y += dt * Math.PI * 2 * 1.15 * spin * clamp((s.rpm || 324) / 324, 0, 1.3);
-    if (this.tail) this.tail.rotation.x += dt * Math.PI * 2 * 4.2 * spin;
+    // rotor: kayıttaki devir (gerçek zamanda, oynatma hızından bağımsız) ve kumanda konumları (c0 collective 0…1, c1 / c2 cyclic −1…1)
+    this.model.setState({ rotorRPM: s.rpm, collective: s.c[0], cyclic: { lon: s.c[1], lat: s.c[2] } });
+    this.model.update(dt * (reduceMotion ? 0.25 : 1));
     this.shadow.position.set(pos.x, 0.7, pos.z);
     this.shadow.material.opacity = 0.55 * clamp(1 - s.h / 2200, 0.2, 1); this.shadow.scale.setScalar(0.8 + s.h / 1800);
     this._syncTrail(fl, s.t, pos);
@@ -1993,10 +1965,6 @@ async function boot() {
     try { const t = new HttpTransport(); const h = await t.hello(); if (h && h.mode === "live") { app.live = t; app.hello = h; } }
     catch (e) { setHint("cmdHint", "Canlı sunucuya ulaşılamadı; kayıt modunda açıldı.", "err"); }
   }
-  // model
-  const modelBuf = app.live ? app.live.model() : staticModel();
-  modelBuf.then(buf => new GLTFLoader().parseAsync(buf, "")).then(g => { app.scene.setModel(g.scene); $("#loading").hidden = true; })
-    .catch(e => { $("#loading").textContent = "Model yüklenemedi; basit gövde gösteriliyor."; setTimeout(() => $("#loading").hidden = true, 4000); });
   if (app.live) {
     if (!app.hello) app.hello = await app.live.hello();
     const trn = app.hello.limits?.trained || {};

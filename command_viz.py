@@ -6,7 +6,7 @@ COMMAND VIZ — komut / manevra ajanını 3D ve metriklerle canlı izle
 
 Tek bir JSBSim uçuşu (eğitilmiş PPO + env) arka planda gerçek zamanlı akar.
 Tarayıcıdaki sayfadan istediğin an Δheading / Δhız / Δirtifa komutu verirsin;
-helikopteri (low-poly Bell modeli, `viz/heli_bell.glb`) 3D izler, komutun
+helikopteri (low-poly AH-1S modeli, `viz/ah1s_model.js`) 3D izler, komutun
 metriklerini (yükselme, aşma, oturma, kuplaj, eğitimdeki başarı kararı) ve
 zaman serilerini görürsün. Aynı sayfa kayıtlı uçuşları da oynatır.
 
@@ -42,9 +42,9 @@ env._issue_due_commands): güvenli aralığın dışına taşan Δ'nın işareti
 """
 
 import argparse
-import base64
 import json
 import math
+import re
 import sys
 import threading
 import time
@@ -74,7 +74,7 @@ from takeoff_curriculum import DEFAULT_TAKEOFF_LEVELS, GROUND_H_FT, TANK_CAPACIT
 
 VIZ_DIR = REPO_ROOT / "viz"
 PAGE_FILE = VIZ_DIR / "command_viz.html"
-MODEL_FILE = VIZ_DIR / "heli_bell.glb"
+MODEL_MODULE = VIZ_DIR / "ah1s_model.js"           # low-poly AH-1S (three.js modülü); sayfa sunulurken satır içine alınır
 COMMAND_POLICY = REPO_ROOT / "models_command_curriculum" / "v2_R1_final.zip"
 MANEUVER_POLICY = REPO_ROOT / "models_maneuver" / "maneuver_M5_final.zip"
 ROBUST_POLICY = REPO_ROOT / "models_maneuver" / "maneuver_robust_final.zip"     # collective ±0.45 + S4 ince ayar (README 29)
@@ -1007,8 +1007,27 @@ class LiveFlight:
 # SAYFA
 # =====================================================================
 
+def inline_model_module(html: str) -> str:
+    """Sayfadaki `import { … } from "./ah1s_model.js";` satırını modülün kendisiyle değiştirir.
+
+    Colab sayfayı satır içi gösterir, yanında dosya sunamaz; yerel sunucu da aynı sayfayı verir. Modül kendi
+    `import * as THREE` satırı olmadan, sayfanın THREE'si ile bir kapsam içinde çalışır; adları sayfayla çakışmaz.
+    """
+    m = re.search(r'^import \{([^}]*)\} from "\./ah1s_model\.js";$', html, flags=re.M)
+    if not m:
+        return html
+    names = ", ".join(n.strip() for n in m.group(1).split(",") if n.strip())
+    src = MODEL_MODULE.read_text(encoding="utf-8")
+    src, n_three = re.subn(r'^import \* as THREE from "[^"]+";\n', "", src, flags=re.M)
+    if n_three != 1 or re.search(r"^import ", src, flags=re.M):
+        raise RuntimeError(f"{MODEL_MODULE.name}: beklenen tek import three.js olmalı")
+    src = re.sub(r"^export (const|class|function) ", r"\1 ", src, flags=re.M)
+    block = f"const {{ {names} }} = (() => {{\n{src}\nreturn {{ {names} }};\n}})();"
+    return html[:m.start()] + block + html[m.end():]
+
+
 def page_fragment(boot: dict | None = None) -> str:
-    html = PAGE_FILE.read_text(encoding="utf-8")
+    html = inline_model_module(PAGE_FILE.read_text(encoding="utf-8"))
     if boot:
         html = f"<script>window.AH1S_VIZ_BOOT = {json.dumps(boot)};</script>\n" + html
     return html
@@ -1142,13 +1161,11 @@ def colab(model: str | Path = DEFAULT_POLICY, env_config: str = "v2", start: dic
             pass
     flight = LiveFlight(model, env_config=env_config, start=start)
     builtins._ah1s_command_viz = flight
-    glb_b64 = base64.b64encode(MODEL_FILE.read_bytes()).decode("ascii")
     output.register_callback("ah1s_viz.hello", lambda: JSON(flight.hello()))
     output.register_callback("ah1s_viz.state", lambda fid=None, since=0: JSON(flight.state_since(fid, since)))
     output.register_callback("ah1s_viz.command", lambda d=None: JSON(flight.request_command(d or {})))
     output.register_callback("ah1s_viz.reset", lambda d=None: JSON(flight.request_reset(**(d or {}))))
     output.register_callback("ah1s_viz.control", lambda d=None: JSON(flight.set_control(**(d or {}))))
-    output.register_callback("ah1s_viz.model", lambda: JSON(dict(b64=glb_b64)))
     output.register_callback("ah1s_viz.save", lambda: JSON(flight.save(save_dir)))
     flight.start()
     display(HTML(page_fragment(dict(transport="colab"))))

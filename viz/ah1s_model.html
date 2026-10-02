@@ -1,0 +1,300 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AH-1S Cobra Modeli</title>
+<meta name="description" content="AH-1S Cobra low-poly 3D modelinin önizlemesi: gövde, ana rotor ve kuyruk rotoru ayrı gruplar; setState({rotorRPM, collective, cyclic}).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap">
+<style>
+/* Yerleşim: solda tam yükseklikte 3D görünüm, sağda kokpit paneli gibi dar kumanda sütunu; telefonda görünüm üstte, panel altta.
+   Renkler ve yazı tipleri command_viz.html ile aynı sistem (magenta = komut). */
+:root{
+  color-scheme: light;
+  --page:#eef1f2; --surface:#fafbfb; --surface-2:#f2f5f6; --ink:#101518; --ink-2:#48535a; --muted:#6d787f;
+  --hair:#dce2e5; --line:#c3cbd0; --target:#b5179e; --target-wash:rgba(181,23,158,.10); --target-ink:#9c1288;
+  --focus:#2a78d6; --btn:#e6ebed; --btn-hover:#dbe2e5; --code:#e9eef0;
+  --sky-top:#9fc3dc; --sky-horizon:#e3ecef; --ground:#d8cfbc; --grid-minor:rgba(70,62,48,.16); --grid-major:rgba(70,62,48,.34);
+  --rotor-disc:#1b1d1a;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-inst: "B612", "Segoe UI", system-ui, sans-serif;
+  --font-num: "B612 Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --page:#0c1013; --surface:#141a1e; --surface-2:#1a2126; --ink:#eef3f5; --ink-2:#b3bec5; --muted:#8a959c;
+    --hair:#242c32; --line:#364049; --target:#e26bd0; --target-wash:rgba(226,107,208,.14); --target-ink:#ec8fdd;
+    --focus:#6da7ec; --btn:#1f272d; --btn-hover:#29333a; --code:#10161a;
+    --sky-top:#1d3346; --sky-horizon:#4d6272; --ground:#35332d; --grid-minor:rgba(230,220,200,.10); --grid-major:rgba(230,220,200,.22);
+    --rotor-disc:#c9d6dd;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --page:#0c1013; --surface:#141a1e; --surface-2:#1a2126; --ink:#eef3f5; --ink-2:#b3bec5; --muted:#8a959c;
+  --hair:#242c32; --line:#364049; --target:#e26bd0; --target-wash:rgba(226,107,208,.14); --target-ink:#ec8fdd;
+  --focus:#6da7ec; --btn:#1f272d; --btn-hover:#29333a; --code:#10161a;
+  --sky-top:#1d3346; --sky-horizon:#4d6272; --ground:#35332d; --grid-minor:rgba(230,220,200,.10); --grid-major:rgba(230,220,200,.22);
+  --rotor-disc:#c9d6dd;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;background:var(--page)}
+body{margin:0;color:var(--ink);font:14px/1.45 var(--font-ui);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 340px}
+.view{position:relative;min-height:0;min-width:0;overflow:hidden;background:var(--sky-horizon)}
+.view canvas{display:block;width:100%;height:100%;touch-action:none}
+.tag{position:absolute;left:12px;top:12px;padding:5px 9px;border-radius:6px;background:rgba(9,14,18,.62);color:#f2f6f8;
+  font:12px/1.3 var(--font-inst);letter-spacing:.02em;pointer-events:none}
+.tag b{font-family:var(--font-num);font-weight:400}
+.panel{min-width:0;overflow-y:auto;background:var(--surface);border-left:1px solid var(--hair);padding:18px 18px 22px;display:flex;flex-direction:column;gap:18px}
+header h1{margin:0;font:700 22px/1.15 var(--font-inst);letter-spacing:.01em;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--ink-2);font-size:13px}
+section{display:flex;flex-direction:column;gap:10px}
+h2{margin:0;font:700 11px/1.2 var(--font-inst);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 10px}
+.ctl label{font:13px/1.3 var(--font-inst);color:var(--ink-2)}
+.ctl output{font:13px/1.3 var(--font-num);font-variant-numeric:tabular-nums;color:var(--ink)}
+.ctl input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--target);margin:2px 0 0}
+.ctl .hint{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+button{border:1px solid var(--line);background:var(--btn);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:13px}
+button:hover{background:var(--btn-hover)}
+button[aria-pressed="true"]{background:var(--target-wash);border-color:var(--target);color:var(--target-ink)}
+button:focus-visible,input:focus-visible,.pad:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.cyc{display:grid;grid-template-columns:132px minmax(0,1fr);gap:12px;align-items:start}
+.pad{position:relative;width:132px;height:132px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);cursor:crosshair;touch-action:none}
+.pad::before,.pad::after{content:"";position:absolute;background:var(--line)}
+.pad::before{left:50%;top:8px;bottom:8px;width:1px}
+.pad::after{top:50%;left:8px;right:8px;height:1px}
+.pad .k{position:absolute;font:10px/1 var(--font-inst);color:var(--muted);letter-spacing:.05em}
+.pad .dot{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--target);box-shadow:0 0 0 3px var(--target-wash);z-index:1}
+.cyc dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 8px;font-size:13px}
+.cyc dt{color:var(--ink-2);font-family:var(--font-inst)}
+.cyc dd{margin:0;font-family:var(--font-num);font-variant-numeric:tabular-nums;text-align:right}
+.read{margin:0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;font-size:13px}
+.read dt{color:var(--ink-2);font-family:var(--font-inst)}
+.read dd{margin:0;font-family:var(--font-num);font-variant-numeric:tabular-nums;text-align:right}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+.chk input{accent-color:var(--target);margin:0}
+pre{margin:0;padding:10px 12px;border-radius:6px;background:var(--code);border:1px solid var(--hair);overflow-x:auto;
+  font:12px/1.5 var(--font-num);color:var(--ink)}
+.note{margin:0;font-size:12px;color:var(--muted)}
+.note b{color:var(--ink-2);font-weight:600}
+@media (max-width: 760px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:62vh auto;height:auto}
+  html,body{height:auto}
+  .panel{border-left:0;border-top:1px solid var(--hair);overflow:visible;padding:16px}
+}
+</style>
+
+<div class="app">
+  <div class="view" id="view">
+    <div class="tag" id="tag">Ana rotor <b id="tagMr">324</b> rpm · kuyruk rotoru <b id="tagTr">1660</b> rpm</div>
+  </div>
+  <aside class="panel">
+    <header>
+      <h1>AH-1S Cobra</h1>
+      <p>Low-poly model · gövde, ana rotor ve kuyruk rotoru ayrı gruplar, pivotlar rotor göbeklerinde.</p>
+    </header>
+
+    <section aria-labelledby="hRotor">
+      <h2 id="hRotor">Rotor</h2>
+      <div class="ctl">
+        <label for="rpm">Ana rotor devri</label><output id="rpmOut" for="rpm">324 rpm</output>
+        <input type="range" id="rpm" min="0" max="400" step="1" value="324">
+        <div class="row" style="grid-column:1/-1"><button type="button" id="rpmNom">Nominal 324 rpm</button><button type="button" id="rpmStop">Durdur</button></div>
+      </div>
+      <div class="ctl">
+        <label for="coll">Collective</label><output id="collOut" for="coll">0.30</output>
+        <input type="range" id="coll" min="0" max="1" step="0.01" value="0.3">
+        <span class="hint">0 = kol aşağıda, 1 = tam yukarı · hover civarı 0.30</span>
+      </div>
+      <div class="cyc">
+        <div class="pad" id="pad" tabindex="0" role="group" aria-label="Cyclic: yukarı = öne (lon +), sağ = sağa (lat +). Ok tuşlarıyla ayarla, çift tıkla ortala.">
+          <span class="k" style="left:50%;top:3px;transform:translateX(-50%)">ÖNE</span>
+          <span class="k" style="right:4px;top:50%;transform:translateY(-130%)">SAĞ</span>
+          <div class="dot" id="dot" style="left:50%;top:50%"></div>
+        </div>
+        <dl>
+          <dt>Cyclic lon</dt><dd id="lonOut">+0.00</dd>
+          <dt>Cyclic lat</dt><dd id="latOut">+0.00</dd>
+          <dt style="grid-column:1/-1;margin-top:6px"><button type="button" id="cycZero">Ortala</button></dt>
+        </dl>
+      </div>
+    </section>
+
+    <section aria-labelledby="hState">
+      <h2 id="hState">Durum</h2>
+      <dl class="read">
+        <dt>Kuyruk rotoru (× 1660 / 324)</dt><dd id="rTr">1660 rpm</dd>
+        <dt>Kanat kök hatvesi θ₀</dt><dd id="rRoot">—</dd>
+        <dt>Hatve, 0.75 R (burulma −10°)</dt><dd id="r75">—</dd>
+        <dt>Disk eğimi öne / sağa</dt><dd id="rTilt">—</dd>
+      </dl>
+      <pre id="code" aria-label="Geçerli setState çağrısı"></pre>
+    </section>
+
+    <section aria-labelledby="hView">
+      <h2 id="hView">Görünüm</h2>
+      <div class="row" id="views">
+        <button type="button" data-view="side" aria-pressed="false">Yan</button>
+        <button type="button" data-view="front34" aria-pressed="true">Ön ¾</button>
+        <button type="button" data-view="rear34" aria-pressed="false">Arka ¾</button>
+        <button type="button" data-view="front" aria-pressed="false">Ön</button>
+        <button type="button" data-view="top" aria-pressed="false">Üst</button>
+      </div>
+      <div class="row" id="liveries">
+        <button type="button" data-livery="tr" aria-pressed="true">Kara Kuvvetleri kamuflajı</button>
+        <button type="button" data-livery="od" aria-pressed="false">Olive drab</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="pivots"> Pivot eksenlerini göster (rotor göbekleri)</label>
+      <label class="chk"><input type="checkbox" id="wire"> Tel kafes</label>
+    </section>
+
+    <p class="note" id="note"><b>Ölçüler</b> JSBSim AH-1S modelinden: ana rotor Ø 44 ft, 2 kanat, veter 2.25 ft; kuyruk rotoru Ø 8.5 ft, sağ tarafta; kızak izi 84 in; gövde boyu 13.55 m.</p>
+  </aside>
+</div>
+
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.169.0/+esm";
+import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js/+esm";
+import { createAH1S, AH1S } from "./ah1s_model.js";
+
+const $ = s => document.querySelector(s);
+const tok = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const f2 = x => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(2);
+const f1 = x => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(1);
+
+// sahne (metre; model +Z burun)
+const host = $("#view");
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+host.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1.5, 0.1, 2000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.1; controls.minDistance = 4; controls.maxDistance = 80; controls.maxPolarAngle = Math.PI * 0.53;
+const hemi = new THREE.HemisphereLight(0xdfeaf2, 0x8a7a60, 1.5); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 2.3); sun.position.set(-0.45, 1, 0.35).multiplyScalar(40); scene.add(sun);
+const skyMat = new THREE.ShaderMaterial({
+  uniforms: { top: { value: new THREE.Color() }, horizon: { value: new THREE.Color() } },
+  vertexShader: "varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  fragmentShader: "uniform vec3 top; uniform vec3 horizon; varying vec3 vDir; void main(){ float h = max(vDir.y, 0.0); gl_FragColor = vec4(mix(horizon, top, pow(h, 0.55)), 1.0);\n#include <colorspace_fragment>\n}",
+  side: THREE.BackSide, depthWrite: false,
+});
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), skyMat));
+// zemin: 1 m ince, 5 m kalın çizgi
+const gcv = document.createElement("canvas"); gcv.width = gcv.height = 512;
+const gtex = new THREE.CanvasTexture(gcv); gtex.wrapS = gtex.wrapT = THREE.RepeatWrapping; gtex.repeat.set(40, 40);
+gtex.colorSpace = THREE.SRGBColorSpace; gtex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const ground = new THREE.Mesh(new THREE.CircleGeometry(100, 64), new THREE.MeshLambertMaterial({ map: gtex }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -AH1S.GROUND_H; scene.add(ground);
+const scv = document.createElement("canvas"); scv.width = scv.height = 128;
+{ const g = scv.getContext("2d"), grd = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+  grd.addColorStop(0, "rgba(0,0,0,0.42)"); grd.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = grd; g.fillRect(0, 0, 128, 128); }
+const shadow = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 12), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(scv), transparent: true, depthWrite: false }));
+shadow.rotation.x = -Math.PI / 2; shadow.position.set(0, -AH1S.GROUND_H + 0.01, -1.6); scene.add(shadow);
+
+const heli = createAH1S({ livery: "tr" });
+scene.add(heli.root);
+const pivots = [heli.mainRotor, heli.tailRotor].map(g => { const a = new THREE.AxesHelper(g === heli.mainRotor ? 1.6 : 0.9); a.visible = false; a.renderOrder = 5; a.material.depthTest = false; g.add(a); return a; });
+
+function setTheme() {
+  skyMat.uniforms.top.value.set(tok("--sky-top")); skyMat.uniforms.horizon.value.set(tok("--sky-horizon"));
+  const g = gcv.getContext("2d"), S = 512;
+  g.fillStyle = tok("--ground"); g.fillRect(0, 0, S, S);
+  g.fillStyle = tok("--grid-minor"); for (let k = 1; k < 5; k++) { g.fillRect(k * S / 5 - 1, 0, 2, S); g.fillRect(0, k * S / 5 - 1, S, 2); }
+  g.fillStyle = tok("--grid-major"); g.fillRect(0, 0, 3, S); g.fillRect(0, 0, S, 3);
+  gtex.needsUpdate = true;                                // 200 m zeminde 40 karo → 1 karo = 5 m
+  heli.setDiscColor(tok("--rotor-disc"));
+}
+setTheme();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", setTheme);
+new MutationObserver(setTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+// kamera açıları (hedef gövde ortası)
+const VIEWS = {
+  side: { pos: [-24, 0.9, -1.8], tgt: [0, 0.4, -1.8] },
+  front34: { pos: [-10.5, 2.4, 10.5], tgt: [0, 0.2, -0.6] },
+  rear34: { pos: [14.5, 6.5, -19.5], tgt: [0, 0.6, -2.4] },
+  front: { pos: [0, 0.9, 19], tgt: [0, 0.6, 0] },
+  top: { pos: [0, 30, -2.0], tgt: [0, 0, -1.9] },          // hafif arkadan: burun ekranda yukarı
+};
+function setView(name) {
+  const v = VIEWS[name]; if (!v) return;
+  camera.position.set(...v.pos); controls.target.set(...v.tgt); controls.update();
+  document.querySelectorAll("#views button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === name)));
+}
+document.querySelectorAll("#views button").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
+document.querySelectorAll("#liveries button").forEach(b => b.addEventListener("click", () => {
+  heli.setLivery(b.dataset.livery);
+  document.querySelectorAll("#liveries button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+}));
+$("#pivots").addEventListener("change", e => pivots.forEach(a => { a.visible = e.target.checked; }));
+$("#wire").addEventListener("change", e => heli.root.traverse(o => { if (o.isMesh && !o.name.endsWith("_disc")) o.material.wireframe = e.target.checked; }));
+
+// kumandalar
+const st = { rotorRPM: AH1S.MR_RPM, collective: 0.3, cyclic: { lon: 0, lat: 0 } };
+function apply() {
+  heli.setState(st);
+  const s = heli.getState();
+  $("#rpm").value = st.rotorRPM; $("#rpmOut").textContent = `${Math.round(s.rotorRPM)} rpm`;
+  $("#coll").value = st.collective; $("#collOut").textContent = s.collective.toFixed(2);
+  $("#lonOut").textContent = f2(s.cyclic.lon); $("#latOut").textContent = f2(s.cyclic.lat);
+  $("#dot").style.left = `${50 + 42 * s.cyclic.lat}%`; $("#dot").style.top = `${50 - 42 * s.cyclic.lon}%`;
+  $("#rTr").textContent = `${Math.round(s.tailRPM)} rpm`;
+  $("#rRoot").textContent = `${s.rootPitchDeg.toFixed(1)}°`; $("#r75").textContent = `${s.pitch75Deg.toFixed(1)}°`;
+  $("#rTilt").textContent = `${f1(s.tiltDeg.lon)}° / ${f1(s.tiltDeg.lat)}°`;
+  $("#tagMr").textContent = Math.round(s.rotorRPM); $("#tagTr").textContent = Math.round(s.tailRPM);
+  $("#code").textContent = `heli.setState({\n  rotorRPM: ${Math.round(s.rotorRPM)},\n  collective: ${s.collective.toFixed(2)},\n  cyclic: { lon: ${s.cyclic.lon.toFixed(2)}, lat: ${s.cyclic.lat.toFixed(2)} },\n});`;
+}
+$("#rpm").addEventListener("input", e => { st.rotorRPM = +e.target.value; apply(); });
+$("#rpmNom").addEventListener("click", () => { st.rotorRPM = AH1S.MR_RPM; apply(); });
+$("#rpmStop").addEventListener("click", () => { st.rotorRPM = 0; apply(); });
+$("#coll").addEventListener("input", e => { st.collective = +e.target.value; apply(); });
+const pad = $("#pad");
+function padAt(e) {
+  const r = pad.getBoundingClientRect(), q = v => Math.max(-1, Math.min(1, Math.round(v * 100) / 100));
+  st.cyclic.lat = q(((e.clientX - r.left) / r.width - 0.5) / 0.42); st.cyclic.lon = q(-((e.clientY - r.top) / r.height - 0.5) / 0.42); apply();
+}
+pad.addEventListener("pointerdown", e => { pad.setPointerCapture(e.pointerId); padAt(e); });
+pad.addEventListener("pointermove", e => { if (pad.hasPointerCapture(e.pointerId)) padAt(e); });
+pad.addEventListener("dblclick", () => { st.cyclic.lon = st.cyclic.lat = 0; apply(); });
+pad.addEventListener("keydown", e => {
+  const d = e.shiftKey ? 0.25 : 0.05, c = st.cyclic, k = e.key;
+  if (k === "ArrowUp") c.lon += d; else if (k === "ArrowDown") c.lon -= d; else if (k === "ArrowRight") c.lat += d; else if (k === "ArrowLeft") c.lat -= d;
+  else if (k === "Home" || k === "0") { c.lon = 0; c.lat = 0; } else return;
+  e.preventDefault(); c.lon = Math.max(-1, Math.min(1, +c.lon.toFixed(2))); c.lat = Math.max(-1, Math.min(1, +c.lat.toFixed(2))); apply();
+});
+$("#cycZero").addEventListener("click", () => { st.cyclic.lon = st.cyclic.lat = 0; apply(); });
+apply();
+
+let tris = 0; heli.root.traverse(o => { if (o.isMesh) tris += o.geometry.attributes.position.count / 3; });
+$("#note").insertAdjacentText("beforeend", ` ${Math.round(tris).toLocaleString("tr-TR")} üçgen.`);
+if (reduceMotion) $("#note").insertAdjacentText("beforeend", " Hareket azaltma açık: rotorlar görsel olarak ¼ hızda döner.");
+
+function resize() {
+  const w = host.clientWidth, h = host.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  // dar ekranda yatay görüş açısı 1.5 en-boy oranındaki kadar kalsın (model kesilmesin)
+  const hHalf = Math.atan(Math.tan(THREE.MathUtils.degToRad(16)) * 1.5);
+  camera.fov = camera.aspect < 1.5 ? THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(hHalf) / camera.aspect)) : 32;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(host); resize();
+setView("front34");
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  heli.update(dt * (reduceMotion ? 0.25 : 1));
+  controls.update(); renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+// ekran görüntüsü / konsol için
+window.AH1S_PREVIEW = { heli, setView, camera, controls, renderer, scene, apply, st };
+</script>

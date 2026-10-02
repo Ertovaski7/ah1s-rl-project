@@ -170,6 +170,7 @@ class FlightEnvConfig(TakeoffEnvConfig):
     next_at_deadline: bool = True
     w_task_early: float = 50.0
     pen_land_final: float = 3.0
+    pen_land_att: float = 2.0
     # İleri uçuşta hız değişimi sürerken irtifa payı (2026-10-02, kullanıcı gözlemi): Δhız büyükken ajan burnu eğip
     # hızlanıyor, irtifa kaybı hemen cezalandırıldığı için 3–4 s sonra burnu kaldırıp ivmeden vazgeçiyordu. Şimdi
     # kalan hız hatası oranı x = |e_u| / max(e0_u, 10 ft/s) kadar serbest pay: irtifa hatasının accel_h_allow_ft · x

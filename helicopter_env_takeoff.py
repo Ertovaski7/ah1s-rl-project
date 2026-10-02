@@ -168,6 +168,15 @@ class TakeoffEnvConfig:
     land_final_hs_ft: float = 20.0
     land_final_v0_fps: float = 1.0
     land_final_slope: float = 0.15
+    # Yere yakın attitude koruması (2026-10-02; iniş stres taraması: 25 kt + orta türbülans + gust'ta 150–300 ft'ten inişte
+    # flight_v2 ve ince ayar adayları 24 inişin 2–4'ünde kuyruk çarpması / devrilme — burun 3° → 13° kaldırılıp yer hızı
+    # frenleniyor): iniş penceresinde havada, kızak < land_att_hs_ft iken burun yukarı θ > land_att_pitch_deg ve
+    # |φ| > land_att_roll_deg için · ((aşım) / 4°)² ceza. Kuyruk çarpması cezası (fail_penalty 50) tek seferlikti ve
+    # birikmiş alçalma cezalarının yanında zayıf kalıyordu.
+    pen_land_att: float = 0.0
+    land_att_hs_ft: float = 15.0
+    land_att_pitch_deg: float = 8.0
+    land_att_roll_deg: float = 6.0
     # yere yakınken alçalma hızı sınırı (flare): izin = 1.5 + 0.2·kızak yüksekliği ft/s (40 ft'te 9.5, 10 ft'te 3.5)
     pen_sink: float = 3.0                         # · ((−ḣ − izin) / 3)², kızak yüksekliği < 60 ft iken
     sink_base_fps: float = 1.5
@@ -1192,6 +1201,9 @@ class HelicopterEnvTakeoff(HelicopterEnvCommand):
             if cfg.pen_land_final > 0.0 and s["hs"] < cfg.land_final_hs_ft:        # son metreler: alçaldıkça yavaşla
                 allow = cfg.land_final_v0_fps + cfg.land_final_slope * max(0.0, s["hs"])
                 sink += cfg.pen_land_final * max(0.0, -s["vs"] - allow) ** 2
+            if cfg.pen_land_att > 0.0 and s["hs"] < cfg.land_att_hs_ft:            # yere yakın burun yukarı / yatış
+                att += cfg.pen_land_att * ((max(0.0, math.degrees(s["theta"]) - cfg.land_att_pitch_deg) / 4.0) ** 2
+                                           + (max(0.0, phi - cfg.land_att_roll_deg) / 4.0) ** 2)
         ground = 0.0
         contact_now = s["wow"] > 0 and self._prev_wow == 0 and self._airborne_once
         if s["wow"] > 0:

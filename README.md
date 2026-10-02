@@ -170,6 +170,7 @@ ah1s-rl-project/
 ├── evaluate_command_policy.py               Step response değerlendirmesi (+ a=0 karşılaştırması)
 ├── diagnose_command_env.py                  Eğitimsiz sağlık kontrolü (başlatma, açık-döngü tepkiler, hız)
 ├── command_viz.py                           Canlı 3D görselleştirme: sunucu + Colab + kayıt (bölüm 27; komut ve manevra)
+├── ah1s_app/                               Uygulama katmanı (pygame): platform / modül seçimi, başlangıç koşulları (bölüm 34)
 ├── viz/                                     Sayfa (command_viz.html), AH-1S modeli (ah1s_model.js + önizleme ah1s_model.html), arazi (terrain.js), pist bayrağı (flag.js), demo uçuşları
 ├── models_command_curriculum/               Bu curriculum'un ilk koşularından modeller (v2_R1_final önerilen)
 ├── docs/command_curriculum/                 İlk koşuların kanıtları (ilerleme CSV, doğrulama, grafikler)
@@ -2084,3 +2085,43 @@ python evaluate_flight.py --model models_flight/flight_v2.zip --suite test --env
 python evaluate_ads33.py --model models_flight/flight_v2.zip --heavy
 python docs/flight/compare_eval.py flight_final=docs/flight/eval_test_final.json flight_v2=docs/flight/eval_test_v2.json
 ```
+
+---
+
+# 34. Uygulama katmanı — `ah1s_app` (pygame, 2026-10-02)
+
+Terminalden (repo kökünde):
+
+```bash
+pip install -r requirements.txt          # pygame dahil
+python -m ah1s_app                       # pencere 1280×720; --fullscreen, --size 1600x900, --no-browser
+```
+
+Ekranlar (görseller şimdilik düz renk yer tutucu; görsellik ve UI en sonda):
+
+1. **Ana ekran**: üç dikey panel: AH-1S Cobra, T129 ATAK (Coming soon), T70 (Coming soon).
+2. **AH-1S**: dört dikey panel: Sürüş, Yakıt İkmali, Asimetrik Savaş Senaryoları, Motor Arızası ve Acil Durum
+   Prosedürleri; ilki dışındakiler Coming soon.
+3. **Sürüş: başlangıç koşulları**: Türkiye haritasında önceden seçili konum (Diyarbakır) ve formda başlangıç durumu
+   (yerde / hover / ileri uçuş), irtifa, hava hızı, heading, yakıt (iki tanka eşit), rüzgâr hızı ve geldiği yön (kuzeye
+   göre), türbülans, gust, sıcaklık farkı. Formun aralıkları canlı sunucunun kabul ettikleri; ajanın eğitim aralığı
+   dışındaki seçimler sarı uyarıyla gösterilir (uçuş yine başlar).
+4. **Simülasyon**: "Simülasyonu başlat" canlı sunucuyu (`command_viz.py`, `models_flight/flight_v2.zip`) bu koşullarla
+   ayrı süreçte açar, hazır olunca 3D sayfayı tarayıcıda açar; pygame penceresi süreyi, irtifayı, hava hızını, heading'i,
+   dikey hızı, yakıtı, torku ve rotor devrini canlı gösterir. Görevler / komutlar sayfadaki formdan. "Durdur ve ayarlara
+   dön" (ya da Esc) süreci kapatır; uygulamadan çıkınca da kapanır.
+
+Tuşlar: Esc geri (ana ekranda çıkış), F11 tam ekran; kaydırıcılar sürükleyerek ya da tekerlekle.
+
+**Konum.** Uçuş seçilen enlem / boylamda başlar (`HelicopterEnvCommand.start_location`, JSBSim `ic/lat-geod-deg`,
+`ic/long-gc-deg`; eğitim ve değerlendirmede `None` → `reset00.xml`, davranış değişmedi). Zemin yüksekliği ve atmosfer
+fizik modelinde aynı kalır (2283.5 ft = 696 m); Diyarbakır (havalimanı 686 m) bu yüksekliğe en yakın Güneydoğu Anadolu
+konumu olduğu için seçildi: hava yoğunluğu ve güç payı gerçekteki gibi. Kayıt ve ACMI (Tacview) dışa aktarımı bu konumda.
+3D arazi bölgenin görünümünde prosedürel, gerçek topografya değil. Yeni konumlar `ah1s_app/config.py` → `LOCATIONS`.
+`command_viz.py` da doğrudan: `--lat 37.894 --lon 40.201 --location-name Diyarbakır`, ayrıca `--temp-dc`.
+
+Dosyalar: `ah1s_app/app.py` (pencere, ekran yığını), `scenes.py` (ekranlar), `ui.py` (düğme, kaydırıcı, seçim grubu,
+yer tutucu panel), `config.py` (paneller, konumlar, sınırlar — `flight_curriculum` / `takeoff_curriculum` sabitlerinden),
+`sim.py` (simülasyon süreci + HTTP API'den telemetri), `turkey.py` (kaba Türkiye ana hatları). Menüler jsbsim / torch
+olmadan da açılır; bunlar yalnızca simülasyon sürecinde yüklenir.
+

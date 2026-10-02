@@ -1473,6 +1473,7 @@ function renderStatus() {
 function updateSub() {
   const fl = app.flight; const m = fl?.meta || {}; const st = m.start || {};
   const parts = ["PPO ajanı", "JSBSim AH-1S"];
+  if (st.location?.name) parts.push(`konum ${st.location.name}`);
   if (m.model) parts.push(`model ${m.model}`);
   const au = authText(fl?.limits || app.hello?.limits); if (au) parts.push(au);
   if (isTO(fl)) {

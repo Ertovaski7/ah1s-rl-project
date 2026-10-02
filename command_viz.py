@@ -718,6 +718,8 @@ class LiveFlight:
     def _do_reset(self, opts: dict):
         with self.lock:
             self.state, self.message = "resetting", "Yeniden başlatılıyor…"
+        loc = opts.get("location") or None                 # {name, lat, lon}: uçuş bu enlem / boylamda başlar
+        self.env.start_location = (float(loc["lat"]), float(loc["lon"])) if loc else None
         if self.is_to:
             options = dict(tasks=[dict(t) for t in (opts.get("tasks") or [])], episode_s=LIVE_EPISODE_S, live=True,
                            start=opts.get("start", "ground"), start_alt_ft=float(opts.get("alt", 100.0)),
@@ -1407,12 +1409,20 @@ def main(argv=None):
     p.add_argument("--turb", choices=["none", "light", "moderate", "severe"], default=None, help="uçuş görevi: türbülans")
     p.add_argument("--gusts", action="store_true", help="uçuş görevi: gust'lar (dakikada ~1, 5–12 kt)")
     p.add_argument("--fuel", type=float, nargs=2, default=None, help="kalkış / uçuş görevi: tank başına yakıt (lbs)")
+    p.add_argument("--temp-dc", type=float, default=None, help="uçuş görevi: standart günden sıcaklık farkı (°C)")
+    p.add_argument("--lat", type=float, default=None, help="başlangıç enlemi (°); --lon ile birlikte (yoksa reset00.xml)")
+    p.add_argument("--lon", type=float, default=None, help="başlangıç boylamı (°)")
+    p.add_argument("--location-name", default=None, help="konumun sayfada görünen adı")
     p.add_argument("--open", action="store_true", help="tarayıcıyı aç")
     a = p.parse_args(argv)
+    if (a.lat is None) != (a.lon is None):
+        p.error("--lat ve --lon birlikte verilmeli")
+    location = dict(name=a.location_name or f"{a.lat:.3f}, {a.lon:.3f}", lat=a.lat, lon=a.lon) if a.lat is not None else None
     flight = LiveFlight(a.model, env_config=a.env_config,
                         start=dict(alt=a.start_alt, speed=a.start_speed, heading=a.start_heading, start=a.start,
                                    speed_kt=a.start_speed_kt, wind_kt=a.wind_kt, wind_dir=a.wind_dir, turb=a.turb,
-                                   gusts=True if a.gusts else None, fuel=list(a.fuel) if a.fuel else None))
+                                   gusts=True if a.gusts else None, fuel=list(a.fuel) if a.fuel else None,
+                                   temp_dc=a.temp_dc, location=location))
     serve(flight, a.host, a.port, a.open)
 
 

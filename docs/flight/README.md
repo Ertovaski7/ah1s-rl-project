@@ -520,8 +520,8 @@ tek aday (2.0 M ve 2.5 M'de T2_t_turb inişinde kuyruk çarpması; flight_v2 ora
 takımı ve yeni seed'li seviyelerde flight_v2'den iyi, iniş daha yumuşak, hassasiyet korunmuş. 2.0 M daha yüksek görev
 başarısına rağmen (held-out 31/35 · 120/128, seviyeler %90 / 95 / 100 / 90 / 85 / 80) o kuyruk çarpması yüzünden
 seçilmedi; `runs/fl_v3/models/snap_02000k.zip` yeniden üretilebilir. İkinci tur (`fl_v3b`, `pen_land_att` ile 1.5 M)
-gust'lı iniş kazalarını azaltmadı ve genel görevleri geriletti (0.5 M 14/21 · 95/105, 1.0 M 12/21 · 93/105; iniş stresi
-2 ve 4 güvensiz) → olumsuz sonuç, model alınmadı; ödül terimi varsayılan olarak açık kalıyor (ileride sıfırdan eğitimde
+gust'lı iniş kazalarını azaltmadı ve genel görevleri geriletti (0.5 M 14/21 · 95/105, 1.0 M 12/21 · 93/105, 1.5 M 15/21 · 93/105 — yeterli+ 97/105; iniş
+stresi 2 / 4 / 3 güvensiz, 1.5 M'de 14/24 başarılı) → olumsuz sonuç, model alınmadı; ödül terimi varsayılan olarak açık kalıyor (ileride sıfırdan eğitimde
 denenmek üzere), eski modellerin değerlendirmesine etkisi yok.
 
 | ölçüt | flight_v2 | **flight_v3** |

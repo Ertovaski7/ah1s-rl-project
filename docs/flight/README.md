@@ -655,4 +655,59 @@ tırmanış ↔ yerinde dönüş; ileri uçuş: irtifa ↔ heading). Mükemmelli
 sapması flight_v4 medyan 4.9 ft → düz s2 2.8 ft; tırmanışta yatay kayma değişmedi (5–6 ft).
 
 **Deney 2 — tek rejim + büyük batch:** yalnızca ileri uçuş uzmanı eğitilir (hover ve iniş kilitli), 16 paralel ortam ×
-512 adım (her güncellemede 16 episode; hız ~1940 adım/s, eski koşunun ~3 katı), 3 seed. [9.6 DENEY 2 DOLDURULACAK]
+512 adım (her güncellemede 16 episode; hız ~1940 adım/s, eski koşunun ~3 katı).
+
+| koşu | hedef | batch | seed | kapı | yeterli+ gerileme | not |
+|---|---|---|---|---|---|---|
+| fl_v6_cr | F15 (irtifa cezası, kuplaj ×0.5) | 16 env | 1 / 2 / 3 | KALDI ×3 | s1 yok; s2, s3 held-out ileri uçuş dönüşü 15→4 | iniş ve hover referansla birebir aynı (kilit kesin) |
+| fl_v6_C | F15 | 1 env × 4096 | 1 | KALDI | yok (istenen bantta çöküş: hızlanma 14→6) | büyük batch sebep değil |
+| **fl_v6_A** | **F13 (yeni ceza yok)** | 16 env | 1 / 2 / 3 | **GEÇTİ / GEÇTİ / KALDI** | **yok / yok / yok** | s3: irtifa komutu 6→1, son sınır kenarında |
+
+Teşhis: ileri uçuşu bozan, F15'in irtifa cezası ve sıkı irtifa kuplajı (ajan irtifa kaybetmemek için dönüş ve hız
+hassasiyetinden ödün veriyor) — büyük batch değil. Kararlı hedefle (F13) ileri uçuş uzmanı eğitimi düz uçuşta irtifa
+sapmasını da azaltıyor (s1 medyan 4.9 → 3.9 ft) — özel cezaya gerek kalmadan.
+
+Bugünkü bütün denemeler (kapıdan geçen / denenen): F14 düz 1/6 (iki anlık görüntü × üç seed), F15 düz 0/2, F15 rejim
+(iniş kilitli) 0/3, F15 ileri uçuş kilitli 0/3, **F13 ileri uçuş kilitli + büyük batch 2/3** (yeterli+ ölçütüyle 3/3
+gerilemesiz).
+
+**Kapıya bilgi tablosu eklendi** (`gate.py`): kategori başına "yeterli veya iyi" (bantlar 2×, son sınır 1.5×) ve banda
+giriş / son sınır medyanı. Neden: ikili başarı son sınır kenarında gürültülü (flight_v4 −100 ft komutunu son sınırdan
+0.0–2.2 s önce bitiriyor; 0.1 s gecikme "başarısız"). Karar kuralı değişmedi.
+
+### 9.7. Sonuç modeli `models_flight/flight_v5.zip` (2026-10-03)
+
+**flight_v5 = fl_v6_A seed 2, 1.0 M** (rejim uzmanlı politika: `regime_policy.RegimePolicy`; hover ve iniş uzmanları
+flight_v4'ün birebir kopyası, ileri uçuş uzmanı F13'te 16 ortamla 1 M adım eğitildi; seçim takımına göre seçildi).
+
+| ölçüt | flight_v4 | **flight_v5** |
+|---|---|---|
+| seçim: tüm · görev | 17/21 · 101/105 | **19/21 · 103/105** |
+| held-out: güvenli · tüm · görev | 35/35 · 30/35 · 119/128 | 35/35 · **31/35 · 121/128** |
+| iniş stresi (24) · güvensiz | 18 · 2 | 18 · 2 (iniş uzmanı aynı) |
+| yerinde dönüş kayması (held-out) | 8.7 ft | 8.7 ft (hover uzmanı aynı) |
+| 56 psi üstü süre (held-out) | 60 s | **31 s** |
+| seviyeler (seed 900000+, 20 ep.) F3 / F5 / F6 / F7 / F8 / F10 | 80 / 90 / 100 / 90 / 90 / 85 | [SEVİYELER] |
+
+Kullanım: model sıradan bir SB3 PPO zip'i; `PPO.load` `regime_policy` modülünü içe aktarır (repo kökü `sys.path`'te;
+`evaluate_*`, `command_viz.py`, `docs/flight/*.py` bunu yapıyor). Canlı uygulama ve `command_viz.py` varsayılanı flight_v5.
+
+**Yeni bir beceri eğitmenin önerilen yolu (öğretmensiz):**
+1. `make_regime_model.py` ile rejim uzmanlı modele çevir (bir kez; flight_v5 zaten öyle).
+2. Yalnızca hedef rejimi eğit, diğerlerini kilitle: `--freeze-regimes hover,land` (ileri uçuş eğitimi) ya da
+   `--freeze-regimes cruise,land` (hover) ya da `--freeze-regimes hover,cruise` (iniş).
+3. 16 paralel ortam: `--n-envs 16 --vec subproc --n-steps 512`.
+4. Ödülü eğitim sırasında değiştirme; yeni bir ceza ekleyeceksen önce tek seed'le dene (F15 dersi).
+5. En az 3 seed; her birini `docs/flight/gate.py` ile flight_v5'e karşı kapıdan geçir; yeterli+ tablosuna da bak.
+
+Açık konular: hover uzmanı içinde tırmanış ↔ yerinde dönüş çatışması (F15'te görüldü; hover eğitilirken dönüş /
+pirouette ağırlığı korunmalı); gust'lı inişte kaza 2/24 (iniş uzmanı kilitliyken ayrı bir iniş eğitimi denenebilir);
+tırmanışta yatay kayma 5–6 ft (mükemmellik hedefi, F15'in hover kısmı tek başına denenmedi).
+
+```bash
+python make_regime_model.py --src models_flight/flight_v4.zip --out runs/regime/flight_v4_regime.zip
+python train_command_curriculum.py --task flight --init-model runs/regime/flight_v4_regime.zip --level F13 --no-promote \
+    --total-steps 1000000 --n-envs 16 --vec subproc --n-steps 512 --batch-size 512 --net 256,256 --eval-freq 0 \
+    --snapshot-freq 500000 --fine-from F6a --freeze-regimes hover,land --seed 2 --out runs/fl_v6_A_f13_s2
+python docs/flight/gate.py --ref models_flight/flight_v4.zip --cand runs/fl_v6_A_f13_s2/models/snap_01000k.zip --out /tmp/gate
+```

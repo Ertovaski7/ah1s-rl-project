@@ -40,3 +40,21 @@ def test_takeoff_env_resets_and_steps():
 def test_maneuver_env_resets_and_steps():
     from helicopter_env_maneuver import HelicopterEnvManeuver
     _run(HelicopterEnvManeuver(level="M1"))
+
+
+def test_regime_model_loads_and_predicts():
+    """flight_v5 rejim uzmanlı model (regime_policy.py): yüklenir, iniş / ileri / hover rejimlerini ayırır."""
+    from pathlib import Path
+    from stable_baselines3 import PPO
+    p = Path(__file__).resolve().parents[1] / "models_flight" / "flight_v5.zip"
+    if not p.exists():
+        return
+    m = PPO.load(str(p), device="cpu")
+    assert type(m.policy).__name__ == "RegimePolicy"
+    import torch as th
+    o = np.zeros((3, m.observation_space.shape[0]), dtype=np.float32)
+    o[1, 34] = 1.0
+    o[2, 24] = 1.0
+    assert m.policy.regime_index(th.as_tensor(o)).tolist() == [0, 1, 2]
+    a, _ = m.predict(o[0], deterministic=True)
+    assert a.shape == (4,)

@@ -437,6 +437,9 @@ def parse_args(argv=None):
                         "davranış klonlama terimi eklenir (ppo_bc.py) — unutmaya karşı")
     p.add_argument("--bc-coef", type=float, default=1.0, help="BC kaybı katsayısı")
     p.add_argument("--bc-batch", type=int, default=512, help="her gradyan adımında buffer'dan alınan durum sayısı")
+    p.add_argument("--freeze-regimes", default=None,
+                   help="rejim uzmanlı modelde (regime_policy.py) dondurulacak rejimler, virgülle: hover,cruise,land — o "
+                        "rejimin aksiyon ağı değişmez (öğretmensiz unutma koruması)")
     p.add_argument("--smoke", action="store_true", help="çok kısa deneme koşusu")
     return p.parse_args(argv)
 
@@ -566,6 +569,12 @@ def main(argv=None):
                                log_std_init=args.log_std_init),
             tensorboard_log=tb, seed=args.seed, verbose=0, device="cpu")
         print(f"[model] yeni PPO (rastgele ağırlıklar) — ağ {net}, σ0={np.exp(args.log_std_init):.2f}")
+    if args.freeze_regimes:
+        if not hasattr(model.policy, "set_frozen"):
+            raise SystemExit("--freeze-regimes yalnızca rejim uzmanlı modelle (make_regime_model.py)")
+        model.policy.set_frozen([x.strip() for x in args.freeze_regimes.split(",") if x.strip()])
+        n_tr = sum(p.numel() for p in model.policy.parameters() if p.requires_grad)
+        print(f"[rejim] dondurulan: {model.policy.frozen_regimes}; eğitilen parametre {n_tr}")
     if args.bc_buffer:
         n_bc = model.set_bc_buffer(args.bc_buffer, coef=args.bc_coef, batch=args.bc_batch, seed=args.seed)
         print(f"[bc] buffer {args.bc_buffer}: {n_bc} durum, katsayı {args.bc_coef}, mini-batch {args.bc_batch}")

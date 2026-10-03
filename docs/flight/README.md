@@ -711,3 +711,90 @@ python train_command_curriculum.py --task flight --init-model runs/regime/flight
     --snapshot-freq 500000 --fine-from F6a --freeze-regimes hover,land --seed 2 --out runs/fl_v6_A_f13_s2
 python docs/flight/gate.py --ref models_flight/flight_v4.zip --cand runs/fl_v6_A_f13_s2/models/snap_01000k.zip --out /tmp/gate
 ```
+
+### 9.8. Hızlanma (önce pitch, sonra irtifa), rüzgârda hover → ileri uçuş, canlı hava, kumanda paneli (2026-10-03)
+
+**Kullanıcı gözlemleri:** (1) hız komutunda ajan irtifayı düzeltmek için burnu kaldırıyor, hızlanma duruyor; (2) rüzgâr /
+gust / türbülansta "ileri git" komutunda helikopter önce geri gidiyor, hemen ileri gitmiyor; (3) iz düz giderken burun o
+yöne bakmıyor; (4) komut ekranında anlık rüzgâr / gust girişi yok, zarf dışı değer (10000 ft, 1000 kt) hata vermiyor;
+(5) kumandalar yalnızca grafikte.
+
+**Ölçümler (flight_v5) ve kök nedenler**
+
+| gözlem | ölçüm | kök neden |
+|---|---|---|
+| hızlanma duruyor | 300 ft / 20 → 120 kt: −16° pitch 3 s, sonra burun −1°, 55 kt'ta 8 s plato; 120 kt'a 72 s | ivme yönlendirmesi istenen ivmenin (≤ 1.25 · 2.5 ft/s²) **üstünü de** cezalandırıyor; gözlemdeki hız hatası referans rampaya (u_ff, 2.5 ft/s²) göre — rampanın önündeki ajan "fazla hızlı" görüyor |
+| rüzgârda geri / yavaş | 100 ft hover, 20 kt: 80 kt'ın %90'ına 38–43 s; 20 kt karşıdan (resetten rüzgârla) ilk 4 s geri kayma −1.8 kt, burun +2.7° yukarı; 20 kt arkadan: −34° pitch → **pitch_limit** | referans rampa hover'dan çıkarken **0 kt'tan** başlıyor; hover'da hava hızı ±rüzgâr: karşı rüzgârda ajan 13 s "fazla hızlı", arka rüzgârda 100 kt hata görüyor |
+| burun ≠ iz | sakin havada hover → 80 kt: yana kayma en çok 14° (30–50 kt'ta iz burnun 6–13° sağında); sabit ileri uçuşta 1–2° | rampanın gerisinde kalan trim (pedal trimi düşük hızınki) → yana kayma; rüzgârda rota tutmada burun bilerek rüzgâra döner (tape: «ROTA 000° · burun −4°») |
+
+3D görünüm doğru (model ekseni +Z burun, sahne dönüşü kontrol edildi): burun ile iz arasındaki fark gerçek yana kayma (β)
+ve rüzgârın etkisi. Sayfaya β göstergesi eklendi.
+
+**Env değişiklikleri** (`FlightEnvConfig`, hepsi bayrak; varsayılanlar eski davranış — flight_v5 bit-exact doğrulandı):
+`ff_init_airspeed` (ileri uçuş penceresi açılınca referans hız ölçülen hava hızından), `ff_ratchet` (referans, hedef
+yönünde ölçülen hızın gerisinde kalmaz), `accel_band_k_hi` / `accel_max_fps2` (ivme yönlendirmesi bant: istenen ivme ile
+0.6·e_u, ≤ 7 ft/s² arası cezasız), `accel_h_full_frac` (irtifa payı hız değişiminin ilk yarısında tam), `accel_vs_allow_fps`
+(hızlanırken dikey hızda 5 ft/s pay, yalnızca irtifa payının içinde), `accel_allow_hs_ft` (paylar ve bandın üst ucu yere
+yakın kapanır: kızak 40 ft'te 0, 140 ft'te tam), `pen_low_speed` / `low_speed_hs_ft` / `low_speed_kt` (20 kt üstünde kızak
+30 ft altına inerse yumuşak duvar), `side_ramp_kt` + `pen_side` 0.6 (yana kayma cezası 10 kt'tan). Seviye **F16** = F13 +
+Δhız 10–100 kt, hover'dan 15–120 kt'a hızlanma, hız komutu ağırlıklı.
+
+**Yalnızca referans rampası düzeltmesi, eğitimsiz (flight_v5 + `ff_init_airspeed` + `ff_ratchet`,
+`probe_wind_accel_v5.json`):** rüzgârda 80 kt'ın %90'ına 38–43 s → **11–17 s**, arka rüzgârda en büyük pitch 37° → 24°;
+sakin 20 → 120 kt %90'a 58 s → 32 s; ama rüzgârda 100 ft'ten 48–68 ft'e iniyor (eğitimsiz politika yeni payı bilmiyor).
+
+**Eğitim denemeleri** (rejim modeli: yalnızca ileri uçuş uzmanı, hover + iniş kilitli; 16 env, 1 M adım, seed 1):
+
+| koşu | değişiklik | F16 düşme (40 ep.) | kapı (flight_v5'e karşı) |
+|---|---|---|---|
+| flight_v5 | — | 1/40 | — |
+| fl_v7_s1 | rampa + bant + paylar + yana kayma | 3/40 (hepsi alçak hover'dan hızlanma) | KALDI: +1 güvensiz (uzun zincir, ağır, türbülans: hızlanmada low_altitude) |
+| fl_v8_s1 | + yere yakın pay kapanır, alçak hız duvarı | **0/40** | KALDI: aynı senaryo (30 ft'ten ağır + arka rüzgârda −21° pitch, 64 psi) |
+| fl_v9_s1 | + yere yakın ivme bandı kapanır, duvar 20 kt'tan ve ×2 | durduruldu (0.3 M): ilk 74 episode'da düşme %6.8 (fl_v8 aynı noktada %2.8) — büyük adım cezası erken bitişi çekici yapıyor | — |
+| fl_v10_s1 | fl_v8 + yere yakın ivme bandı kapanır (duvar fl_v8'deki gibi) | eğitimde %3.5 | KALDI: aynı senaryo (flight_v5 de bu senaryoda −27° pitch ile kızak 15 ft'e iniyor, 6.6 ft payla kurtuluyor) |
+| fl_v11_s1 | + yere yakın burun-aşağı ve alçalma sınırı (pen_low_pitch, pen_low_sink 0.5); seviye F17 (alçak hover'dan hızlanma ağırlıklı) | eğitimde **%13.9** (hızlanma %60) — daha kötü; aynı senaryoda yine −20° pitch ile yere | durduruldu |
+
+**Canlı uygulama (komut ekranı):**
+- **Hava — uçuş sırasında değiştir** kutusu: rüzgâr (kt) + geldiği yön (buruna göre: 0 karşı, 90 sağ, 180 arka),
+  türbülans (yok / hafif / orta / şiddetli), rastgele gust (açık / kapalı), **anlık gust** (kt + yön). Hızlı düğmeler:
+  sakin, 20 kt karşıdan, 20 kt arkadan, 15 kt sağdan. Yol: `POST api/weather` → `LiveFlight.request_weather` →
+  uçuş iş parçacığında `physics_ext.PhysicsExt.set_live` (rüzgâr yeni değerine 4 kt/s rampayla; türbülans değişince
+  bantlar eğitimdeki gibi `_cfg_for_turb` ile). Rüzgâr oku ve HUD yazısı canlı güncellenir.
+- **Zarf hataları:** rüzgâr 0–40 kt (eğitim 0–25), gust 1–20 kt (eğitim 3–12), hız 0–120 kt, irtifa hover 12–1500 ft /
+  ileri uçuş 50–1500 ft, Δheading ±360°, bob sonrası irtifa 12–1500 ft. Zarf dışı değer artık **kırpılmaz**, hata mesajıyla
+  reddedilir (ör. "İrtifa izin verilen zarfın dışında: 10000 ft. İzin verilen: 12–1500 ft"). Sunucu tarafı:
+  `flight_commands.route_command(..., strict=True)` / `envelope_error`; sayfa da aynı sınırları önceden denetler.
+- **Kumandalar paneli** (3D görünümün solunda): collective / elevator / aileron / rudder için ajanın action'ı −1…1
+  (çubuk + sayı; |a| ≥ 0.95 sarı = doyma), altında JSBSim kumanda konumu (collective 0…1, diğerleri −1…1), en altta
+  yana kayma β (30 kt üstünde). Tork göstergesi sağdaki panelde.
+- Başlangıç rüzgârda kurulamazsa (reset PID'i bazı yönlerde 20 kt'ta hover'ı kuramıyor) uçuş sakin havada başlar,
+  istenen hava ilk adımda canlı uygulanır (mesajda yazar).
+- Test: `tests/test_smoke.py` (rüzgâr rampası, türbülans / gust, zarf reddi); sayfa Playwright ile denendi.
+
+**Sonuç (dürüst): yeni model bugün varsayılan yapılmadı.** Dört denemenin hiçbiri kapıdan geçmedi; hepsinde aynı tek
+senaryo güvensiz: `uzun_turb_agir` (30 ft'e kalkış, 9700 lbs, 25 kt sol-arka rüzgâr + orta türbülans + gust, sonra
+80 kt'a hızlanma + 200 ft tırmanış). İleri uçuş uzmanı hover'dan çıkarken 2 s içinde −20° pitch'e gidiyor, ağır ve arka
+rüzgârda güç yetmiyor, yere iniyor. Referans flight_v5 de bu senaryoda −27° pitch ile kızak 15 ft'e iniyor ve yalnızca
+6.6 ft payla kurtuluyor — zayıflık eski, yeni ödül onu sınırın öbür tarafına itiyor. Yere yakın cezalar (fl_v9, fl_v11)
+düşmeyi azaltmadı, artırdı (büyük adım cezası episode'u erken bitirmeyi çekici yapıyor).
+
+**Deneme modeli** `models_flight/experimental/flight_accel_v8_s1.zip` (fl_v8_s1; kapıdan KALDI, varsayılan değil — canlı
+uygulamada denemek için `python command_viz.py --model models_flight/experimental/flight_accel_v8_s1.zip`):
+
+| ölçüt | flight_v5 | flight_accel_v8_s1 |
+|---|---|---|
+| sakin 300 ft, 20 → 120 kt: 108 kt'a varış · en büyük irtifa kaybı | 58 s · 4 ft | **30 s** · 4 ft |
+| sakin 100 ft hover → 80 kt: 72 kt'a varış | 46 s | **16 s** |
+| rüzgârda (20 kt, 8 yön, orta türbülans + gust) hover → 80 kt: 72 kt'a varış | 38–43 s | **11–18 s** |
+| aynı, en büyük pitch · en düşük irtifa (100 ft'ten) | 37° · 71 ft | 25° · 56 ft |
+| hover → 80 kt yana kayma β medyan · en büyük | 2.7° · 14° | **1.3° · 8.7°** |
+| F16 episode'ları (40, deterministik) düşme | 1/40 | **0/40** |
+| kapı: held-out hızlanma · ileri uçuş Δψ | 12/15 · 13/15 | **14/15 · 15/15** |
+| kapı: güvensiz · seçim cruise_h / cruise_psi / cruise_u | 2 · 6/8, 14/14, 8/8 | **3** · 4/7, 11/12, 6/7 (uzun zincir düşünce pencereler eksik) |
+
+Kanıt: `probe_wind_accel_v5.json`, `probe_wind_accel_v8.json`, `probe_sideslip_v5_v8.json`, `gate/gate_fl_v7_s1.txt`,
+`gate/gate_fl_v8_s1.txt`, `gate/gate_fl_v10_s1.txt`, `runs/acc_fl_v*_train.log`.
+
+**Sonraki adım önerisi:** (1) yönlendiricide alçak hover'dan (< 100 ft) hızlanma komutu önce güvenli irtifaya tırmansın
+(canlı uygulama için ucuz güvenlik); (2) zor senaryo ailesi (alçak + ağır + arka rüzgâr) için ayrı, daha uzun eğitim
+(1 M adım bu nadir durumu düzeltmedi) ve 3 seed; (3) sonra kapı.

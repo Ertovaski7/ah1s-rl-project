@@ -1,0 +1,76 @@
+{
+ "flight_v5": {
+  "tut40": {
+   "beta_med": 1.91,
+   "beta_max": 2.68,
+   "term": "time_limit"
+  },
+  "tut60": {
+   "beta_med": 1.41,
+   "beta_max": 1.83,
+   "term": "time_limit"
+  },
+  "tut80": {
+   "beta_med": 1.28,
+   "beta_max": 1.67,
+   "term": "time_limit"
+  },
+  "tut100": {
+   "beta_med": 1.24,
+   "beta_max": 1.61,
+   "term": "time_limit"
+  },
+  "tut120": {
+   "beta_med": 1.0,
+   "beta_max": 1.35,
+   "term": "time_limit"
+  },
+  "hizlan20_120": {
+   "beta_med": 1.42,
+   "beta_max": 5.74,
+   "term": "time_limit"
+  },
+  "hover_80": {
+   "beta_med": 2.67,
+   "beta_max": 14.12,
+   "term": "time_limit"
+  }
+ },
+ "snap_01000k": {
+  "tut40": {
+   "beta_med": 2.49,
+   "beta_max": 3.07,
+   "term": "time_limit"
+  },
+  "tut60": {
+   "beta_med": 1.49,
+   "beta_max": 1.84,
+   "term": "time_limit"
+  },
+  "tut80": {
+   "beta_med": 1.36,
+   "beta_max": 1.71,
+   "term": "time_limit"
+  },
+  "tut100": {
+   "beta_med": 1.35,
+   "beta_max": 1.7,
+   "term": "time_limit"
+  },
+  "tut120": {
+   "beta_med": 1.21,
+   "beta_max": 1.73,
+   "term": "time_limit"
+  },
+  "hizlan20_120": {
+   "beta_med": 1.27,
+   "beta_max": 4.21,
+   "term": "time_limit"
+  },
+  "hover_80": {
+   "beta_med": 1.34,
+   "beta_max": 8.67,
+   "term": "time_limit"
+  }
+ }
+}

@@ -36,6 +36,11 @@ Kullanım
   Kayıtlı demo uçuşları üret (sayfanın "kayıt" modu için):
     python command_viz.py record --out viz/demo_flights.json
 
+Canlı hava (2026-10-03, uçuş görevi): sayfadaki "Hava" kutusundan uçuş sırasında rüzgâr (hız / buruna göre yön),
+türbülans, rastgele gust ve anlık gust verilir (POST api/weather → LiveFlight.request_weather → physics_ext.set_live;
+rüzgâr 4 kt/s rampayla). Zarf dışı değer (rüzgâr > 40 kt, gust > 20 kt, irtifa > 1500 ft, hız > 120 kt) KIRPILMAZ, hata
+mesajıyla reddedilir (flight_commands strict). Sayfanın sol panelinde 4 kumandanın action'ı (−1…1) ve konumu.
+
 Uçuş dışa aktarma: sayfadaki JSON / ACMI düğmeleri (ACMI = Tacview kaydı).
 Komut uygulama yolu eğitim ve değerlendirmeyle aynıdır (env.queue_command →
 env._issue_due_commands): güvenli aralığın dışına taşan Δ'nın işareti çevrilir.
@@ -177,6 +182,8 @@ def _limits_flight(cfg: FlightEnvConfig) -> dict:
     # doğal komut zarfı (2026-10-01; flight_commands bu sınırlara kırpar — F10 ile eğitildi)
     L["command"] = dict(speed_kt=[0.0, CMD_MAX_KT], cruise_min_kt=CMD_MIN_KT, cruise_alt_ft=[CMD_MIN_ALT_FT, CMD_MAX_ALT_FT],
                         hover_alt_ft=[12.0, CMD_MAX_ALT_FT], dpsi_deg=360.0)
+    # canlı hava zarfı (LiveFlight.request_weather ile aynı)
+    L["weather"] = dict(wind_kt=[0.0, 40.0], wind_trained_kt=25.0, gust_kt=[1.0, 20.0], gust_trained_kt=12.0)
     return L
 
 
@@ -543,6 +550,10 @@ class LiveFlight:
                 task = dict(kind=kind, dh=num("dh"))
                 if not (0.0 < abs(task["dh"]) <= CMD_MAX_ALT_FT):
                     return dict(ok=False, message=f"Δh 0 ile ±{CMD_MAX_ALT_FT:.0f} ft arasında olmalı.")
+                h_now = float(self.rows[-1][COLS.index("h")]) if self.rows else 0.0
+                if not 12.0 <= h_now + task["dh"] <= CMD_MAX_ALT_FT:
+                    return dict(ok=False, message=f"Bob sonrası irtifa {h_now + task['dh']:.0f} ft olur; izin verilen "
+                                                  f"12–{CMD_MAX_ALT_FT:.0f} ft.")
             elif kind == "land":
                 task = dict(kind=kind)
             else:
@@ -661,6 +672,95 @@ class LiveFlight:
                     pass
             return dict(ok=True, paused=self.paused, time_scale=self.time_scale)
 
+    # ---------------- canlı hava (2026-10-03): rüzgâr / türbülans / gust uçuş sırasında ----------------
+
+    WEATHER_ENVELOPE = dict(wind_kt=(0.0, 40.0), wind_trained_kt=25.0, gust_kt=(1.0, 20.0), gust_trained_kt=12.0,
+                            turb=("none", "light", "moderate", "severe"))
+
+    def request_weather(self, d: dict | None = None) -> dict:
+        """Uçuş sırasında hava değişikliği. Alanlar (hepsi isteğe bağlı): wind_kt, wind_dir (rüzgârın GELDİĞİ yön, ŞİMDİKİ
+        buruna göre °: 0 karşıdan, 90 sağdan, 180 arkadan), turb (none / light / moderate / severe), gusts (bool: rastgele
+        gust'lar), gust_kt + gust_dir (hemen bir gust; gust_dir = geldiği yön, buruna göre). Zarf dışı → hata."""
+        d = dict(d or {})
+        if self.task != "flight":
+            return dict(ok=False, message="Canlı hava yalnızca uçuş görevinde (tek ajan).")
+        E = self.WEATHER_ENVELOPE
+        req = {}
+        try:
+            if d.get("wind_kt") not in (None, ""):
+                w = float(d["wind_kt"])
+                if not (math.isfinite(w) and E["wind_kt"][0] <= w <= E["wind_kt"][1]):
+                    return dict(ok=False, message=f"Rüzgâr izin verilen zarfın dışında: {w:g} kt. İzin verilen: "
+                                                  f"{E['wind_kt'][0]:.0f}–{E['wind_kt'][1]:.0f} kt (eğitim 0–"
+                                                  f"{E['wind_trained_kt']:.0f} kt).")
+                req["wind_kt"] = w
+            if d.get("wind_dir") not in (None, ""):
+                wd = float(d["wind_dir"])
+                if not math.isfinite(wd):
+                    raise ValueError
+                req["wind_dir"] = wd % 360.0
+            if d.get("turb") not in (None, ""):
+                if d["turb"] not in E["turb"]:
+                    return dict(ok=False, message="Türbülans: none / light / moderate / severe.")
+                req["turb"] = str(d["turb"])
+            if d.get("gusts") not in (None, ""):
+                req["gusts"] = bool(d["gusts"]) if not isinstance(d["gusts"], str) else d["gusts"] in ("1", "true", "on")
+            if d.get("gust_kt") not in (None, ""):
+                g = float(d["gust_kt"])
+                if not (math.isfinite(g) and E["gust_kt"][0] <= g <= E["gust_kt"][1]):
+                    return dict(ok=False, message=f"Gust izin verilen zarfın dışında: {g:g} kt. İzin verilen: "
+                                                  f"{E['gust_kt'][0]:.0f}–{E['gust_kt'][1]:.0f} kt (eğitim 3–"
+                                                  f"{E['gust_trained_kt']:.0f} kt).")
+                gd = float(d.get("gust_dir") or 0.0)
+                if not math.isfinite(gd):
+                    raise ValueError
+                req["gust_now"] = dict(mag_kt=g, dir_rel=gd % 360.0)
+        except (TypeError, ValueError):
+            return dict(ok=False, message="Hava değerleri sayı olmalı.")
+        if not req:
+            return dict(ok=False, message="Hava: rüzgâr, türbülans ya da gust değeri gir.")
+        with self.lock:
+            if self._done or self.state in ("starting", "resetting"):
+                return dict(ok=False, message="Uçuş çalışmıyor; önce yeniden başlat.")
+            self.__dict__.setdefault("_pending_weather", []).append(req)
+            return dict(ok=True, queued=req, message="Hava değişikliği uygulanıyor…")
+
+    def _apply_weather(self, req: dict):
+        """Uçuş iş parçacığında: isteği physics_ext'e uygular (yön buruna göre → mutlak)."""
+        env = self.env
+        psi = float(env._state()["psi_deg"])
+        kw, parts = {}, []
+        if "wind_kt" in req or "wind_dir" in req:
+            pp = env.ext.params
+            spd = float(req.get("wind_kt", pp.get("wind_kt", 0.0)))
+            frm = (psi + float(req["wind_dir"])) % 360.0 if "wind_dir" in req else float(pp.get("wind_from_deg", 0.0))
+            kw.update(wind_kt=spd, wind_from_deg=frm)
+            rel = (frm - psi + 180.0) % 360.0 - 180.0
+            side = "karşıdan" if abs(rel) <= 30 else "arkadan" if abs(rel) >= 150 else ("sağdan" if rel > 0 else "soldan")
+            parts.append(f"rüzgâr {spd:.0f} kt, {frm:03.0f}°'den ({side})" if spd > 0 else "rüzgâr yok")
+        if "turb" in req:
+            kw["turb_level"] = req["turb"]
+            parts.append(f"türbülans {dict(none='yok', light='hafif', moderate='orta', severe='şiddetli')[req['turb']]}")
+        if "gusts" in req:
+            kw["gusts"] = req["gusts"]
+            parts.append("rastgele gust açık (~1/dk, 5–12 kt)" if req["gusts"] else "rastgele gust kapalı")
+        if "gust_now" in req:
+            g = req["gust_now"]
+            frm = (psi + g["dir_rel"]) % 360.0
+            kw["gust_now"] = dict(mag_kt=g["mag_kt"], dir_deg=(frm + 180.0) % 360.0)
+            parts.append(f"gust {g['mag_kt']:.0f} kt, {frm:03.0f}°'den")
+        params = env.ext.set_live(env.fdm, **kw)
+        if "turb_level" in kw:                           # bantlar türbülansa göre (eğitimdeki gibi)
+            env.cfg = env._cfg_for_turb(kw["turb_level"])
+        msg = "Hava değişti: " + ", ".join(parts) + ("" if float(params.get("wind_kt", 0.0)) <= 25.0
+                                                     else " — eğitim aralığının (≤ 25 kt) dışında")
+        with self.lock:
+            self.meta["physics"] = dict(params)
+            self.meta["tol_scale"] = float(env.tol_scale)
+            self.wx_seq = getattr(self, "wx_seq", 0) + 1
+            self.wx_msg = dict(id=self.wx_seq, ok=True, message=msg)
+            self.events.append(dict(t=self._t(), type="weather", message=msg, params=dict(params)))
+
     # ---------------- iş parçacığı ----------------
 
     def start(self):
@@ -747,7 +847,19 @@ class LiveFlight:
                            start_speed_fps=float(opts["speed"]))
         if opts.get("heading") is not None:
             options["start_heading_deg"] = float(opts["heading"])
-        obs, info = self.env.reset(seed=int(opts.get("seed", 0)), options=options)
+        wx_later = None
+        try:
+            obs, info = self.env.reset(seed=int(opts.get("seed", 0)), options=options)
+        except RuntimeError:
+            # 2026-10-03: reset PID'i bazı yönlerde 20 kt rüzgârda hover'ı kuramıyor → sakin havada başla, istenen hava
+            # uçuşun ilk adımında canlı uygulanır (physics_ext.set_live; rüzgâr 4 kt/s rampa)
+            phys = dict(options.get("physics") or {})
+            if self.task != "flight" or not (phys.get("wind_kt") or phys.get("turb_level", "none") != "none"):
+                raise
+            options["physics"] = dict(phys, wind_kt=0.0, turb_level="none", gust_rate_per_min=0.0)
+            obs, info = self.env.reset(seed=int(opts.get("seed", 0)), options=options)
+            wx_later = dict(wind_kt=float(phys.get("wind_kt", 0.0)), wind_dir=float(phys.get("wind_dir_deg", 0.0)),
+                            turb=str(phys.get("turb_level", "none")), gusts=bool(phys.get("gust_rate_per_min")))
         f = self.env.fdm
         lat0, lon0 = float(f["position/lat-geod-rad"]), float(f["position/long-gc-rad"])
         ground = float(f["position/h-sl-ft"]) - float(f["position/h-agl-ft"])
@@ -781,6 +893,9 @@ class LiveFlight:
                         msg += f", türbülans {pp['turb_level']}"
             else:
                 msg = f"Başladı: {opts['alt']:.0f} ft, {opts['speed']:.0f} ft/s, heading {info['heading_deg']:.0f}°"
+            self.__dict__["_pending_weather"] = [wx_later] if wx_later else []
+            if wx_later:
+                msg += " — başlangıç bu rüzgârda kurulamadı: sakin havada başladı, hava şimdi uygulanıyor"
             self.events.append(dict(t=0.0, type="start", message=msg))
             self.termination = None
             self._done = False
@@ -790,6 +905,10 @@ class LiveFlight:
         env = self.env
         with self.lock:
             pending, self._pending_cmds = self._pending_cmds, []
+        with self.lock:
+            wx, self.__dict__["_pending_weather"] = self.__dict__.get("_pending_weather") or [], []
+        for req in wx:
+            self._apply_weather(req)
         for d in pending:
             if self.is_to:
                 task = dict(d["task"])
@@ -800,10 +919,11 @@ class LiveFlight:
                 if self.task == "flight" and task.get("kind") != "recover":
                     # 2026-10-01: rejime göre güvenli görev(ler) (ileri uçuşta hover görevi → önce duruş, hover'da cruise Δ →
                     # dönüş / irtifa / hızlanma; doğal sınırlara kırpma) — flight_commands
+                    # zarf dışı değer kırpılmaz, reddedilir (strict; 2026-10-03)
                     if task.get("kind") == "komut":
-                        res = route_command(env, **{k: v for k, v in task.items() if k != "kind"})
+                        res = route_command(env, strict=True, **{k: v for k, v in task.items() if k != "kind"})
                     else:
-                        res = route_task(env, task)
+                        res = route_task(env, task, strict=True)
                     if res.ok:
                         apply_route(env, res)
                     with self.lock:
@@ -900,7 +1020,7 @@ class LiveFlight:
         return dict(state=self.state, message=self.message, paused=self.paused, time_scale=self.time_scale,
                     t=self.rows[-1][0] if self.rows else 0.0, termination=self.termination, flight=self.flight_id,
                     sim_rate=round(self.sim_rate, 2), pending=len(self._pending_cmds),
-                    route=getattr(self, "route_msg", None))
+                    route=getattr(self, "route_msg", None), weather=getattr(self, "wx_msg", None))
 
     # ---------------- görev (kayıt) ----------------
 
@@ -1134,6 +1254,8 @@ def make_handler(flight: LiveFlight):
                     return self._json(flight.request_reset(**body))
                 if path == "/api/control":
                     return self._json(flight.set_control(**body))
+                if path == "/api/weather":
+                    return self._json(flight.request_weather(body))
                 return self._json(dict(ok=False, message="bulunamadı"), 404)
             except Exception as exc:                      # noqa: BLE001
                 return self._json(dict(ok=False, message=str(exc)), 400)
@@ -1187,6 +1309,7 @@ def colab(model: str | Path = DEFAULT_POLICY, env_config: str = "v2", start: dic
     output.register_callback("ah1s_viz.command", lambda d=None: JSON(flight.request_command(d or {})))
     output.register_callback("ah1s_viz.reset", lambda d=None: JSON(flight.request_reset(**(d or {}))))
     output.register_callback("ah1s_viz.control", lambda d=None: JSON(flight.set_control(**(d or {}))))
+    output.register_callback("ah1s_viz.weather", lambda d=None: JSON(flight.request_weather(d or {})))
     output.register_callback("ah1s_viz.save", lambda: JSON(flight.save(save_dir)))
     flight.start()
     display(HTML(page_fragment(dict(transport="colab"))))

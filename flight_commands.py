@@ -71,10 +71,42 @@ def _fmt_clip(name: str, want: float, got: float, unit: str) -> str:
     return f"{name} {want:.0f} {unit} doğal sınıra kırpıldı → {got:.0f} {unit}"
 
 
-def route_command(env, speed_kt=None, dspeed_kt=None, heading_deg=None, dheading_deg=None, alt_ft=None,
-                  dalt_ft=None) -> CommandResult:
-    """Hız / heading / irtifa komutunu (mutlak ya da Δ; verilmeyen eksen değişmez) env görevlerine çevirir."""
+def envelope_error(env, speed_kt=None, dspeed_kt=None, dheading_deg=None, alt_ft=None, dalt_ft=None) -> str | None:
+    """İzin verilen zarfın dışındaki komut için açıklama (Türkçe); zarf içindeyse None. Canlı arayüz (strict) kullanır:
+    zarf dışı değer KIRPILMAZ, hata olarak bildirilir (2026-10-03, kullanıcı isteği: 10000 ft ya da 1000 kt girilememeli).
+    Zarf: hız 0–120 kt (hava hızı; ileri uçuş 10–120, 10 kt altı = dur), irtifa (CG AGL) hover 12–1500 ft, ileri uçuşta
+    50–1500 ft, tek komutta Δheading ±360°."""
     reg = regime(env)
+    s = env._state()
+    v_now = 0.0 if reg != "cruise" else env.u_meas / KT
+    v_t = float(speed_kt) if speed_kt is not None else (v_now + float(dspeed_kt) if dspeed_kt is not None else None)
+    if v_t is not None and not (0.0 <= v_t <= CMD_MAX_KT):
+        how = f"{v_t:.0f} kt" + (f" (şimdi {v_now:.0f} kt, Δ {float(dspeed_kt):+.0f} kt)" if speed_kt is None else "")
+        return f"Hız izin verilen zarfın dışında: {how}. İzin verilen: 0–{CMD_MAX_KT:.0f} kt (0 = hover, " \
+               f"{CMD_MIN_KT:.0f} kt altı = dur)."
+    if dheading_deg is not None and abs(float(dheading_deg)) > MAX_DPSI_DEG:
+        return f"Δheading en fazla ±{MAX_DPSI_DEG:.0f}° (girilen {float(dheading_deg):+.0f}°)."
+    h_t = float(alt_ft) if alt_ft is not None else (s["h"] + float(dalt_ft) if dalt_ft is not None else None)
+    if h_t is not None:
+        cruise_next = (reg == "cruise" and not (v_t is not None and v_t < CMD_MIN_KT)) or \
+                      (reg == "hover" and v_t is not None and v_t >= CMD_MIN_KT)
+        lo, hi = (CMD_MIN_ALT_FT, CMD_MAX_ALT_FT) if cruise_next else (MIN_HOVER_H_FT, MAX_TARGET_H_FT)
+        if not lo <= h_t <= hi:
+            how = f"{h_t:.0f} ft" + (f" (şimdi {s['h']:.0f} ft, Δ {float(dalt_ft):+.0f} ft)" if alt_ft is None else "")
+            return f"İrtifa izin verilen zarfın dışında: {how}. İzin verilen: {lo:.0f}–{hi:.0f} ft " \
+                   f"({'ileri uçuş' if cruise_next else 'hover / kalkış'}, CG yerden)."
+    return None
+
+
+def route_command(env, speed_kt=None, dspeed_kt=None, heading_deg=None, dheading_deg=None, alt_ft=None,
+                  dalt_ft=None, strict: bool = False) -> CommandResult:
+    """Hız / heading / irtifa komutunu (mutlak ya da Δ; verilmeyen eksen değişmez) env görevlerine çevirir.
+    strict: zarf dışı değer kırpılmaz, komut reddedilir (envelope_error)."""
+    reg = regime(env)
+    if strict:
+        err = envelope_error(env, speed_kt, dspeed_kt, dheading_deg, alt_ft, dalt_ft)
+        if err:
+            return CommandResult(False, [], err, reg)
     s = env._state()
     notes = []
     # --- heading
@@ -220,11 +252,20 @@ def route_action(env, action: str, **kw) -> CommandResult:
     return CommandResult(False, [], f"Bilinmeyen eylem: {action}", reg)
 
 
-def route_task(env, task: dict) -> CommandResult:
+def route_task(env, task: dict, strict: bool = False) -> CommandResult:
     """Eski arayüz görevlerini (env görev sözlüğü) rejime göre güvenli hale getirir: ileri uçuşta hover görevi → önce duruş
-    ya da ileri uçuş karşılığı; hover'da cruise Δ → yönlendirici. Diğerleri olduğu gibi."""
+    ya da ileri uçuş karşılığı; hover'da cruise Δ → yönlendirici. Diğerleri olduğu gibi. strict: route_command'daki gibi."""
     reg = regime(env)
     k = task.get("kind")
+    if strict:
+        import functools
+        route_command_ = functools.partial(route_command, strict=True)
+    else:
+        route_command_ = route_command
+    return _route_task(env, task, reg, k, route_command_)
+
+
+def _route_task(env, task, reg, k, route_command) -> CommandResult:
     if k == "cruise" and not task.get("accel"):
         if reg == "cruise":
             return route_command(env, dspeed_kt=task.get("du_kt"), dheading_deg=task.get("dpsi"),

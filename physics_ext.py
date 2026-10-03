@@ -356,6 +356,7 @@ class PhysicsExt:
         self._gust_queue: list[dict] = []
         self._engine_out = False
         self._wind_ned = (0.0, 0.0)
+        self._wind_target = None                     # canlı rüzgâr değişikliği: (kuzey, doğu) ft/s hedefi (set_live)
         self.stats = self._new_stats()
         self._last = dict(psi=0.0, rpm=NOMINAL_RPM, fuel_flow_lbh=0.0, shaft_shp=0.0)
 
@@ -390,6 +391,7 @@ class PhysicsExt:
         self._gust_queue = []
         self.stats = self._new_stats()
         self._wind_ned = (0.0, 0.0)
+        self._wind_target = None
         self.params = {}
         self._armed = cfg.active or bool(o)
         if not self._armed:
@@ -505,6 +507,8 @@ class PhysicsExt:
         (env'ler teleport / bozucu için run_ic çağırıyor, run_ic rüzgârı siliyor)."""
         if not self._armed:
             return
+        if self._wind_target is not None:                          # canlı rüzgâr değişikliği: hedefe rampa
+            self._ramp_wind()
         self.apply_wind(fdm)
         if not self._dist_on:
             return
@@ -578,6 +582,70 @@ class PhysicsExt:
                     vert=vf,
                     rise=float(rng.uniform(*g.rise_s)), hold=float(rng.uniform(*g.hold_s)),
                     decay=float(rng.uniform(*g.decay_s)))
+
+    # -----------------------------------------------------------------------------------------------------------
+    # canlı uygulama: uçuş sırasında hava değişikliği (2026-10-03)
+    # -----------------------------------------------------------------------------------------------------------
+    LIVE_WIND_RATE_KT_S = 4.0                    # rüzgâr değişikliği bu hızla rampalanır (basamak gerçekçi değil)
+
+    def _ramp_wind(self):
+        (vn, ve), (tn, te) = self._wind_ned, self._wind_target
+        dn, de = tn - vn, te - ve
+        d = math.hypot(dn, de)
+        step = self.LIVE_WIND_RATE_KT_S * KT_TO_FPS * self.dt
+        if d <= step:
+            self._wind_ned, self._wind_target = (tn, te), None
+        else:
+            self._wind_ned = (vn + dn * step / d, ve + de * step / d)
+
+    def set_live(self, fdm, wind_kt=None, wind_from_deg=None, turb_level=None, gusts=None, gust_now=None) -> dict:
+        """Uçuş sırasında rüzgâr / türbülans / gust değiştir (canlı uygulama; eğitim ve değerlendirme kullanmaz).
+        wind_from_deg: rüzgârın GELDİĞİ mutlak yön (°, kuzeyden). Rüzgâr yeni değerine LIVE_WIND_RATE_KT_S hızla rampalanır.
+        turb_level: none / light / moderate / severe. gusts: True → dakikada ~1, 5–12 kt rastgele gust; False → kapalı.
+        gust_now: {"mag_kt":, "dir_deg": (gust'ın GİTTİĞİ mutlak yön), "rise":, "hold":, "decay":} → hemen bir gust.
+        Dönen: güncel parametreler."""
+        self._armed = True
+        p = self.params
+        if wind_kt is not None or wind_from_deg is not None:
+            spd = float(p.get("wind_kt", 0.0) if wind_kt is None else wind_kt)
+            d_abs = float(p.get("wind_from_deg", 0.0) if wind_from_deg is None else wind_from_deg) % 360.0
+            p.update(wind_kt=spd, wind_from_deg=d_abs, wind_dir_deg=d_abs, wind_dir_relative=False)
+            self._wind_target = wind_ned_fps(spd * KT_TO_FPS, d_abs)
+        if turb_level is not None:
+            lvl = str(turb_level)
+            if lvl not in TURB_W20_KT:
+                raise ValueError(f"bilinmeyen türbülans seviyesi: {lvl}")
+            be = p.get("turb_backend", self.cfg.turb.backend)
+            p.update(turb_level=lvl, turb_backend=be, turb_w20_kt=TURB_W20_KT[lvl])
+            on = lvl != "none"
+            if be.startswith("jsbsim"):
+                self._jsbsim_turb = self._touched = True
+                fdm["atmosphere/turb-type"] = (3 if be == "jsbsim_milspec" else 4) if on else 0
+                fdm["atmosphere/turbulence/milspec/windspeed_at_20ft_AGL-fps"] = p["turb_w20_kt"] * KT_TO_FPS
+                fdm["atmosphere/turbulence/milspec/severity"] = TURB_JSBSIM_SEVERITY[lvl]
+            elif not on:                                          # dryden: süzgeç durumu ve çıkış sıfırlanır
+                self._xi = np.zeros(3)
+                for a in ("north", "east", "down"):
+                    fdm[f"atmosphere/gust-{a}-fps"] = 0.0
+            self._turb_on = on and self._dist_on
+        if gusts is not None:
+            if gusts:
+                p["gust_rate_per_min"] = 1.0
+                p["gust_kt"] = tuple(p.get("gust_kt") or (5.0, 12.0))
+                self._gust_next_t = self.t + float(self.rng.exponential(60.0))
+            else:
+                p["gust_rate_per_min"] = 0.0
+                self._gust_next_t = np.inf
+        if gust_now:
+            g = dict(gust_now)
+            g.setdefault("rise", 1.5)
+            g.setdefault("hold", 1.0)
+            g.setdefault("decay", 2.0)
+            g["t"] = self.t
+            self._gust_queue.insert(0, g)
+            p.setdefault("gust_rate_per_min", 0.0)
+            p.setdefault("gust_kt", (5.0, 12.0))
+        return dict(p)
 
     def after_step(self, fdm, dt: float | None = None) -> list[dict]:
         """Bölüm adımından sonra: tork istatistiği, yakıt yakma, yakıt bitince motor ayrılması. Yeni olayları döndürür."""

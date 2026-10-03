@@ -2243,4 +2243,8 @@ arka rüzgârda −34° pitch → pitch_limit); rampanın önündeki ajan cezala
 (30–50 kt'ta 6–14° yana kayma); ivme yönlendirmesi istenen ivmenin üstünü de cezalandırıyordu. Düzeltmeler
 `FlightEnvConfig` bayrakları (varsayılan kapalı, eski modeller birebir) ve F16 hızlanma okulu; canlı uygulamada
 `physics_ext.set_live` (rüzgâr 4 kt/s rampa, türbülans, gust), `flight_commands` strict (zarf dışı → hata), sayfada
-"Hava" kutusu ve kumanda paneli (4 action −1…1 + konum + yana kayma β). Ayrıntı: `docs/flight/README.md` 9.8.
+"Hava" kutusu ve kumanda paneli (4 action −1…1 + konum + yana kayma β). Ayrıntı: `docs/flight/README.md` 9.8. Yeni ödülle 4 eğitim denemesi:
+hızlanma 2–3 kat hızlı (rüzgârda hover → 80 kt %90'a 38–43 s → 11–18 s; sakin 20 → 120 kt 58 s → 30 s, 300 ft'te
+irtifa kaybı 4 ft), yana kayma yarıya indi; ama hepsi kapıda tek bir zor senaryoda (30 ft, 9700 lbs, 25 kt arka-yan rüzgâr
++ türbülans, hızlanma) yere iniyor — flight_v5 de orada 6.6 ft payla kurtuluyor. **Varsayılan model flight_v5 kaldı**;
+deneme modeli `models_flight/experimental/flight_accel_v8_s1.zip` (kapıdan KALDI).

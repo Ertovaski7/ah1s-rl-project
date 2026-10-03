@@ -396,6 +396,12 @@ DEFAULT_FLIGHT_LEVELS.append(replace(
     description="Hızlanma okulu (2026-10-03): F13 karışımı; Δhız 10–100 kt, hover'dan 15–120 kt'a hızlanma, hız komutu "
                 "ağırlıklı; tekrar F13 gibi (%50)",
     du_kt=(10.0, 100.0), accel_kt=(15.0, 120.0), cruise_probs={"u": 0.35, "psi": 0.25, "h": 0.2, "mix": 0.2}))
+# F17 (2026-10-03): F16 + alçak hover'dan hızlanma ağırlıklı (havada başlangıç %50, 12–200 ft; hızlanma %60). Neden:
+# 30 ft'ten ağır + arka rüzgârda hızlanmada flight_v5 kızak 15 ft'e, fl_v8 / fl_v10 yere iniyor (uzun_turb_agir).
+DEFAULT_FLIGHT_LEVELS.append(replace(
+    DEFAULT_FLIGHT_LEVELS[[lv.name for lv in DEFAULT_FLIGHT_LEVELS].index("F16")], name="F17",
+    description="Hızlanma okulu + alçak hover'dan hızlanma (2026-10-03): F16; havada başlangıç %50 (12–200 ft), hızlanma %60",
+    p_hover_start=0.5, hover_start_alt_ft=(12.0, 200.0), p_accel=0.6))
 
 __all__ = ["FlightLevel", "DEFAULT_FLIGHT_LEVELS", "ENV_STAGES", "find_flight_level", "flight_time_target",
            "cruise_yaw_rate_dps", "deadline_of", "CRUISE_MIN_KT", "CRUISE_MAX_KT", "CRUISE_MIN_ALT_FT",

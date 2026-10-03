@@ -218,6 +218,13 @@ class FlightEnvConfig(TakeoffEnvConfig):
     pen_low_speed: float = 0.0
     low_speed_hs_ft: float = 30.0
     low_speed_kt: float = 30.0
+    #   pen_low_pitch / pen_low_sink: ileri uçuşta kızak 60 ft altındayken burun-aşağı pitch θ_maks = a + b·hs'yi
+    #                     (low_pitch_deg = (a, b)) ve alçalma hızı 0.3·(hs − 10) ft/s'yi aşarsa · min(4, (aşım / 5° | 3 ft/s)²).
+    #                     Neden: 30 ft'ten ağır + arka rüzgârda hızlanmada flight_v5 −27° pitch ile kızak 15 ft'e, fl_v8 / fl_v10
+    #                     −20° ile yere iniyor (uzun_turb_agir); pilot yere yakın burnu ~10°'den fazla eğmez. 0 → kapalı.
+    pen_low_pitch: float = 0.0
+    low_pitch_deg: tuple = (8.0, 0.2)
+    pen_low_sink: float = 0.0
     # --- 2026-10-01 -------------------------------------------------------------------------------------------------
     # İleri uçuş / hızlanma pencerelerinde istenen tırmanış hızı güç payıyla sınırlı: 0.8·(56 − psi_düz(u, W)) / 0.62 ft/s
     # (psi_düz: trim tablosunun düz uçuş torku). Neden (probe tork, 2026-09-30): 9700 lbs zincirlerinde 56 psi aşımlarının
@@ -1194,6 +1201,11 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         if cfg.pen_low_speed > 0.0 and s["wow"] == 0 and s["hs"] < cfg.low_speed_hs_ft \
                 and abs(float(self.fdm["velocities/u-aero-fps"])) > cfg.low_speed_kt * KT:
             low = cfg.pen_low_speed * min(4.0, ((cfg.low_speed_hs_ft - s["hs"]) / 15.0) ** 2)
+        if (cfg.pen_low_pitch > 0.0 or cfg.pen_low_sink > 0.0) and s["wow"] == 0 and s["hs"] < 60.0:
+            a0, b0 = cfg.low_pitch_deg
+            th_dn = -math.degrees(s["theta"])                    # burun aşağı +
+            low += cfg.pen_low_pitch * min(4.0, (max(0.0, th_dn - (a0 + b0 * s["hs"])) / 5.0) ** 2)
+            low += cfg.pen_low_sink * min(4.0, (max(0.0, -s["vs"] - 0.3 * max(0.0, s["hs"] - 10.0)) / 3.0) ** 2)
         hpen = 0.0
         if cfg.pen_cruise_h > 0.0 and not w["closed"] and ("h" not in w["active"] or w["category"] == "cruise_hold"):
             hpen = cfg.pen_cruise_h * min(9.0, (max(0.0, abs(e_h) - 2.0) / 3.0) ** 2)      # üst sınır: 11 ft'te doyar

@@ -73,7 +73,32 @@ def main():
             print(f"{k:28s} {r[0]:>4d}/{r[1]:<5d} {c[0]:>4d}/{c[1]:<5d}  {'KALDI' if bad else ('↑' if c[0] > r[0] else 'ok')}")
         ok = ok and not bad
     print("\nSONUÇ:", "GEÇTİ" if ok else "KALDI")
+    # Bilgi (2026-10-03): ikili başarı sınırdaki zamanlamada gürültülü (ör. flight_v4 −100 ft komutunu son sınırdan
+    # 0.0–2.2 s önce bitiriyor; 0.1 s gecikme "başarısız" sayılıyor). Kategori başına "yeterli veya iyi" sayısı ve banda
+    # giriş / son sınır medyanı — gerçek gerilemeyi zamanlama gürültüsünden ayırmak için. Karar kuralını değiştirmez.
+    print("\nbilgi: yeterli+ sayısı ve banda giriş / son sınır medyanı (referans → aday)")
+    Ra, Ca = adequacy(out, "ref"), adequacy(out, "cand")
+    for k in sorted(set(Ra) | set(Ca)):
+        r, c = Ra.get(k, [0, 0, None]), Ca.get(k, [0, 0, None])
+        f = lambda x: "—" if x is None else f"{x:.2f}"          # noqa: E731
+        flag = "  ← yeterli+ geriledi" if c[0] < r[0] - a.tol else ""
+        print(f"  {k:26s} yeterli+ {r[0]:>3d}/{r[1]:<3d} → {c[0]:>3d}/{c[1]:<3d}   giriş/sınır {f(r[2])} → {f(c[2])}{flag}")
     return 0 if ok else 1
+
+
+def adequacy(out: Path, tag: str) -> dict:
+    import statistics
+    cat = defaultdict(lambda: [0, 0, []])
+    for suite in ("secim", "test"):
+        for r in json.load(open(out / f"{suite}_{tag}.json"))["results"]:
+            for w in r["windows"]:
+                if w["ads33"] == "kesildi":
+                    continue
+                k = f"{suite}/{w['category']}"
+                cat[k][0] += int(w["ads33"] in ("istenen", "yeterli")); cat[k][1] += 1
+                if w.get("settle_s") is not None and w.get("deadline"):
+                    cat[k][2].append(w["settle_s"] / w["deadline"])
+    return {k: [v[0], v[1], statistics.median(v[2]) if v[2] else None] for k, v in cat.items()}
 
 
 if __name__ == "__main__":

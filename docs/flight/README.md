@@ -798,3 +798,19 @@ Kanıt: `probe_wind_accel_v5.json`, `probe_wind_accel_v8.json`, `probe_sideslip_
 **Sonraki adım önerisi:** (1) yönlendiricide alçak hover'dan (< 100 ft) hızlanma komutu önce güvenli irtifaya tırmansın
 (canlı uygulama için ucuz güvenlik); (2) zor senaryo ailesi (alçak + ağır + arka rüzgâr) için ayrı, daha uzun eğitim
 (1 M adım bu nadir durumu düzeltmedi) ve 3 seed; (3) sonra kapı.
+
+### 9.9. Kullanıcıyla verilen kararlar ve uzun eğitim (2026-10-03, akşam)
+
+Kararlar: (1) yere yakın hızlanma **irtifaya göre** — kızak 150 ft üstü tam "önce pitch", 40–150 ft ılımlı (irtifa payı ve
+ivme bandı kademeli), 40 ft altı önce tırmanış; büyük ceza yok, **sınırlı olumlu yönlendirme** (`accel_climb_first_hs_ft`,
+`w_low_att`); canlı uygulamada ayrıca yönlendirici kuralı (hover'da kızak 40 ft altındayken hız komutu → önce 60 ft'e
+tırmanış). (2) **5 M adım × 3 seed**, rollout 16 env × 1024 adım (her güncellemede 16 384 adım, 16 farklı episode'dan;
+"2 episode'da bir güncelleme" eski düzendi). (3) Kalkış ve inişte **AFCS heading hold** (`afcs_hdg_hold_to_land`) +
+`w_to_land_still` (heading ve yatay hız ≈ 0; yerde de verilir); hover + iniş uzmanları eğitilir, ileri uçuş kilitli.
+(4) İleri uçuşta **koordineli dönüş** (`w_coord`: yana hava hızı ≈ 0; ölçüm: dönüşte yatış 22–30° zaten var, yana kayma
+6–8°).
+
+Plan: A) ileri uçuş uzmanı, F17, 5 M × 3 seed (hover + iniş kilitli); B) hover + iniş uzmanları, AFCS heading hold, F14,
+ileri uçuş kilitli; C) en iyi A'nın ileri uçuş uzmanı + en iyi B'nin hover / iniş uzmanları `merge_regime_models.py` ile
+birleşir; birleşik model kapıdan geçerse flight_v6. AFCS heading hold eğitimsiz (flight_v5): en kötü iniş heading hatası
+(25 kt + orta türbülans) 7.6° → 5.3°, sakin ve 15 kt'ta değişiklik yok (`probe_to_land_heading_v5.json`).

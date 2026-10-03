@@ -67,6 +67,14 @@ h2{font-family:var(--font-inst);font-size:12px;letter-spacing:.08em;text-transfo
 .btn:disabled{opacity:.45;cursor:not-allowed}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
+/* ---------- canlı hava (2026-10-03) ---------- */
+.wx{border:1px solid var(--hair);border-radius:8px;padding:8px 10px;margin-top:10px;background:var(--surface-2)}
+.wx summary{cursor:pointer;font-weight:600;font-size:13px}
+.wx .wxgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:8px}
+.wx label{display:grid;gap:3px;font-size:12px;color:var(--ink-2)}
+.wx input,.wx select{width:100%;padding:5px 7px;border-radius:7px;border:1px solid var(--hair);background:var(--surface)}
+.wx .note{font-size:11.5px;color:var(--muted);margin-top:6px}
+
 /* ---------- replay bar ---------- */
 .replay > *{min-width:0}
 .replay{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px 14px;align-items:center;background:var(--surface);
@@ -117,6 +125,19 @@ h2{font-family:var(--font-inst);font-size:12px;letter-spacing:.08em;text-transfo
 .gbar em{position:absolute;top:-1px;bottom:-1px;width:2px}
 .gbar em.m50{background:#fab219} .gbar em.m56{background:#ec5f5f}
 .adi canvas{width:100%;height:100%;display:block}
+/* kumandalar (2026-10-03): ajanın action'ı −1…1 (çubuk + sayı) ve kumanda konumu */
+.ctl{position:absolute;left:10px;top:320px;width:204px;padding:7px 9px;display:grid;gap:5px}
+.ctl .lbl{font-size:9.5px;letter-spacing:.1em;opacity:.8}
+.ctl .crow{display:grid;grid-template-columns:62px 1fr 44px;gap:5px;align-items:center}
+.ctl .cn{font:700 10.5px var(--font-inst);letter-spacing:.02em}
+.ctl b{font:700 12px var(--font-num);font-variant-numeric:tabular-nums;text-align:right}
+.ctl small{grid-column:2/4;font:10px var(--font-inst);opacity:.72;margin-top:-4px;white-space:nowrap}
+.cbar{position:relative;height:9px;border-radius:5px;background:rgba(255,255,255,.16);overflow:hidden}
+.cbar > i{position:absolute;top:0;bottom:0;background:#cfe3ee}
+.cbar > i.sat{background:#fab219}
+.cbar > em{position:absolute;left:50%;top:-1px;bottom:-1px;width:1px;background:rgba(255,255,255,.7)}
+.ctl .cfoot{font:11px var(--font-inst);opacity:.9;border-top:1px solid rgba(255,255,255,.18);padding-top:4px}
+.ctl .cfoot b{font-size:11.5px}
 .cmdchip{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);padding:6px 10px;font-size:12px;max-width:44%;display:grid;gap:2px;text-align:center}
 .cmdchip .k{font:700 12px var(--font-inst);color:#ff8ff0}
 .cam{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;padding:4px;pointer-events:auto}
@@ -266,6 +287,9 @@ a{color:var(--s1)}
   .cmdchip{display:none}
   .scaleinfo{display:none}
   .adi{display:none}
+  .ctl{top:auto;bottom:118px;left:10px;width:170px;padding:5px 7px}
+  .ctl .crow{grid-template-columns:54px 1fr 40px}
+  .ctl small{display:none}
   .flg{top:auto;bottom:118px;width:132px;padding:6px 8px;gap:6px}
   .flg .wind svg{width:34px;height:34px}
   .axis{grid-template-columns:74px 1fr}
@@ -307,6 +331,14 @@ a{color:var(--s1)}
         <div class="tape glass" id="tape"><canvas id="tapeCanvas"></canvas><div class="hdg-box" id="hdgBox">000°</div></div>
         <div class="ro left glass"><span class="lbl" id="hudSpdLbl">HIZ</span><span class="val"><span id="hudSpd">—</span><small>ft/s</small></span><span class="sub" id="hudKt">— kt</span><span class="tgt" id="hudSpdT"></span></div>
         <div class="adi glass" id="adiBox" title="Attitude göstergesi: yatış ve yunuslama; magenta = ajanın attitude komutu"><canvas id="adiCanvas"></canvas></div>
+        <div class="ctl glass" id="ctlBox" title="Kumandalar: çubuk ve sayı = ajanın action'ı (−1…1, sarı = doyma |a| ≥ 0.95); alttaki «konum» = JSBSim kumanda konumu (collective 0…1, diğerleri −1…1)">
+          <span class="lbl">KUMANDALAR · ACTION −1…1</span>
+          <div class="crow" title="Collective (kolektif): ana rotor hatvesi — yükselme / alçalma"><span class="cn">Collective</span><div class="cbar"><i></i><em></em></div><b>—</b><small>konum —</small></div>
+          <div class="crow" title="Elevator: boylamsal cyclic — burun aşağı / yukarı (hızlanma / yavaşlama)"><span class="cn">Elevator</span><div class="cbar"><i></i><em></em></div><b>—</b><small>konum —</small></div>
+          <div class="crow" title="Aileron: yanal cyclic — sağa / sola yatış"><span class="cn">Aileron</span><div class="cbar"><i></i><em></em></div><b>—</b><small>konum —</small></div>
+          <div class="crow" title="Rudder: pedal (kuyruk rotoru) — burnu sağa / sola çevirir"><span class="cn">Rudder</span><div class="cbar"><i></i><em></em></div><b>—</b><small>konum —</small></div>
+          <div class="cfoot" id="ctlFoot" title="Yana kayma: gövdeye göre yana hava hızının açısı (β). Burun ile yer izi arasındaki fark = β + rüzgârın etkisi.">β yana kayma <b id="ctlBeta">—</b></div>
+        </div>
         <div class="ro right glass"><span class="lbl" id="hudAltLbl">İRTİFA AGL</span><span class="val"><span id="hudAlt">—</span><small>ft</small></span><span class="sub" id="hudVs">— ft/s</span><span class="tgt" id="hudAltT"></span></div>
         <div class="flg glass" id="flGauges" hidden>
           <div class="wind" title="Rüzgâr: ok rüzgârın ESTİĞİ yönü gösterir (yukarı = burun); ince ok ortalama, kalın ok anlık (türbülans + gust dahil)">
@@ -403,6 +435,24 @@ a{color:var(--s1)}
               <div class="toline"><div class="inwrap"><input id="flU" inputmode="decimal" placeholder="70" aria-label="Hedef hava hızı (kt)"><span>kt</span></div><div class="inwrap"><input id="flAccDh" inputmode="decimal" placeholder="+150" aria-label="Hızlanırken tırmanış (ft)"><span>ft</span></div><button class="btn" type="button" data-task="accel">Hızlan</button></div>
             </div>
             <div class="formrow"><button class="btn primary" type="button" data-task="cruise">İleri uçuş Δ gönder</button><button class="btn" type="button" data-task="stop">Dur (hover'a geç)</button><button class="btn" type="button" data-task="hold">Hover tut</button></div>
+            <details class="wx" id="wxBox" open>
+              <summary>Hava — uçuş sırasında değiştir</summary>
+              <div class="wxgrid">
+                <label>Rüzgâr (kt)<input id="wxWind" inputmode="decimal" placeholder="0–40"></label>
+                <label>Geldiği yön (°, buruna göre)<input id="wxDir" inputmode="decimal" placeholder="0 karşı · 90 sağ · 180 arka"></label>
+                <label>Türbülans<select id="wxTurb"><option value="">değişmez</option><option value="none">Yok</option><option value="light">Hafif</option><option value="moderate">Orta</option><option value="severe">Şiddetli (eğitimde yok)</option></select></label>
+                <label>Rastgele gust<select id="wxGusts"><option value="">değişmez</option><option value="1">Açık (~1/dk, 5–12 kt)</option><option value="0">Kapalı</option></select></label>
+              </div>
+              <div class="formrow" style="margin-top:8px"><button class="btn primary" type="button" id="wxApply">Havayı uygula</button>
+                <button class="btn" type="button" data-wx="calm">Sakin</button><button class="btn" type="button" data-wx="head20">20 kt karşıdan</button><button class="btn" type="button" data-wx="tail20">20 kt arkadan</button><button class="btn" type="button" data-wx="cross15">15 kt sağdan</button></div>
+              <div class="wxgrid">
+                <label>Gust (kt)<input id="wxGustKt" inputmode="decimal" placeholder="1–20"></label>
+                <label>Gust yönü (°, buruna göre)<input id="wxGustDir" inputmode="decimal" placeholder="0 karşı · 90 sağ"></label>
+              </div>
+              <div class="formrow" style="margin-top:8px"><button class="btn" type="button" id="wxGustBtn">Gust ver (şimdi)</button></div>
+              <div class="hint" id="wxHint" role="status"></div>
+              <div class="note" id="wxNote">İzin verilen: rüzgâr 0–40 kt (eğitim 0–25), gust 1–20 kt (eğitim 3–12). Rüzgâr yeni değerine 4 kt/s hızla geçer. Yön, değiştirdiğin andaki buruna göre.</div>
+            </details>
           </div>
           <div class="hint" id="toHint" role="status"></div>
           <div class="limits" id="toLimits"></div>
@@ -461,7 +511,7 @@ a{color:var(--s1)}
       <div id="noteSuccess"><b>Başarı</b> eğitimdeki kuralla aynı: komut penceresinin son 10 s'si boyunca aynı anda |eψ| ≤ 1.5°, |ev| ≤ 1.5 ft/s, |eh| ≤ 10 ft; komut verilmeyen eksen pencere boyunca kuplaj sınırında (5°, 4 ft/s, 25 ft). Kararı pencere kapanınca (yeni komut ya da uçuş sonu) env verir.</div>
       <div><b>Metrikler</b>: yükselme = hedefe giden yolun %10'undan %90'ına süre; aşma = hedefin ötesine geçen kısım (|Δ|'nın %'si); oturma = tolerans bandına girip bir daha çıkmadığı an (komuttan itibaren); son hata = pencerenin son tutma süresi (komut 10 s, manevra 5 s) boyunca ortalama.</div>
       <div id="noteSafety"><b>Güvenlik</b>: yatış 40°, yunuslama 30°, irtifa 50 ft altı, rotor 280–380 rpm, komut bandından 75 ft / 12 ft/s sapma, heading'in 30°'den fazla ters yöne gitmesi → uçuş biter. Güvenli aralık dışına taşan Δ'nın işareti env tarafından çevrilir (eğitimdeki gibi).</div>
-      <div><b>HUD</b>: magenta = komut / hedef (aviyonik geleneği). Heading bandındaki ◇ ve «İZ» yer izidir (helikopterin gerçekten gittiği yön); burun yönünden farkı yana kaymadır — hız kutusundaki «yanal» değeri. Canlı uçuşta ileri uçuş heading komutu rotadır (yer izi): helikopter komut edilen yöne gider, rüzgârda burnunu pilotun yaptığı gibi rüzgâra çevirir («ROTA 090° · burun −12°»); 3D'de magenta çizgi rota, koyu çizgi burun.</div>
+      <div><b>HUD</b>: magenta = komut / hedef (aviyonik geleneği). Heading bandındaki ◇ ve «İZ» yer izidir (helikopterin gerçekten gittiği yön); burun yönünden farkı yana kaymadır — hız kutusundaki «yanal» değeri. Canlı uçuşta ileri uçuş heading komutu rotadır (yer izi): helikopter komut edilen yöne gider, rüzgârda burnunu pilotun yaptığı gibi rüzgâra çevirir («ROTA 090° · burun −12°»); 3D'de magenta çizgi rota, koyu çizgi burun. <b>Kumandalar</b> paneli (sol): ajanın 4 action'ı −1…1 (çubuk + sayı; sarı = doyma) ve altında JSBSim kumanda konumu (collective 0…1, diğerleri −1…1); en altta yana kayma β. Burun ile iz arasındaki fark görüntü hatası değil: β (helikopter yana kayarak uçuyor) + rüzgârın etkisi (rota tutmada burun rüzgâra döner).</div>
       <div class="muted">3D model: low-poly AH-1S (viz/ah1s_model.js); rotor göbekleri, kızaklar ve rotor boyutları JSBSim AH-1S modelinden. Ana rotor kayıttaki devirle döner (nominal 324 rpm), kuyruk rotoru orantılı (× 1660 / 324); kanat hatvesi collective'i, disk eğimi cyclic'i gösterir. Uçuş dinamiği JSBSim AH-1S modeli.</div>
     </div>
   </section>
@@ -653,7 +703,7 @@ class Flight {
     return { i, t: T, x: L("x"), y: L("y"), h: L("h"), psi, psiU: this.psiU[i] + (this.psiU[j] - this.psiU[i]) * w, psiRefU: tgt,
       psi_ref: mod360(tgt), u: L("u"), v: L("v"), vs: L("vs"), phi: L("phi"), theta: L("theta"), r: L("r"), rpm: L("rpm"),
       u_ref: L("u_ref"), h_ref: L("h_ref"), e_psi: L("e_psi"), e_u: L("e_u"), e_h: L("e_h"), rew: L("rew"),
-      f: [L("f0"), L("f1"), L("f2"), L("f3")], c: [L("c0"), L("c1"), L("c2"), L("c3")],
+      a: [L("a0"), L("a1"), L("a2"), L("a3")], f: [L("f0"), L("f1"), L("f2"), L("f3")], c: [L("c0"), L("c1"), L("c2"), L("c3")],
       phi_c: this.ix.phi_c != null ? L("phi_c") : NaN, theta_c: this.ix.theta_c != null ? L("theta_c") : NaN,
       tx: this.ix.tx != null ? L("tx") : NaN, ty: this.ix.ty != null ? L("ty") : NaN,
       wow: this.ix.wow != null ? this.col("wow")[i] : NaN, wf: this.ix.wf != null ? L("wf") : NaN,
@@ -734,6 +784,7 @@ class HttpTransport {
   command(d) { return this._post("api/command", d); }
   reset(o) { return this._post("api/reset", o); }
   control(o) { return this._post("api/control", o); }
+  weather(o) { return this._post("api/weather", o); }
 }
 class ColabTransport {
   constructor() { this.kind = "colab"; this.pollMs = 260; }
@@ -743,6 +794,7 @@ class ColabTransport {
   command(d) { return this._call("ah1s_viz.command", [d]); }
   reset(o) { return this._call("ah1s_viz.reset", [o]); }
   control(o) { return this._call("ah1s_viz.control", [o]); }
+  weather(o) { return this._call("ah1s_viz.weather", [o]); }
   save() { return this._call("ah1s_viz.save"); }
 }
 
@@ -971,7 +1023,23 @@ const hud = {
   spdLbl: $("#hudSpdLbl"), altLbl: $("#hudAltLbl"), terrain: $("#scaleInfo"),
   flg: $("#flGauges"), windMean: $("#windMean"), windNow: $("#windNow"), windTxt: $("#windTxt"), turbTxt: $("#turbTxt"),
   tqBar: $("#tqBar"), tqTxt: $("#tqTxt"), fuelBar: $("#fuelBar"), fuelTxt: $("#fuelTxt"), fuelSub: $("#fuelSub"),
+  ctl: $("#ctlBox"), ctlRows: [...document.querySelectorAll("#ctlBox .crow")], ctlBeta: $("#ctlBeta"),
 };
+// kumandalar: ajanın action'ı (−1…1) çubuk + sayı; altında JSBSim kumanda konumu; yana kayma β
+function updateControls(s, fl) {
+  const has = s && Array.isArray(s.a) && s.a.some(fin); hud.ctl.hidden = !has; if (!has) return;
+  hud.ctlRows.forEach((row, k) => {
+    const a = clamp(s.a[k], -1, 1), bar = row.querySelector(".cbar > i"), c = s.c?.[k];
+    const w = 50 * Math.abs(fin(a) ? a : 0);
+    bar.style.left = (a >= 0 ? 50 : 50 - w) + "%"; bar.style.width = w + "%"; bar.classList.toggle("sat", Math.abs(a) >= 0.95);
+    row.querySelector("b").textContent = fin(a) ? (a >= 0 ? "+" : "−") + Math.abs(a).toFixed(2) : "—";
+    row.querySelector("small").textContent = `konum ${fin(c) ? (k === 0 ? c.toFixed(2) + " (0…1)" : (c >= 0 ? "+" : "−") + Math.abs(c).toFixed(2)) : "—"}`;
+  });
+  // β: gövdeye göre yana hava hızı (uçuş görevi: va, ua); yoksa yer hızıyla
+  const ua = isFL(fl) ? (s.ua || 0) * 1.6878 : s.u, va = isFL(fl) ? s.va : s.v;
+  const V = Math.hypot(ua || 0, va || 0);
+  hud.ctlBeta.textContent = V > 50 && fin(va) ? `${sgn(Math.atan2(va, ua) * 180 / Math.PI, 1)}° · ${sgn(va * 0.592484, 1)} kt` : "— (30 kt altı)";
+}
 const TURB_TR = { none: "türbülans yok", light: "hafif türbülans", moderate: "orta türbülans", severe: "şiddetli türbülans" };
 // tek ajan: rüzgâr oku (burna göre; rüzgârın ESTİĞİ yön), tork ve yakıt göstergeleri
 function updateFlightGauges(s, fl, T) {
@@ -1085,6 +1153,7 @@ function updateHud(s, fl, T) {
   const tgtHdg = fin(s.crs) ? s.crs : s.psi_ref;
   drawTape(s.psi, tgtHdg, hasCmd || Math.abs(wrap180(tgtHdg - s.psi)) > 0.5, track, s.crs);
   updateFlightGauges(s, fl, T);
+  updateControls(s, fl);
   if (isFL(fl) && fin(s.ua) && (s.cr > 0 || Math.abs(s.ua) > 20)) {   // uçuş: ileri uçuşta hava hızı (kt), hedef hız
     const onGround = (s.wow || 0) > 0;
     hud.spdLbl.textContent = "HAVA HIZI"; hud.altLbl.textContent = onGround ? "YERDE" : "İRTİFA (CG)";
@@ -1466,6 +1535,7 @@ function applyState(s) {
   const endEv = fl.events.find(e => e.type === "end"); fl.termination = endEv ? endEv.reason : null;
   app.status = s.status || {}; app.latestT = fl.tEnd;
   const rt = app.status.route; if (rt && rt.id !== app.lastRouteId) { app.lastRouteId = rt.id; setHint("toHint", rt.message, rt.ok ? "ok" : "err"); }
+  const wx = app.status.weather; if (wx && wx.id !== app.lastWxId) { app.lastWxId = wx.id; setHint("wxHint", wx.message, wx.ok ? "ok" : "err"); }
   if (app.mode === "live") updateSub();
 }
 function renderStatus() {
@@ -1770,7 +1840,9 @@ function setLogHeader(to) {
 function sendTask(task, label) {
   if (app.mode !== "live" || !app.live) return;
   setHint("toHint", "Gönderiliyor…", "");
-  app.live.command(task).then(r => setHint("toHint", r.ok ? `Gönderildi: ${label || taskText(task)}` : (r.message || "Gönderilemedi."), r.ok ? "ok" : "err"))
+  const seen = app.lastRouteId;                  // yönlendiricinin cevabı (status.route) POST cevabından önce gelebilir
+  app.live.command(task).then(r => { if (r.ok && app.lastRouteId !== seen) return;
+    setHint("toHint", r.ok ? `Gönderildi: ${label || taskText(task)}` : (r.message || "Gönderilemedi."), r.ok ? "ok" : "err"); })
     .catch(err => setHint("toHint", "Sunucuya ulaşılamadı: " + err.message, "err"));
 }
 function bindTakeoffForm() {
@@ -1797,6 +1869,13 @@ function bindTakeoffForm() {
         const v = raw(id); if (v === "") return; const x = Number(v); if (!fin(x)) return;
         t[/^[+-]/.test(v) ? rel : abs] = x; });
       if (Object.keys(t).length === 1) return setHint("toHint", "Komut: hız / heading / irtifa gir (sayı = mutlak, +/− ile başlarsa Δ).", "err");
+      const C = app.flight?.limits?.command || { speed_kt: [0, 120], hover_alt_ft: [12, 1500] };     // zarf (sunucu da denetler)
+      if (fin(t.speed_kt) && (t.speed_kt < C.speed_kt[0] || t.speed_kt > C.speed_kt[1]))
+        return setHint("toHint", `Hız izin verilen zarfın dışında: ${fmt(t.speed_kt, 0)} kt. İzin verilen: ${C.speed_kt[0]}–${C.speed_kt[1]} kt.`, "err");
+      if (fin(t.alt_ft) && (t.alt_ft < C.hover_alt_ft[0] || t.alt_ft > C.hover_alt_ft[1]))
+        return setHint("toHint", `İrtifa izin verilen zarfın dışında: ${fmt(t.alt_ft, 0)} ft. İzin verilen: ${C.hover_alt_ft[0]}–${C.hover_alt_ft[1]} ft (ileri uçuşta en az ${C.cruise_alt_ft?.[0] ?? 50} ft).`, "err");
+      if (fin(t.dheading_deg) && Math.abs(t.dheading_deg) > (C.dpsi_deg || 360))
+        return setHint("toHint", `Δheading en fazla ±${C.dpsi_deg || 360}°.`, "err");
       ["cmSpd", "cmHdg", "cmAlt"].forEach(id => $("#" + id).value = ""); return sendTask(t, "komut");
     }
     if (k === "pirouette") return sendTask({ kind: "pirouette", radius: 100, circle_s: 45, direction: 1 }, "pirouette");
@@ -1810,6 +1889,37 @@ function bindTakeoffForm() {
     if (d.dist === "tilt") Object.assign(t, { dphi: +(d.dphi || 0), dtheta: +(d.dtheta || 0) });
     sendTask(t, b.textContent);
   }));
+  // canlı hava (2026-10-03): rüzgâr / türbülans / gust uçuş sırasında; zarf dışı → hata (sunucu da denetler)
+  const W = () => app.flight?.limits?.weather || { wind_kt: [0, 40], gust_kt: [1, 20], wind_trained_kt: 25 };
+  const sendWx = (o, label) => {
+    if (app.mode !== "live" || !app.live?.weather) return setHint("wxHint", "Canlı uçuş yok.", "err");
+    setHint("wxHint", "Gönderiliyor…", "");
+    const seen = app.lastWxId;                   // uygulama mesajı (status.weather) POST cevabından önce gelebilir
+    app.live.weather(o).then(r => { if (r.ok && app.lastWxId !== seen) return;
+      setHint("wxHint", r.ok ? (label || r.message) : (r.message || "Gönderilemedi."), r.ok ? "" : "err"); })
+      .catch(err => setHint("wxHint", "Sunucuya ulaşılamadı: " + err.message, "err"));
+  };
+  $("#wxApply").addEventListener("click", () => {
+    const o = {}, wk = num("wxWind"), wd = num("wxDir"), L = W();
+    if ($("#wxWind").value.trim() !== "") {
+      if (!fin(wk)) return setHint("wxHint", "Rüzgâr sayı olmalı.", "err");
+      if (wk < L.wind_kt[0] || wk > L.wind_kt[1]) return setHint("wxHint", `Rüzgâr izin verilen zarfın dışında: ${fmt(wk, 0)} kt. İzin verilen: ${L.wind_kt[0]}–${L.wind_kt[1]} kt.`, "err");
+      o.wind_kt = wk; o.wind_dir = fin(wd) ? wd : 0;
+    } else if (fin(wd)) o.wind_dir = wd;
+    if ($("#wxTurb").value) o.turb = $("#wxTurb").value;
+    if ($("#wxGusts").value) o.gusts = $("#wxGusts").value === "1";
+    if (!Object.keys(o).length) return setHint("wxHint", "Rüzgâr, yön, türbülans ya da gust seç.", "err");
+    sendWx(o);
+  });
+  const PRE = { calm: { wind_kt: 0, wind_dir: 0, turb: "none", gusts: false }, head20: { wind_kt: 20, wind_dir: 0 },
+                tail20: { wind_kt: 20, wind_dir: 180 }, cross15: { wind_kt: 15, wind_dir: 90 } };
+  document.querySelectorAll("#wxBox [data-wx]").forEach(b => b.addEventListener("click", () => sendWx(PRE[b.dataset.wx])));
+  $("#wxGustBtn").addEventListener("click", () => {
+    const g = num("wxGustKt"), gd = num("wxGustDir"), L = W();
+    if (!fin(g)) return setHint("wxHint", "Gust büyüklüğü gir (kt).", "err");
+    if (g < L.gust_kt[0] || g > L.gust_kt[1]) return setHint("wxHint", `Gust izin verilen zarfın dışında: ${fmt(g, 0)} kt. İzin verilen: ${L.gust_kt[0]}–${L.gust_kt[1]} kt.`, "err");
+    sendWx({ gust_kt: g, gust_dir: fin(gd) ? gd : 0 });
+  });
 }
 function bindUi() {
   document.querySelectorAll(".quick[data-for]").forEach(q => q.addEventListener("click", e => {

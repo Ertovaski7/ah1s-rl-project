@@ -387,6 +387,15 @@ DEFAULT_FLIGHT_LEVELS.append(replace(
     p_hover_start=0.3, p_target_change=0.4, task_probs={"turn": 0.15, "move": 0.15, "bob": 0.4, "pirouette": 0.3},
     cruise_probs={"u": 0.25, "psi": 0.4, "h": 0.15, "mix": 0.2}, cruise_h_precision=0.5,
     rehearse=("F14", "F13", "F11", "F8", "F6"), p_rehearse=0.5))
+# F16 (2026-10-03): hızlanma okulu — F13'ün kendisi (tekrar dahil), büyük hız değişimleri: Δhız 10–100 kt (F10: ≤ 50),
+# hover'dan 15–120 kt'a hızlanma, hız komutu ağırlıklı. Ödülde hızlanma bandı / referans rampa / irtifa payı
+# (FlightEnvConfig accel_band_k_hi, ff_init_airspeed, ff_ratchet, accel_h_full_frac, accel_vs_allow_fps; --env-overrides).
+# Rejim modelinde yalnızca ileri uçuş uzmanı eğitilir (--freeze-regimes hover,land).
+DEFAULT_FLIGHT_LEVELS.append(replace(
+    DEFAULT_FLIGHT_LEVELS[[lv.name for lv in DEFAULT_FLIGHT_LEVELS].index("F13")], name="F16",
+    description="Hızlanma okulu (2026-10-03): F13 karışımı; Δhız 10–100 kt, hover'dan 15–120 kt'a hızlanma, hız komutu "
+                "ağırlıklı; tekrar F13 gibi (%50)",
+    du_kt=(10.0, 100.0), accel_kt=(15.0, 120.0), cruise_probs={"u": 0.35, "psi": 0.25, "h": 0.2, "mix": 0.2}))
 
 __all__ = ["FlightLevel", "DEFAULT_FLIGHT_LEVELS", "ENV_STAGES", "find_flight_level", "flight_time_target",
            "cruise_yaw_rate_dps", "deadline_of", "CRUISE_MIN_KT", "CRUISE_MAX_KT", "CRUISE_MIN_ALT_FT",

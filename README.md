@@ -2232,3 +2232,15 @@ geçen / denenen: önceki yollar 1/14, bu yol 2/3 (yeterli+ ölçütüyle 3/3 ge
 de referansla birebir aynı. **Sonuç modeli `models_flight/flight_v5.zip`**: seçim 19/21 · 103/105 (flight_v4
 17/21 · 101/105), held-out 35/35 güvenli · 31/35 · 121/128 (30/35 · 119/128), 56 psi üstü 31 s (60 s); iniş ve hover
 flight_v4 ile aynı. Ayrıntı ve önerilen eğitim yolu: `docs/flight/README.md` 9.6–9.7.
+
+## 35.6. Hızlanma (önce pitch, sonra irtifa), rüzgârda hover → ileri uçuş, canlı hava, kumanda paneli (2026-10-03)
+
+Kullanıcı gözlemleri: hız komutunda ajan irtifa için burnu kaldırıp hızlanmayı durduruyor; rüzgârda "ileri git"
+komutunda önce geri gidiyor / geç hızlanıyor; burun izin yönüne bakmıyor; komut ekranında anlık hava girişi, zarf hatası
+ve sayısal kumanda göstergesi yok. Kök nedenler (ölçümle): ileri uçuşun referans hız rampası hover'dan çıkarken 0 kt'tan
+başlıyordu (rüzgârda hava hızı ±rüzgâr → ajan karşı rüzgârda "fazla hızlı", arka rüzgârda büyük hata görüyordu; 20 kt
+arka rüzgârda −34° pitch → pitch_limit); rampanın önündeki ajan cezalanıyordu ve trim rampanın hızında kalıyordu
+(30–50 kt'ta 6–14° yana kayma); ivme yönlendirmesi istenen ivmenin üstünü de cezalandırıyordu. Düzeltmeler
+`FlightEnvConfig` bayrakları (varsayılan kapalı, eski modeller birebir) ve F16 hızlanma okulu; canlı uygulamada
+`physics_ext.set_live` (rüzgâr 4 kt/s rampa, türbülans, gust), `flight_commands` strict (zarf dışı → hata), sayfada
+"Hava" kutusu ve kumanda paneli (4 action −1…1 + konum + yana kayma β). Ayrıntı: `docs/flight/README.md` 9.8.

@@ -186,6 +186,38 @@ class FlightEnvConfig(TakeoffEnvConfig):
     pen_climb_xy: float = 0.0
     pen_climb_rate: float = 0.0
     pen_cruise_h: float = 0.0
+    # Hızlanma: önce pitch, sonra irtifa (2026-10-03, kullanıcı gözlemi; varsayılanlar eski davranış). Ölçüm (flight_v5,
+    # 300 ft / 20 → 120 kt): ajan −16° pitch ile 3 s'de 8 ft/s² ivmeleniyor, sonra burnu −1°'ye kaldırıp 8 s neredeyse hiç
+    # hızlanmıyor (55 kt'ta plato), 120 kt'a 72 s'de varıyor. Sebepler: (a) ivme yönlendirmesi istenen ivmenin (en çok
+    # 1.25 · 2.5 ft/s²) ÜSTÜNÜ de cezalandırıyor, (b) gözlemdeki hız hatası referans rampaya (u_ff, 2.5 ft/s²) göre:
+    # rampanın önündeki ajan "fazla hızlı" görüyor, trim de rampanın hızında kalıyor (30–50 kt'ta pedal trimi yanlış →
+    # 6–13° yana kayma), (c) burun eğilince güç tavanında (56 psi) irtifa / dikey hız cezası burnu kaldırtıyor.
+    #   accel_band_k_hi : > 0 → ivme yönlendirmesi bir BANT: istenen ivme (k·e_u) ile k_hi·e_u (en çok accel_max_fps2)
+    #                     arası cezasız; yalnızca yavaş kalma ve accel_max'ı aşma cezalı (yavaşlamada simetrik)
+    #   ff_init_airspeed: ileri uçuş penceresi açılınca referans hız (u_ff) ölçülen hava hızından başlar. Neden: hover'da
+    #                     rüzgârda hava hızı ±rüzgâr; rampa 0'dan başlayınca 20 kt karşı rüzgârda ajan 13 s "fazla hızlı"
+    #                     görüp geri gidiyor, 20 kt arka rüzgârda büyük hata görüp −34° pitch'e gidiyordu (pitch_limit)
+    #   ff_ratchet      : ileri uçuşta referans hız, hedef yönünde ölçülen hava hızının gerisinde kalmaz (rampanın önündeki
+    #                     ajan cezalanmaz; trim gerçek hıza yakın kalır)
+    #   accel_h_full_frac: irtifa payı (accel_h_allow_ft) hız değişiminin ilk bu kesrinde TAM, sonra doğrusal 0'a
+    #   accel_vs_allow_fps: hız değişimi sürerken dikey hız yönlendirmesinde serbest pay (ft/s; irtifa payıyla aynı oran)
+    #   side_ramp_kt    : yana kayma cezasının devreye girdiği hava hızı aralığı (eski 15 → 30 kt)
+    accel_band_k_hi: float = 0.0
+    accel_max_fps2: float = 7.0
+    ff_init_airspeed: bool = False
+    ff_ratchet: bool = False
+    accel_h_full_frac: float = 0.0
+    accel_vs_allow_fps: float = 0.0
+    side_ramp_kt: tuple = (15.0, 30.0)
+    #   accel_allow_hs_ft: (lo, hi) → irtifa / dikey hız payı ve ivme bandının üst ucu yere yakın azalır: kızak yüksekliği
+    #                     lo'da 0 (eski kurallar), hi'de tam ((0, 0) → kapalı). Neden: fl_v7_s1 (F16) episode'ların %2.4'ü
+    #                     low_altitude ile bitti; fl_v8_s1'de 30 ft'ten ağır + arka rüzgârda −21° pitch, 64 psi, yere çarpma
+    accel_allow_hs_ft: tuple = (0.0, 0.0)
+    #   pen_low_speed   : ileri uçuşta hava hızı > low_speed_kt iken kızak yüksekliği low_speed_hs_ft altına inerse
+    #                     · min(4, ((low_speed_hs_ft − hs) / 15)²) (güvenlik sınırı 8 ft'ten önce yumuşak duvar; 0 → kapalı)
+    pen_low_speed: float = 0.0
+    low_speed_hs_ft: float = 30.0
+    low_speed_kt: float = 30.0
     # --- 2026-10-01 -------------------------------------------------------------------------------------------------
     # İleri uçuş / hızlanma pencerelerinde istenen tırmanış hızı güç payıyla sınırlı: 0.8·(56 − psi_düz(u, W)) / 0.62 ft/s
     # (psi_düz: trim tablosunun düz uçuş torku). Neden (probe tork, 2026-09-30): 9700 lbs zincirlerinde 56 psi aşımlarının
@@ -216,6 +248,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         self.observation_space = spaces.Box(-5.0, 5.0, shape=(self.obs_dim,), dtype=np.float32)
         self.u_trim = 0.0                   # "airspeed": süzülmüş hava hızı (ft/s)
         self.u_ff = 0.0                     # "command": görev referansının trim hızı (ft/s)
+        self._hs_now = 1e9                  # son durumun kızak yüksekliği (accel_allow_hs_ft)
         self.u_meas = 0.0                   # başarı / hız hatası için süzülmüş hava hızı (ft/s)
         self.u_dot = 0.0
         self._u_prev = 0.0
@@ -263,6 +296,11 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         # görevin referans hızı (u_ff) her modda izlenir: gözlemdeki hız hatası buna göre
         tgt, rate = self._ff_target()
         self.u_ff += float(np.clip(tgt - self.u_ff, -rate * CONTROL_DT, rate * CONTROL_DT))
+        if cfg.ff_ratchet and self._in_cruise():                 # rampa, hedef yönünde ölçülen hızın gerisinde kalmaz
+            if tgt >= self.u_ff:
+                self.u_ff = max(self.u_ff, min(self.u_meas, tgt))
+            else:
+                self.u_ff = min(self.u_ff, max(self.u_meas, tgt))
         if cfg.trim_schedule == "airspeed":
             u_air = float(self.fdm["velocities/u-aero-fps"])
             a_t = 1.0 - math.exp(-CONTROL_DT / cfg.trim_u_tau_s)
@@ -633,6 +671,8 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             h_t = float(np.clip(h_t, MIN_HOVER_H_FT, MAX_TARGET_H_FT))
             tg.update(n=s["n"], e=s["e"], h=h_t, psi=psi_t)
             self.cruise = dict(u=u_t)
+            if cfg.ff_init_airspeed:                             # referans rampa ölçülen hava hızından (rüzgârda hover)
+                self.u_ff = float(u_m)
             if d.get("hold"):
                 active, category = ("u", "h", "psi"), "cruise_hold"
             else:
@@ -740,6 +780,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         return self.cruise is not None and bool(self.windows) and self.windows[-1]["kind"] == "cruise"
 
     def _errors(self, s: dict) -> dict:
+        self._hs_now = float(s.get("hs", 1e9))                  # accel_allow_hs_ft için (yere yakın pay)
         e = super()._errors(s)
         e["u"] = (self.cruise["u"] - self.u_meas) if self.cruise is not None else 0.0
         return e
@@ -747,10 +788,24 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
     def _h_allow(self, w: dict, e: dict) -> float:
         """İleri uçuşta hız değişimi sürerken irtifa hatasının serbest payı (ft; accel_h_allow_ft · kalan hız hatası oranı)."""
         k = self.cfg.accel_h_allow_ft
-        if k <= 0.0 or w["closed"] or "u" not in w["active"]:
+        if k <= 0.0:
             return 0.0
-        x = min(1.0, abs(e["u"]) / max(self.cfg.progress_min_scale_u, float(w["e0"].get("u", 0.0))))
-        return k * x
+        return k * self._accel_frac(w, e)
+
+    def _accel_frac(self, w: dict, e: dict) -> float:
+        """Hız değişimi sürerken pay oranı: kalan hız hatası / ilk hata; ilk accel_h_full_frac kesirde 1 (0 → eski)."""
+        if w["closed"] or "u" not in w["active"]:
+            return 0.0
+        x = abs(e["u"]) / max(self.cfg.progress_min_scale_u, float(w["e0"].get("u", 0.0)))
+        x = min(1.0, x / max(1e-6, 1.0 - self.cfg.accel_h_full_frac))
+        return x * self._hs_frac()
+
+    def _hs_frac(self) -> float:
+        """Yere yakınlık oranı (accel_allow_hs_ft): lo'da 0, hi'de 1; kapalıysa 1."""
+        lo, hi = self.cfg.accel_allow_hs_ft
+        if hi <= lo:
+            return 1.0
+        return float(np.clip((self._hs_now - lo) / (hi - lo), 0.0, 1.0))
 
     @staticmethod
     def _soft(val: float, allow: float) -> float:
@@ -997,7 +1052,8 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         """Koordineli uçuş: yana hava hızı cezası · (v_air / 10)², hava hızı 15 → 30 kt arasında 0 → 1 ağırlıkla
         (hover'da yana hava hızı anlamlı değil: rüzgârda heading komutluyken yana hava hızı olur)."""
         air = self._air()
-        x = float(np.clip((abs(air["u_air"]) - 15.0 * KT) / (15.0 * KT), 0.0, 1.0))
+        lo, hi = self.cfg.side_ramp_kt
+        x = float(np.clip((abs(air["u_air"]) - lo * KT) / (max(1.0, hi - lo) * KT), 0.0, 1.0))
         return x * self.cfg.pen_side * (air["v_air"] / 10.0) ** 2
 
     def _torque_lin(self, s: dict) -> float:
@@ -1078,11 +1134,21 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         vs_up = 1.25 * self._cruise_climb_fps(float(self.fdm["velocities/u-aero-fps"]) / KT, s["weight"], lv)
         vs_up = self._climb_feedback_cap(s, vs_up)
         vs_des = float(np.clip(cfg.guide_k_h * e_h, -1.25 * lv.cruise_descent_fps, vs_up))
+        vs_err = s["vs"] - vs_des
+        if cfg.accel_vs_allow_fps > 0.0 and abs(e["h"]) <= self._h_allow(w, e):
+            # hızlanırken dikey hızda serbest pay — yalnızca irtifa payının içindeyken (hedefin çok altındaysa pay yok)
+            vs_err = self._soft(vs_err, cfg.accel_vs_allow_fps * self._accel_frac(w, e))
         r_max = 1.25 * cruise_yaw_rate_dps(lv, max(abs(self.u_meas), abs(self.cruise["u"])))
         r_des = float(np.clip(cfg.guide_k_psi * e["psi"], -r_max, r_max))
         a_des = float(np.clip(cfg.guide_k_u * e["u"], -1.25 * lv.cruise_decel_fps2, 1.25 * lv.cruise_accel_fps2))
-        guide = (cfg.w_vs * K(s["vs"] - vs_des, cfg.kernel_vs) + cfg.w_r * K(math.degrees(s["r"]) - r_des, cfg.kernel_r)
-                 + cfg.w_accel * K(self.u_dot - a_des, cfg.kernel_accel))
+        a_err = self.u_dot - a_des
+        if cfg.accel_band_k_hi > 0.0:                             # bant: istenen ivme ile k_hi·e_u (≤ accel_max) arası cezasız
+            a_hi = float(np.clip(cfg.accel_band_k_hi * e["u"], -cfg.accel_max_fps2, cfg.accel_max_fps2))
+            a_hi = a_des + (a_hi - a_des) * self._hs_frac()       # yere yakın bant kapanır (eski ivme yönlendirmesi)
+            lo, hi = min(a_des, a_hi), max(a_des, a_hi)
+            a_err = self.u_dot - float(np.clip(self.u_dot, lo, hi))
+        guide = (cfg.w_vs * K(vs_err, cfg.kernel_vs) + cfg.w_r * K(math.degrees(s["r"]) - r_des, cfg.kernel_r)
+                 + cfg.w_accel * K(a_err, cfg.kernel_accel))
         if cfg.w_bank > 0.0:
             air_u = abs(float(self.fdm["velocities/u-aero-fps"]))
             xb = float(np.clip((air_u - 15.0 * KT) / (15.0 * KT), 0.0, 1.0))
@@ -1124,13 +1190,18 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         torque = torque_penalty(s["torque_psi"], s["rpm"], cfg.pen_torque_cont, cfg.pen_torque_over, cfg.pen_rpm_low,
                                 cfg.torque_cont_psi, cfg.torque_max_psi, cfg.rpm_low_warn)
         tlin = self._torque_lin(s)
+        low = 0.0
+        if cfg.pen_low_speed > 0.0 and s["wow"] == 0 and s["hs"] < cfg.low_speed_hs_ft \
+                and abs(float(self.fdm["velocities/u-aero-fps"])) > cfg.low_speed_kt * KT:
+            low = cfg.pen_low_speed * min(4.0, ((cfg.low_speed_hs_ft - s["hs"]) / 15.0) ** 2)
         hpen = 0.0
         if cfg.pen_cruise_h > 0.0 and not w["closed"] and ("h" not in w["active"] or w["category"] == "cruise_hold"):
             hpen = cfg.pen_cruise_h * min(9.0, (max(0.0, abs(e_h) - 2.0) / 3.0) ** 2)      # üst sınır: 11 ft'te doyar
-        r = track + guide + progress - sched - late - att - rate - smooth - couple - side - sink - torque - tlin - hpen
+        r = (track + guide + progress - sched - late - att - rate - smooth - couple - side - sink - torque - tlin - hpen
+             - low)
         return float(r), dict(track=track, guide=guide, progress=progress, schedule=sched, late=late, attitude=att,
                               rate=rate, smooth=smooth, coupling=couple, side=-side, sink=-sink, torque=-torque,
-                              torque_lin=-tlin, cruise_h=-hpen)
+                              torque_lin=-tlin, cruise_h=-hpen, low_speed=-low)
 
     def _flight_window(self) -> bool:
         """İleri uçuş / duruş penceresi (güvenlik sınırları ileri uçuşunkiler)."""

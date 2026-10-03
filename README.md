@@ -2219,3 +2219,16 @@ güvenliği); yalnızca seed 3'ün 1.5 M modeli kapıyı geçti → **`models_fl
 F7 / F8 / F10 %90 / 90 / 85 (85 / 80 / 80), hızlanmada irtifa kaybı 0.1 ft (8.2), iniş son 5 ft'te 2.4–2.6 ft/s (3.7–3.9).
 Bedeli: 56 psi üstü süre arttı (held-out 45 → 60 s). Gust'lı iniş kazaları 2/24 (flight_v3 3/24): azalmadı. Ayrıntı:
 `docs/flight/README.md` 9.5. Rüzgârlı ileri uçuş karşılaştırması: 9.4.
+
+## 35.5. Unutmaya karşı öğretmensiz yöntem: rejim uzmanları + büyük batch — `flight_v5` (2026-10-03)
+
+Sorun: iniş ya da ileri uçuş iyileşince diğeri geriliyordu; aynı eğitim farklı seed'lerde farklı bozuluyordu. Kök
+nedenler: tek aksiyon ağı bütün görevleri taşıyor; her PPO güncellemesi yalnızca ~2 episode görüyordu (1 env × 4096
+adım, episode ~2000 adım). Öğretmen / öğrenci yöntemleri mentor kuralıyla yasak (BC buffer denendi, kullanılmadı).
+Çözüm: **rejim uzmanları** (`regime_policy.py`): aksiyon ağı iniş / ileri uçuş / hover uzmanlarına bölünür, gözlemdeki
+bayraklar seçer, eğitilmeyen rejim kilitlenir (`--freeze-regimes`); **16 paralel ortam** (her güncellemede 16 episode,
+~3 kat hız); **kararlı hedef** (F15'in irtifa cezası ileri uçuşu bozdu, F13 bozmadı). Bugünkü denemelerde kapıdan
+geçen / denenen: önceki yollar 1/14, bu yol 2/3 (yeterli+ ölçütüyle 3/3 gerilemesiz); kilitli iniş ve hover üç seed'de
+de referansla birebir aynı. **Sonuç modeli `models_flight/flight_v5.zip`**: seçim 19/21 · 103/105 (flight_v4
+17/21 · 101/105), held-out 35/35 güvenli · 31/35 · 121/128 (30/35 · 119/128), 56 psi üstü 31 s (60 s); iniş ve hover
+flight_v4 ile aynı. Ayrıntı ve önerilen eğitim yolu: `docs/flight/README.md` 9.6–9.7.

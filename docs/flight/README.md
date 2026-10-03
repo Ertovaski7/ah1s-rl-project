@@ -687,7 +687,7 @@ flight_v4'ün birebir kopyası, ileri uçuş uzmanı F13'te 16 ortamla 1 M adım
 | iniş stresi (24) · güvensiz | 18 · 2 | 18 · 2 (iniş uzmanı aynı) |
 | yerinde dönüş kayması (held-out) | 8.7 ft | 8.7 ft (hover uzmanı aynı) |
 | 56 psi üstü süre (held-out) | 60 s | **31 s** |
-| seviyeler (seed 900000+, 20 ep.) F3 / F5 / F6 / F7 / F8 / F10 | 80 / 90 / 100 / 90 / 90 / 85 | [SEVİYELER] |
+| seviyeler (seed 900000+, 20 ep.) F3 / F5 / F6 / F7 / F8 / F10 | 80 / 90 / 100 / 90 / 90 / 85 | 80 / **100** / 100 / 90 / 85 / 85 (farklar ±1 episode, gürültü içinde) |
 
 Kullanım: model sıradan bir SB3 PPO zip'i; `PPO.load` `regime_policy` modülünü içe aktarır (repo kökü `sys.path`'te;
 `evaluate_*`, `command_viz.py`, `docs/flight/*.py` bunu yapıyor). Canlı uygulama ve `command_viz.py` varsayılanı flight_v5.

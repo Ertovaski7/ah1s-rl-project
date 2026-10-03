@@ -612,3 +612,47 @@ python train_command_curriculum.py --task flight --out runs/fl_v4_s3 --init-mode
     --no-promote --total-steps 1500000 --n-envs 1 --vec dummy --n-steps 4096 --batch-size 512 --net 256,256 --eval-freq 0 \
     --snapshot-freq 500000 --fine-from F6a --seed 3
 ```
+
+### 9.6. Unutma problemi: araştırma, BC buffer, rejim uzmanları, büyük batch (2026-10-03)
+
+**Sorun.** Bir beceri (iniş ya da ileri uçuş) iyileşince diğeri geriliyor; aynı eğitim farklı seed'lerde farklı şekilde
+bozuluyor (9.5'te üç seed, üç farklı bozulma).
+
+**Kök nedenler (ölçüldü):**
+1. Tek aksiyon ağı bütün görevleri taşıyor; iniş, ağın başka hiçbir görevde istemediği bir şeyi istiyor (collective
+   tam aşağı, aksiyon −1; yer etkisi, kızak teması).
+2. **Güncelleme başına çok az episode:** episode ~2000 adım, PPO güncellemesi 4096 adım (1 env) → her güncelleme ~2
+   episode görüyor; ağ o episode'ların görevine doğru kayıyor, sonraki güncellemede başka göreve. Seed değişkenliğinin
+   ana kaynağı. (Oyunlarda / Isaac Gym'de her güncelleme binlerce episode'dan gelir.)
+3. Soy boyunca 15'ten fazla sıralı ince ayar ve her birinde ödül değişikliği.
+
+**Literatür** (Wołczyk vd. 2024 ICML; Rolnick vd. 2019 CLEAR; Kirkpatrick vd. 2017 EWC; Schwarz vd. 2018 Progress &
+Compress; Hessel vd. 2019 PopArt; Henderson vd. 2018, Agarwal vd. 2021 seed sayısı): sıralı ince ayarda en etkili
+yöntem davranış klonlama buffer'ı (öğretmen = eski model); seçenekler: EWC, parametre izolasyonu, görev başına
+normalizasyon, birlikte (joint) eğitim. Makalelerde 5–10 seed.
+
+**Mentor kuralı:** öğretmen / öğrenci (damıtma) yasak. BC buffer (`ppo_bc.py`, dondurulmuş eski model = öğretmen)
+teknik olarak damıtmadır → sonuç modeli için kullanılmaz; kod deney kaydı olarak duruyor.
+
+**Öğretmensiz yöntem: rejim uzmanları** (`regime_policy.py`, `make_regime_model.py`). Aksiyon ağı üç uzmana bölünür:
+iniş (gözlem[24] = 1), ileri uçuş (gözlem[34] = 1), hover (diğer). Seçici öğrenilmez, bayraklar seçer. Değer ağı ortak.
+Başlangıçta üç uzman flight_v4'ün aksiyon ağının kopyası (fark 0). Eğitimde bir rejim dondurulabilir
+(`--freeze-regimes`): ağırlıkları değişmez (0.5 M adımda doğrulandı: iniş uzmanında değişim 0.000).
+
+**Deney 1 — F15 mükemmellik (ileri uçuş irtifa + düz tırmanış), 1 env, 1 M adım:**
+
+| aday | iniş stresi (24) | seçim: tüm · görev | held-out: tüm · görev | ne geriledi | kapı |
+|---|---|---|---|---|---|
+| flight_v4 (referans) | 18 | 17/21 · 101/105 | 30/35 · 119/128 | — | — |
+| düz PPO s1 | 16 | 12/21 · 93/105 | | iniş 13→9 (seçim), 15→12 (held-out) | KALDI |
+| düz PPO s2 | 18 | 17/21 · 99/105 | | güvensiz 2→8, ileri uçuş dönüşü | KALDI |
+| rejim (iniş kilitli) s1 | **20** | 17/21 · 101/105 | 30/35 · **122**/128 | hover: 360° yerinde dönüşte yatış sınırı (1 güvensiz) | KALDI |
+| rejim s2 | **19** | 6/21 · 71/105 | 10/35 · 83/125 | ileri uçuş heading tutma (bantta 3° aşımı) | KALDI |
+| rejim s3 | **20** | 14/21 · 90/98 | 31/35 · 121/125 | ileri uçuş irtifa komutu, hover dönüş kayması 30 ft | KALDI |
+
+Sonuç: kilitli rejim (iniş) üç seed'de de korundu ve iyileşti; bozulma yalnızca EĞİTİLEN uzmanların içinde (hover:
+tırmanış ↔ yerinde dönüş; ileri uçuş: irtifa ↔ heading). Mükemmellik ölçümü (`probe_perfection.py`): düz uçuşta irtifa
+sapması flight_v4 medyan 4.9 ft → düz s2 2.8 ft; tırmanışta yatay kayma değişmedi (5–6 ft).
+
+**Deney 2 — tek rejim + büyük batch:** yalnızca ileri uçuş uzmanı eğitilir (hover ve iniş kilitli), 16 paralel ortam ×
+512 adım (her güncellemede 16 episode; hız ~1940 adım/s, eski koşunun ~3 katı), 3 seed. [9.6 DENEY 2 DOLDURULACAK]

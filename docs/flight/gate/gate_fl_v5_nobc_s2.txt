@@ -1,0 +1,30 @@
+kategori                       referans       aday  durum
+güvensiz (toplam)                     2          8  KALDI
+iniş-stres/başarılı            18/24      18/24     ok
+secim/accel                    14/14      13/14     ok
+secim/cruise_h                  6/8        7/8      ↑
+secim/cruise_hold               4/4        4/4      ok
+secim/cruise_mix                6/6        6/6      ok
+secim/cruise_psi               14/14      13/14     ok
+secim/cruise_u                  6/8        7/8      ↑
+secim/hold                     13/13      13/13     ok
+secim/land                     13/13      12/13     ok
+secim/stop                     13/13      13/13     ok
+secim/takeoff                  12/12      11/12     ok
+test/accel                     11/15      13/15     ↑
+test/bob                        2/2        2/2      ok
+test/climb_to                   1/1        1/1      ok
+test/cruise_h                   5/5        5/5      ok
+test/cruise_hold                9/9        9/9      ok
+test/cruise_mix                12/13      10/13     KALDI
+test/cruise_psi                13/15       9/15     KALDI
+test/cruise_u                   4/4        4/4      ok
+test/hold                      15/16      16/16     ↑
+test/land                      15/15      15/15     ok
+test/move                       0/1        0/1      ok
+test/pirouette                  2/2        2/2      ok
+test/stop                      14/14      14/14     ok
+test/takeoff                   14/14      14/14     ok
+test/turn                       2/2        0/2      KALDI
+
+SONUÇ: KALDI

@@ -28,3 +28,30 @@ test/takeoff                   14/14      14/14     ok
 test/turn                       2/2        1/2      ok
 
 SONUÇ: KALDI
+
+bilgi: yeterli+ sayısı ve banda giriş / son sınır medyanı (referans → aday)
+  secim/accel                yeterli+  14/14  →  13/14    giriş/sınır 0.75 → 0.75
+  secim/cruise_h             yeterli+   8/8   →   7/7     giriş/sınır 0.90 → 0.78
+  secim/cruise_hold          yeterli+   4/4   →   4/4     giriş/sınır 0.01 → 0.01
+  secim/cruise_mix           yeterli+   6/6   →   5/5     giriş/sınır 0.67 → 0.68
+  secim/cruise_psi           yeterli+  14/14  →  12/12    giriş/sınır 0.53 → 0.56  ← yeterli+ geriledi
+  secim/cruise_u             yeterli+   8/8   →   7/7     giriş/sınır 0.75 → 0.73
+  secim/hold                 yeterli+  13/13  →  13/13    giriş/sınır 0.01 → 0.01
+  secim/land                 yeterli+  13/13  →  12/12    giriş/sınır 0.61 → 0.60
+  secim/stop                 yeterli+  13/13  →  12/12    giriş/sınır 0.70 → 0.71
+  secim/takeoff              yeterli+  12/12  →  12/12    giriş/sınır 0.46 → 0.45
+  test/accel                 yeterli+  15/15  →  15/15    giriş/sınır 0.74 → 0.73
+  test/bob                   yeterli+   2/2   →   2/2     giriş/sınır 0.53 → 0.54
+  test/climb_to              yeterli+   1/1   →   1/1     giriş/sınır 0.76 → 0.73
+  test/cruise_h              yeterli+   5/5   →   5/5     giriş/sınır 0.72 → 0.69
+  test/cruise_hold           yeterli+   9/9   →   9/9     giriş/sınır 0.01 → 0.01
+  test/cruise_mix            yeterli+  13/13  →  13/13    giriş/sınır 0.75 → 0.77
+  test/cruise_psi            yeterli+  15/15  →  15/15    giriş/sınır 0.73 → 0.64
+  test/cruise_u              yeterli+   4/4   →   4/4     giriş/sınır 0.72 → 0.72
+  test/hold                  yeterli+  16/16  →  13/13    giriş/sınır 0.01 → 0.01  ← yeterli+ geriledi
+  test/land                  yeterli+  15/15  →  15/15    giriş/sınır 0.66 → 0.66
+  test/move                  yeterli+   1/1   →   1/1     giriş/sınır — → 0.62
+  test/pirouette             yeterli+   2/2   →   2/2     giriş/sınır 0.78 → 0.79
+  test/stop                  yeterli+  14/14  →  14/14    giriş/sınır 0.68 → 0.70
+  test/takeoff               yeterli+  14/14  →  14/14    giriş/sınır 0.63 → 0.61
+  test/turn                  yeterli+   2/2   →   2/2     giriş/sınır 0.50 → 0.53

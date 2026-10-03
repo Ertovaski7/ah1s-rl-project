@@ -1,0 +1,95 @@
+{
+ "snap_01000k": {
+  "level": [
+   {
+    "id": "tut60",
+    "success": true,
+    "max_dh_ft": 2.2,
+    "rms_dh_ft": 1.7,
+    "term": "time_limit"
+   },
+   {
+    "id": "don+90",
+    "success": true,
+    "max_dh_ft": 3.9,
+    "rms_dh_ft": 1.38,
+    "term": "time_limit"
+   },
+   {
+    "id": "don-180",
+    "success": true,
+    "max_dh_ft": 3.1,
+    "rms_dh_ft": 1.33,
+    "term": "time_limit"
+   },
+   {
+    "id": "yavas100_60",
+    "success": true,
+    "max_dh_ft": 4.0,
+    "rms_dh_ft": 2.48,
+    "term": "time_limit"
+   },
+   {
+    "id": "don+90_yanruzgar",
+    "success": true,
+    "max_dh_ft": 5.7,
+    "rms_dh_ft": 2.18,
+    "term": "time_limit"
+   }
+  ],
+  "climb": [
+   {
+    "id": "kalkis300",
+    "success": true,
+    "climb_s": 46.6,
+    "max_xy_drift_ft": 5.1,
+    "vs_osc_rms": 0.11,
+    "vs_mean": 6.5,
+    "roll_std": 1.01,
+    "pitch_std": 1.77,
+    "overshoot_ft": 0.3,
+    "max_hdg_dev": 1.6,
+    "term": "time_limit"
+   },
+   {
+    "id": "hover100_500",
+    "success": true,
+    "climb_s": 59.2,
+    "max_xy_drift_ft": 6.6,
+    "vs_osc_rms": 0.04,
+    "vs_mean": 7.0,
+    "roll_std": 1.27,
+    "pitch_std": 2.31,
+    "overshoot_ft": 0.3,
+    "max_hdg_dev": 1.6,
+    "term": "time_limit"
+   },
+   {
+    "id": "bob+40",
+    "success": true,
+    "climb_s": 9.0,
+    "max_xy_drift_ft": 4.4,
+    "vs_osc_rms": 0.08,
+    "vs_mean": 5.3,
+    "roll_std": 0.5,
+    "pitch_std": 1.42,
+    "overshoot_ft": 0.0,
+    "max_hdg_dev": 1.1,
+    "term": "time_limit"
+   },
+   {
+    "id": "ileri+300",
+    "success": true,
+    "climb_s": 33.0,
+    "max_xy_drift_ft": 0.0,
+    "vs_osc_rms": 0.11,
+    "vs_mean": 9.6,
+    "roll_std": 1.61,
+    "pitch_std": 0.43,
+    "overshoot_ft": 0.0,
+    "max_hdg_dev": 2.0,
+    "term": "time_limit"
+   }
+  ]
+ }
+}

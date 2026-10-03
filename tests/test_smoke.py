@@ -87,3 +87,19 @@ def test_live_weather_and_envelope():
     assert not route_command(env, alt_ft=10000.0, strict=True).ok
     assert not route_command(env, speed_kt=1000.0, strict=True).ok
     assert route_command(env, alt_ft=10000.0).ok               # strict değilken eski davranış: kırpma
+
+
+def test_router_climb_first_and_afcs_hold():
+    """Alçak hover'dan hız komutu → önce tırmanış; AFCS heading hold kalkış penceresinde açılır."""
+    from flight_commands import route_command
+    from helicopter_env_flight import FlightEnvConfig, HelicopterEnvFlight
+    env = HelicopterEnvFlight(level="F8", config=FlightEnvConfig(afcs_hdg_hold_to_land=True))
+    env.reset(seed=0, options=dict(level="F8", tasks=[dict(kind="hold")], start="hover", start_alt_ft=25.0,
+                                   physics=dict(wind_kt=0.0, wind_dir_deg=0.0, turb_level="none"), episode_s=60.0))
+    res = route_command(env, speed_kt=60.0, strict=True)
+    assert res.ok and [t["kind"] for t in res.tasks] == ["climb_to", "cruise"]
+    env.reset(seed=0, options=dict(level="F8", tasks=[dict(kind="takeoff", h=50.0)], start="ground",
+                                   physics=dict(wind_kt=0.0, wind_dir_deg=0.0, turb_level="none"), episode_s=60.0))
+    for _ in range(5):
+        env.step(np.zeros(4))
+    assert env._afcs_hold and float(env.fdm["ap/afcs/heading-hold-enable"]) == 1.0

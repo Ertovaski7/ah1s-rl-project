@@ -1,0 +1,102 @@
+{
+ "flight_v5": {
+  "kalkis100/sakin": {
+   "max_hdg_deg": 1.2,
+   "max_gs_kt": 0.9,
+   "max_xy_ft": 4.1,
+   "success": true,
+   "touchdown_vs": null,
+   "term": "time_limit"
+  },
+  "inis100/sakin": {
+   "max_hdg_deg": 0.7,
+   "max_gs_kt": 0.4,
+   "max_xy_ft": 1.8,
+   "success": true,
+   "touchdown_vs": -0.6191405361090043,
+   "term": "time_limit"
+  },
+  "kalkis100/15kt_sag": {
+   "max_hdg_deg": 2.5,
+   "max_gs_kt": 1.1,
+   "max_xy_ft": 3.0,
+   "success": true,
+   "touchdown_vs": null,
+   "term": "time_limit"
+  },
+  "inis100/15kt_sag": {
+   "max_hdg_deg": 2.2,
+   "max_gs_kt": 1.2,
+   "max_xy_ft": 5.3,
+   "success": true,
+   "touchdown_vs": -1.3191652992277818,
+   "term": "time_limit"
+  },
+  "kalkis100/25kt_turb": {
+   "max_hdg_deg": 3.5,
+   "max_gs_kt": 2.5,
+   "max_xy_ft": 8.9,
+   "success": true,
+   "touchdown_vs": null,
+   "term": "time_limit"
+  },
+  "inis100/25kt_turb": {
+   "max_hdg_deg": 7.6,
+   "max_gs_kt": 3.4,
+   "max_xy_ft": 13.9,
+   "success": true,
+   "touchdown_vs": -1.1387613323403996,
+   "term": "time_limit"
+  }
+ },
+ "flight_v5+{\"afcs_hdg_hold_to_land\": true}": {
+  "kalkis100/sakin": {
+   "max_hdg_deg": 0.8,
+   "max_gs_kt": 0.9,
+   "max_xy_ft": 4.2,
+   "success": true,
+   "touchdown_vs": null,
+   "term": "time_limit"
+  },
+  "inis100/sakin": {
+   "max_hdg_deg": 0.6,
+   "max_gs_kt": 0.5,
+   "max_xy_ft": 1.8,
+   "success": true,
+   "touchdown_vs": -0.6322770598729384,
+   "term": "time_limit"
+  },
+  "kalkis100/15kt_sag": {
+   "max_hdg_deg": 2.1,
+   "max_gs_kt": 1.1,
+   "max_xy_ft": 3.1,
+   "success": true,
+   "touchdown_vs": null,
+   "term": "time_limit"
+  },
+  "inis100/15kt_sag": {
+   "max_hdg_deg": 2.1,
+   "max_gs_kt": 1.2,
+   "max_xy_ft": 5.2,
+   "success": true,
+   "touchdown_vs": -1.101105946898264,
+   "term": "time_limit"
+  },
+  "kalkis100/25kt_turb": {
+   "max_hdg_deg": 3.0,
+   "max_gs_kt": 2.6,
+   "max_xy_ft": 8.7,
+   "success": true,
+   "touchdown_vs": null,
+   "term": "time_limit"
+  },
+  "inis100/25kt_turb": {
+   "max_hdg_deg": 5.3,
+   "max_gs_kt": 3.0,
+   "max_xy_ft": 11.3,
+   "success": true,
+   "touchdown_vs": -1.3179818745744811,
+   "term": "time_limit"
+  }
+ }
+}

@@ -40,6 +40,11 @@ from flight_curriculum import CMD_MAX_ALT_FT, CMD_MAX_KT, CMD_MIN_ALT_FT, CMD_MI
 from takeoff_curriculum import MAX_TARGET_H_FT, MIN_HOVER_H_FT
 
 CRUISE_REGIME_KT = 25.0          # bu hava hızının üstü (ya da ileri uçuş penceresi) → ileri uçuş rejimi
+# 2026-10-03 (kullanıcı kararı: "40 ft altı önce tırmanış"): hover'da kızak bu yüksekliğin altındayken hız komutu gelirse
+# önce CLIMB_FIRST_TO_FT'e (CG) tırmanılır, sonra hızlanılır. Neden: 30 ft'ten ağır + arka rüzgârda hızlanmada ileri uçuş
+# uzmanı −20…−27° pitch ile yere yaklaşıyor (flight_v5 kızak 15 ft'e iniyor; docs/flight/README.md 9.8).
+CLIMB_FIRST_BELOW_HS_FT = 40.0
+CLIMB_FIRST_TO_FT = 60.0
 MAX_DPSI_DEG = 360.0
 
 
@@ -158,15 +163,20 @@ def route_command(env, speed_kt=None, dspeed_kt=None, heading_deg=None, dheading
             u_c = min(v_t, CMD_MAX_KT)
             if u_c < v_t:
                 notes.append(_fmt_clip("hız", v_t, u_c, "kt"))
+            h_base = s["h"]
+            if s["hs"] < CLIMB_FIRST_BELOW_HS_FT:                 # alçak hover: önce güvenli irtifaya tırman
+                h_base = max(CLIMB_FIRST_TO_FT, s["h"])
+                tasks.append(dict(kind="climb_to", h=h_base))
+                parts.append(f"önce {h_base:.0f} ft'e tırmanış (kızak {CLIMB_FIRST_BELOW_HS_FT:.0f} ft altında hızlanma yok)")
             dh = 0.0
             if h_t is not None:
                 h_c = min(max(h_t, CMD_MIN_ALT_FT), CMD_MAX_ALT_FT)
                 if abs(h_c - h_t) > 0.5:
                     notes.append(_fmt_clip("ileri uçuş irtifası", h_t, h_c, "ft"))
-                dh = h_c - s["h"]
+                dh = h_c - h_base
             tasks.append(dict(kind="cruise", u_kt=u_c, dh=dh, accel=True))
             parts.append(f"{u_c:.0f} kt'a hızlanma" + (f", Δh {dh:+.0f} ft" if abs(dh) > 0.5 else "")
-                         + (f" (en az {CMD_MIN_ALT_FT:.0f} ft)" if s["h"] + dh < CMD_MIN_ALT_FT else ""))
+                         + (f" (en az {CMD_MIN_ALT_FT:.0f} ft)" if h_base + dh < CMD_MIN_ALT_FT else ""))
             return CommandResult(True, tasks, _msg("Hover → ileri uçuş: " + ", sonra ".join(parts), notes), reg, notes)
         if v_t is not None and 0.0 < v_t < CMD_MIN_KT:
             notes.append(f"{CMD_MIN_KT:.0f} kt altı hız komutu → hover'da kalınıyor")

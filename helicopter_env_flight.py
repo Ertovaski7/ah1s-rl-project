@@ -60,7 +60,7 @@ from gymnasium import spaces
 
 from flight_curriculum import (CMD_MAX_ALT_FT, CMD_MAX_KT, CMD_MIN_ALT_FT, CMD_MIN_KT, DEFAULT_FLIGHT_LEVELS, VNE_KT,
                                FlightLevel, cruise_yaw_rate_dps, find_flight_level, flight_time_target)
-from helicopter_env_command import CONTROL_DT, wrap_deg
+from helicopter_env_command import CONTROL_DT, AfcsMode, wrap_deg
 from helicopter_env_takeoff import (ACTIVE_AXES, CTRL_HI, CTRL_LO, GROUND_H_FT, MAX_HOVER_H_FT, MIN_HOVER_H_FT,
                                     OBS_DIM_T, HelicopterEnvTakeoff, TakeoffEnvConfig, deadline_of, expo, expo_inv)
 from physics_ext import air_ground_velocities, fuel_total, torque_penalty
@@ -225,6 +225,24 @@ class FlightEnvConfig(TakeoffEnvConfig):
     pen_low_pitch: float = 0.0
     low_pitch_deg: tuple = (8.0, 0.2)
     pen_low_sink: float = 0.0
+    # İrtifaya göre hızlanma — OLUMLU yönlendirme (2026-10-03, kullanıcı kararı; fl_v9 / fl_v11'de büyük yere-yakın cezaları
+    # düşmeyi artırdı: büyük adım cezası episode'u erken bitirmeyi çekici yapıyor). Bunlar sınırlı ödül (0…w), ceza değil:
+    #   accel_climb_first_hs_ft: (lo, hi) → istenen ivmenin üst sınırı kızak lo ft altında %20'ye iner, hi ft'te tam
+    #                     (40 ft altı önce tırmanış; (0, 0) → kapalı)
+    #   w_low_att       : ileri uçuşta burun-aşağı pitch θ_maks = a + b·hs (low_pitch_deg) içinde ve alçalma hızı
+    #                     0.3·(hs − 10) ft/s içinde kalırsa w (kızak 60 ft üstünde her zaman w — alçakta uçmaya teşvik yok)
+    #   w_coord         : koordineli uçuş: w · K(yana hava hızı, (3, 12) ft/s), hava hızı 20 → 35 kt arasında devreye girer
+    #                     (altında her zaman w)
+    accel_climb_first_hs_ft: tuple = (0.0, 0.0)
+    w_low_att: float = 0.0
+    w_coord: float = 0.0
+    # AFCS heading hold kalkış ve iniş pencerelerinde (2026-10-03, kullanıcı kararı: kalkış / inişte Δheading ≈ 0, yalnızca
+    # irtifa değişsin). Açıkken bu pencerelerde JSBSim AFCS yaw kanalı heading'i tutar (ψ_trim = hedef heading, PI);
+    # diğer pencerelerde eskisi gibi yalnızca sönümleme (SAS). False → eski davranış.
+    afcs_hdg_hold_to_land: bool = False
+    # Kalkış / inişte sabit kal (sınırlı ödül): pencere boyunca (yerde de) w · (0.5·K(heading hatası, (1°, 4°)) + 0.5·K(yatay
+    # yer hızı, (0.5, 3) ft/s)). Yerde de verilir: yoksa inişte havada kalmak ödüllü olurdu. 0 → kapalı.
+    w_to_land_still: float = 0.0
     # --- 2026-10-01 -------------------------------------------------------------------------------------------------
     # İleri uçuş / hızlanma pencerelerinde istenen tırmanış hızı güç payıyla sınırlı: 0.8·(56 − psi_düz(u, W)) / 0.62 ft/s
     # (psi_düz: trim tablosunun düz uçuş torku). Neden (probe tork, 2026-09-30): 9700 lbs zincirlerinde 56 psi aşımlarının
@@ -958,12 +976,29 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
     # STEP
     # =================================================================
 
+    def _set_sas(self, psi_deg: float):
+        super()._set_sas(psi_deg)
+        self._afcs_hold = False
+
+    def _afcs_window_mode(self, s: dict):
+        """afcs_hdg_hold_to_land: kalkış / iniş penceresinde AFCS heading hold, diğerlerinde SAS (geçişte integratör sıfır)."""
+        w = self.windows[-1] if self.windows else None
+        want = w is not None and not w["closed"] and w["kind"] in ("takeoff", "land")
+        psi_t = float(self.target["psi"]) % 360.0 if want else s["psi_deg"]
+        if want:
+            self._set_afcs(AfcsMode(1.0, 1.0, 1.0, True, 0.2), psi_t)
+            self._afcs_hold = True
+        elif getattr(self, "_afcs_hold", False):
+            self._set_sas(s["psi_deg"])                          # yaw kanalı 0.99 → integratör sıfırlanır
+
     def step(self, action):
         cfg = self.cfg
         a = np.clip(np.asarray(action, dtype=np.float64).reshape(-1)[:4], -1.0, 1.0)
         t_now = self.steps * CONTROL_DT
         s_pre = self._state()
         self._issue_due_tasks(t_now, s_pre)
+        if cfg.afcs_hdg_hold_to_land:
+            self._afcs_window_mode(s_pre)
         self._update_trim(s_pre)                                 # hava hızı çizelgesi (filtre durumu aşağıda güncellenir)
 
         filt = self.filt + cfg.action_filter_alpha * (a - self.filt)
@@ -1130,7 +1165,13 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             parts["torque_lin"] = -tlin
             climb = self._climb_pen(s, e)
             parts["climb"] = -climb
-            return float(r + cair + cact - tlin - climb), parts
+            still = 0.0
+            if self.cfg.w_to_land_still > 0.0 and self.windows and not self.windows[-1]["closed"] \
+                    and self.windows[-1]["kind"] in ("takeoff", "land"):   # yerde de (inişte havada kalmaya teşvik yok)
+                K = self._kernel2
+                still = self.cfg.w_to_land_still * (0.5 * K(e["psi"], (1.0, 4.0)) + 0.5 * K(s["vh"], (0.5, 3.0)))
+            parts["still"] = still
+            return float(r + cair + cact - tlin - climb + still), parts
         cfg, lv = self.cfg, self.ep_level
         w = self.windows[-1]
         K = self._kernel2
@@ -1147,7 +1188,11 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             vs_err = self._soft(vs_err, cfg.accel_vs_allow_fps * self._accel_frac(w, e))
         r_max = 1.25 * cruise_yaw_rate_dps(lv, max(abs(self.u_meas), abs(self.cruise["u"])))
         r_des = float(np.clip(cfg.guide_k_psi * e["psi"], -r_max, r_max))
-        a_des = float(np.clip(cfg.guide_k_u * e["u"], -1.25 * lv.cruise_decel_fps2, 1.25 * lv.cruise_accel_fps2))
+        a_up = 1.25 * lv.cruise_accel_fps2
+        lo_c, hi_c = cfg.accel_climb_first_hs_ft
+        if hi_c > lo_c:                                           # yere yakın: önce tırmanış (istenen ivme küçülür)
+            a_up *= 0.2 + 0.8 * float(np.clip((s["hs"] - lo_c) / (hi_c - lo_c), 0.0, 1.0))
+        a_des = float(np.clip(cfg.guide_k_u * e["u"], -1.25 * lv.cruise_decel_fps2, a_up))
         a_err = self.u_dot - a_des
         if cfg.accel_band_k_hi > 0.0:                             # bant: istenen ivme ile k_hi·e_u (≤ accel_max) arası cezasız
             a_hi = float(np.clip(cfg.accel_band_k_hi * e["u"], -cfg.accel_max_fps2, cfg.accel_max_fps2))
@@ -1156,6 +1201,18 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             a_err = self.u_dot - float(np.clip(self.u_dot, lo, hi))
         guide = (cfg.w_vs * K(vs_err, cfg.kernel_vs) + cfg.w_r * K(math.degrees(s["r"]) - r_des, cfg.kernel_r)
                  + cfg.w_accel * K(a_err, cfg.kernel_accel))
+        if cfg.w_low_att > 0.0:                                   # yere yakın açı / alçalma sınırında kalma (sınırlı ödül)
+            if s["wow"] == 0 and s["hs"] < 60.0:
+                a0, b0 = cfg.low_pitch_deg
+                ex_th = max(0.0, -math.degrees(s["theta"]) - (a0 + b0 * s["hs"]))
+                ex_vs = max(0.0, -s["vs"] - 0.3 * max(0.0, s["hs"] - 10.0))
+                guide += cfg.w_low_att * 0.5 * (K(ex_th, (2.0, 8.0)) + K(ex_vs, (1.5, 6.0)))
+            else:
+                guide += cfg.w_low_att
+        if cfg.w_coord > 0.0:                                     # koordineli uçuş (sınırlı ödül)
+            air_c = self._air()
+            xc = float(np.clip((abs(air_c["u_air"]) - 20.0 * KT) / (15.0 * KT), 0.0, 1.0))
+            guide += cfg.w_coord * (xc * K(air_c["v_air"], (3.0, 12.0)) + (1.0 - xc))
         if cfg.w_bank > 0.0:
             air_u = abs(float(self.fdm["velocities/u-aero-fps"]))
             xb = float(np.clip((air_u - 15.0 * KT) / (15.0 * KT), 0.0, 1.0))

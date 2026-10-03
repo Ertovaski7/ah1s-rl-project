@@ -98,6 +98,8 @@ class FlightLevel(TakeoffLevel):
     # --- hover hassasiyeti: hover görevlerinde kuplaj sınırları ve hover bandının konum toleransı bu katsayıyla ------
     # (türbülans ölçeğinin üstüne; 0.5 → yerinde dönüşte konum kayması ≤ 10 ft, hover bandı 3–6 ft; ADS-33 ±3 / ±6 ft)
     hover_precision: float = 1.0
+    # --- ileri uçuşta irtifa hassasiyeti (2026-10-03): komut verilmeyen irtifa ekseninin kuplaj sınırı (40 ft) bu katsayıyla
+    cruise_h_precision: float = 1.0
     # --- hava sıcaklığı (standart günden sapma, °C; (0, 0) → kapalı, RNG'ye dokunmaz) ---------------------------------
     delta_T_C: tuple = (0.0, 0.0)
 
@@ -230,6 +232,7 @@ def find_flight_level(level, levels=None) -> int:
 #   F12    | denge: F10 karışımı + %45 tekrar (F11 ×3, F6, F7, F8, F9)          | F10'un çevresi
 #   F13    | denge + iniş: F10 karışımı + %50 tekrar (F6a ×2, F6 ×2, F11 ×2, F8, F9) | F10'un çevresi
 #   F14    | rüzgâr / gust altında iniş okulu + %50 tekrar (F13, F10, F8, F9)  | E2 / E3, −10…+30 °C
+#   F15    | mükemmellik: ileri uçuşta irtifa tutma + düz tırmanış, %50 tekrar  | F10'un çevresi
 #
 # F11 / F12 (2026-10-01): F11'de 3.5 M adım hassasiyeti getirdi (yerinde dönüşte kayma 18 → 6 ft) ama genel becerileri
 # aşındırdı (seçim takımında tüm görevler 18/21 → 8/21: inişte collective ~0.2'de kalıp kızaklarda ağırlık < %70,
@@ -373,6 +376,17 @@ DEFAULT_FLIGHT_LEVELS.append(FlightLevel(
     cruise_start_alt_ft=(100.0, 400.0), n_cruise=(0, 0), p_stop=1.0, p_land_after_stop=1.0, stop_decel=(2.0, 3.0),
     climb_fps=8.0, descent_fps=5.0, lag_s=4.0, fuel_lbs=_FUEL, env_probs={"E2": 0.4, "E3": 0.6}, hover_precision=0.5,
     delta_T_C=(-10.0, 30.0), promote_threshold=0.6, rehearse=("F13", "F10", "F8", "F9"), p_rehearse=0.5))
+# F15 (2026-10-03): mükemmellik okulu — (a) ileri uçuşta irtifa tutma (dönüş / yavaşlama / tut; hızlanma hariç),
+# (b) tırmanışta sallanmadan düz iz (dikey kalkış, climb_to, bob-up). F10 karışımı, tırmanış ve dönüş ağırlıklı; kuplaj
+# sınırları sıkı (hover ×0.5, ileri uçuş irtifası ×0.5 → 20 ft); ödülde pen_climb_xy / pen_climb_rate / pen_cruise_h
+# (FlightEnvConfig, eğitimde --env-overrides ile). %50 tekrar F14 / F13 / F11 / F8 / F6.
+DEFAULT_FLIGHT_LEVELS.append(replace(
+    DEFAULT_FLIGHT_LEVELS[[lv.name for lv in DEFAULT_FLIGHT_LEVELS].index("F10")], name="F15",
+    description="Mükemmellik okulu (2026-10-03): F10 karışımı; tırmanış (kalkış 10–1000 ft, %40 hedef değişikliği, bob %40) ve "
+                "ileri uçuşta dönüş / yavaşlama ağırlıklı; hover ×0.5, ileri uçuş irtifa kuplajı ×0.5; %50 tekrar",
+    p_hover_start=0.3, p_target_change=0.4, task_probs={"turn": 0.15, "move": 0.15, "bob": 0.4, "pirouette": 0.3},
+    cruise_probs={"u": 0.25, "psi": 0.4, "h": 0.15, "mix": 0.2}, cruise_h_precision=0.5,
+    rehearse=("F14", "F13", "F11", "F8", "F6"), p_rehearse=0.5))
 
 __all__ = ["FlightLevel", "DEFAULT_FLIGHT_LEVELS", "ENV_STAGES", "find_flight_level", "flight_time_target",
            "cruise_yaw_rate_dps", "deadline_of", "CRUISE_MIN_KT", "CRUISE_MAX_KT", "CRUISE_MIN_ALT_FT",

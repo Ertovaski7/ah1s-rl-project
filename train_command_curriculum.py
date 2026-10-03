@@ -256,7 +256,8 @@ def make_callback(out: Path, levels, start_level: int, args, history: list, env_
                        fail_rate=sum(fails.values()), top_failure=max(fails, key=fails.get) if fails else "",
                        final_abs_heading_err=float(np.mean(self.cmd_err)) if self.cmd_err else float("nan"),
                        ep_rew_mean=float(np.mean([e["r"] for e in self.model.ep_info_buffer]))
-                       if self.model.ep_info_buffer else float("nan"))
+                       if self.model.ep_info_buffer else float("nan"),
+                       bc_loss=float(getattr(self.model, "last_bc_loss", float("nan"))))
             new = not self.csv_path.exists()
             with open(self.csv_path, "a", newline="") as f:
                 w = csv.DictWriter(f, fieldnames=list(row))
@@ -431,6 +432,11 @@ def parse_args(argv=None):
                         "modelle kaydedilir. Ör. kalkış: '{\"aircraft\": \"repo\", \"power_cap_psi\": 56, \"torque_obs\": true}'")
     p.add_argument("--no-rehearsal", dest="rehearsal", action="store_false",
                    help="eğitimde eski seviyelerden tekrar episode'u yok (tanı koşuları için)")
+    p.add_argument("--bc-buffer", default=None,
+                   help="BC buffer'ı (npz; docs/flight/collect_bc_buffer.py): PPO kaybına öğretmen davranışını koruyan "
+                        "davranış klonlama terimi eklenir (ppo_bc.py) — unutmaya karşı")
+    p.add_argument("--bc-coef", type=float, default=1.0, help="BC kaybı katsayısı")
+    p.add_argument("--bc-batch", type=int, default=512, help="her gradyan adımında buffer'dan alınan durum sayısı")
     p.add_argument("--smoke", action="store_true", help="çok kısa deneme koşusu")
     return p.parse_args(argv)
 
@@ -457,6 +463,8 @@ def main(argv=None):
 
     import torch
     from stable_baselines3 import PPO
+    if args.bc_buffer:
+        from ppo_bc import PPOBC as PPO  # noqa: F811  (PPO + davranış klonlama buffer'ı)
 
     torch.set_num_threads(1)          # işçi süreçleriyle çekirdek kavgası olmasın
     out = Path(args.out)
@@ -558,6 +566,9 @@ def main(argv=None):
                                log_std_init=args.log_std_init),
             tensorboard_log=tb, seed=args.seed, verbose=0, device="cpu")
         print(f"[model] yeni PPO (rastgele ağırlıklar) — ağ {net}, σ0={np.exp(args.log_std_init):.2f}")
+    if args.bc_buffer:
+        n_bc = model.set_bc_buffer(args.bc_buffer, coef=args.bc_coef, batch=args.bc_batch, seed=args.seed)
+        print(f"[bc] buffer {args.bc_buffer}: {n_bc} durum, katsayı {args.bc_coef}, mini-batch {args.bc_batch}")
     if args.task in ("maneuver", "takeoff", "flight"):
         from helicopter_env_maneuver import ENV_OVERRIDES_ATTR
         setattr(model, ENV_OVERRIDES_ATTR, dict(args.env_overrides))      # her kayıtta zip'e girer

@@ -165,6 +165,27 @@ class FlightEnvConfig(TakeoffEnvConfig):
     # episode'u kısaltıp getiriyi düşürüyordu: yerde hafif yüklü başlangıçta oturmak (başarı) 43, havalanıp 2 ft'te
     # hover etmek (başarısız) 60 getiri (fl_v4, F6a; görev başarı ödülü yalnızca 3).
     end_at_deadline: bool = True
+    # 2026-10-02 (ödül dengesi, kalkış env'indeki açıklama): her pencerede sıradaki görev son sınır + tutma süresinde;
+    # erken bitirme bonusu (en çok 50 ham = 5 ölçekli, settle → 0 iken); inişin son 20 ft'inde alçalma hızı cezası.
+    next_at_deadline: bool = True
+    w_task_early: float = 50.0
+    pen_land_final: float = 3.0
+    pen_land_att: float = 2.0
+    # İleri uçuşta hız değişimi sürerken irtifa payı (2026-10-02, kullanıcı gözlemi): Δhız büyükken ajan burnu eğip
+    # hızlanıyor, irtifa kaybı hemen cezalandırıldığı için 3–4 s sonra burnu kaldırıp ivmeden vazgeçiyordu. Şimdi
+    # kalan hız hatası oranı x = |e_u| / max(e0_u, 10 ft/s) kadar serbest pay: irtifa hatasının accel_h_allow_ft · x
+    # kadarı takip çekirdeğinde, dikey hız yönlendirmesinde, takvim gecikmesinde ve kuplaj cezasında sayılmaz
+    # (simetrik: yavaşlarken de hız–irtifa takası). Hedefe yaklaştıkça pay sıfırlanır; başarı bandı (±12 ft) ve
+    # kuplaj sınırı (40 ft) değişmez — irtifa yine son sınırdan önce geri kazanılmalı. 0 → kapalı.
+    accel_h_allow_ft: float = 30.0
+    # Mükemmellik (2026-10-03; F15 ile, varsayılan 0 = kapalı):
+    #   pen_climb_xy   : hover tırmanışında (kalkış havada, climb_to, bob) yatay kayma · min(9, ((e_xy − 1.5 ft) / 2 ft)²)
+    #   pen_climb_rate : aynı pencerelerde roll / pitch oranı · min(9, (p / 0.1)² + (q / 0.1)²)   (rad/s; sallanma)
+    #   pen_cruise_h   : ileri uçuşta irtifa komut edilmemişken (dönüş, yavaşlama, tut) · min(9, ((|e_h| − 2 ft) / 3 ft)²);
+    #                    hız değişimi sürerken accel_h_allow_ft payı düşülür (hızlanmadaki takas serbest kalır)
+    pen_climb_xy: float = 0.0
+    pen_climb_rate: float = 0.0
+    pen_cruise_h: float = 0.0
     # --- 2026-10-01 -------------------------------------------------------------------------------------------------
     # İleri uçuş / hızlanma pencerelerinde istenen tırmanış hızı güç payıyla sınırlı: 0.8·(56 − psi_düz(u, W)) / 0.62 ft/s
     # (psi_düz: trim tablosunun düz uçuş torku). Neden (probe tork, 2026-09-30): 9700 lbs zincirlerinde 56 psi aşımlarının
@@ -628,12 +649,15 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             e = self._errors(s)
             e0 = {"xy": 0.0, "h": abs(e["h"]), "psi": abs(e["psi"]), "u": abs(e["u"])}
             hold = lv.cruise_hold_s
+        kh = float(getattr(lv, "cruise_h_precision", 1.0) or 1.0)
+        cc = tuple(cfg.coupling_cruise[:2]) + (float(cfg.coupling_cruise[2]) * kh,)
         w = dict(t=t, kind=kind, category=category, task={k: v for k, v in d.items() if not k.startswith("_")}, T=T,
                  h_start=s["h"], deadline=deadline_of(T), allow_s=0.0, hold_s=hold, active=active, target=dict(tg),
                  e0=e0, streak=0.0, entry_t=None, settle_s=float("nan"), on_time=False, success=False, closed=False,
                  complete=False, interrupted=False, coupling_ok=True,
                  max_err={"xy": 0.0, "h": 0.0, "psi": 0.0, "u": 0.0}, touchdown_vs=None, final_err=None,
-                 tol=self._tol(tg["h"]), u_target=(self.cruise["u"] if self.cruise else 0.0), clipped=clipped)
+                 tol=self._tol(tg["h"]), u_target=(self.cruise["u"] if self.cruise else 0.0), clipped=clipped,
+                 coupling_cruise=cc)
         if kind == "pirouette":
             self._precise(w, lv)
             # tur sırasında hareketli hedeften en büyük uzaklık / heading farkı (ADS-33 yeterli: radyal ±15 ft, ±15°)
@@ -720,6 +744,18 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         e["u"] = (self.cruise["u"] - self.u_meas) if self.cruise is not None else 0.0
         return e
 
+    def _h_allow(self, w: dict, e: dict) -> float:
+        """İleri uçuşta hız değişimi sürerken irtifa hatasının serbest payı (ft; accel_h_allow_ft · kalan hız hatası oranı)."""
+        k = self.cfg.accel_h_allow_ft
+        if k <= 0.0 or w["closed"] or "u" not in w["active"]:
+            return 0.0
+        x = min(1.0, abs(e["u"]) / max(self.cfg.progress_min_scale_u, float(w["e0"].get("u", 0.0))))
+        return k * x
+
+    @staticmethod
+    def _soft(val: float, allow: float) -> float:
+        return math.copysign(max(0.0, abs(val) - allow), val)
+
     def _schedule_lag(self, e: dict) -> tuple[np.ndarray, float, float]:
         if not self.windows or self.windows[-1]["kind"] != "cruise":
             return super()._schedule_lag(e)
@@ -728,11 +764,13 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         tau = (t - w["t"]) / max(w["T"], 1e-6)
         lag = np.zeros(3)
         scales = (self.cfg.sched_scale_u, self.cfg.sched_scale[1], self.cfg.sched_scale[2])
+        h_allow = self._h_allow(w, e)
         for k, a in enumerate(("u", "h", "psi")):
             if a not in w["active"] or w["category"] == "cruise_hold":
                 continue
             sched = w["e0"][a] * max(0.0, 1.0 - max(0.0, tau))
-            lag[k] = math.copysign(max(0.0, abs(e[a]) - sched), e[a]) / scales[k]
+            err = self._soft(e[a], h_allow) if a == "h" else e[a]
+            lag[k] = math.copysign(max(0.0, abs(err) - sched), err) / scales[k]
         return lag, float(tau), float(w["T"])
 
     def _inside(self, s: dict, e: dict, w: dict) -> bool:
@@ -768,7 +806,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         if w["kind"] != "cruise" or w["closed"]:
             return super()._update_window(s, e, t)
         cfg = self.cfg
-        for k, lim in zip(("u", "psi", "h"), cfg.coupling_cruise):
+        for k, lim in zip(("u", "psi", "h"), w.get("coupling_cruise") or cfg.coupling_cruise):
             val = abs(e[k])
             w["max_err"][k] = max(w["max_err"][k], val)
             if k not in w["active"] and val > lim:
@@ -789,7 +827,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             if w["on_time"] and w["streak"] >= w["hold_s"] - 1e-9:
                 w["complete"] = True
                 self._close_window(w)
-                self._schedule_next(t)
+                self._schedule_next(self._next_after_success(w, t))
             elif elapsed > w["deadline"] and not w["on_time"]:
                 w["complete"] = True
                 self._close_window(w)
@@ -919,7 +957,7 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             w_open = self.windows[-1] if not self.windows[-1]["closed"] else None
             self._update_window(s, e, t_after)
             if w_open is not None and w_open["closed"] and w_open["success"]:
-                reward += cfg.w_task_success * cfg.reward_scale
+                reward += self._success_bonus(w_open) * cfg.reward_scale
         self._prev_wow, self._prev_vs = s["wow"], s["vs"]
 
         fuel_out = self.ext.engine_is_out and cfg.fuel_exhausted_ends
@@ -1001,6 +1039,18 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         hi = cfg.coll_down_act_hi
         return cfg.w_coll_down_act * soft * float(np.clip((hi - float(a[0])) / (hi + 1.0), 0.0, 1.0))
 
+    def _climb_pen(self, s: dict, e: dict) -> float:
+        """Mükemmellik: hover tırmanışında yatay kayma ve roll / pitch oranı cezası (pen_climb_xy, pen_climb_rate)."""
+        cfg = self.cfg
+        if (cfg.pen_climb_xy <= 0.0 and cfg.pen_climb_rate <= 0.0) or not self.windows or s["wow"] > 0:
+            return 0.0
+        w = self.windows[-1]
+        if w["closed"] or w["kind"] not in ("takeoff", "climb_to", "bob"):
+            return 0.0
+        pen = cfg.pen_climb_xy * min(9.0, (max(0.0, e["xy"] - 1.5) / 2.0) ** 2)          # 7.5 ft'te doyar
+        pen += cfg.pen_climb_rate * min(9.0, (s["p"] / 0.1) ** 2 + (s["q"] / 0.1) ** 2)  # ~17 °/s'de doyar
+        return float(pen)
+
     def _reward(self, s: dict, e: dict, a: np.ndarray):
         if not self._in_cruise():
             r, parts = super()._reward(s, e, a)
@@ -1015,16 +1065,19 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
             parts["coll_down_act"] = cact
             tlin = self._torque_lin(s)
             parts["torque_lin"] = -tlin
-            return float(r + cair + cact - tlin), parts
+            climb = self._climb_pen(s, e)
+            parts["climb"] = -climb
+            return float(r + cair + cact - tlin - climb), parts
         cfg, lv = self.cfg, self.ep_level
         w = self.windows[-1]
         K = self._kernel2
-        track = (cfg.w_u * K(e["u"], cfg.kernel_u) + cfg.w_h * K(e["h"], cfg.kernel_h_cruise)
+        e_h = self._soft(e["h"], self._h_allow(w, e))             # hız değişimi sürerken irtifa payı (accel_h_allow_ft)
+        track = (cfg.w_u * K(e["u"], cfg.kernel_u) + cfg.w_h * K(e_h, cfg.kernel_h_cruise)
                  + cfg.w_psi * K(e["psi"], cfg.kernel_psi_cruise))
         # istenen tırmanış güç payıyla sınırlı (power_aware_climb; kapalıyken seviyenin 1.25·cruise_climb_fps'i)
         vs_up = 1.25 * self._cruise_climb_fps(float(self.fdm["velocities/u-aero-fps"]) / KT, s["weight"], lv)
         vs_up = self._climb_feedback_cap(s, vs_up)
-        vs_des = float(np.clip(cfg.guide_k_h * e["h"], -1.25 * lv.cruise_descent_fps, vs_up))
+        vs_des = float(np.clip(cfg.guide_k_h * e_h, -1.25 * lv.cruise_descent_fps, vs_up))
         r_max = 1.25 * cruise_yaw_rate_dps(lv, max(abs(self.u_meas), abs(self.cruise["u"])))
         r_des = float(np.clip(cfg.guide_k_psi * e["psi"], -r_max, r_max))
         a_des = float(np.clip(cfg.guide_k_u * e["u"], -1.25 * lv.cruise_decel_fps2, 1.25 * lv.cruise_accel_fps2))
@@ -1057,10 +1110,11 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
                   + cfg.pen_sat * float(np.mean(np.maximum(np.abs(a) - cfg.sat_threshold, 0.0))))
         couple = 0.0
         if not w["closed"]:
-            for k, lim in zip(("u", "psi", "h"), cfg.coupling_cruise):
+            for k, lim in zip(("u", "psi", "h"), w.get("coupling_cruise") or cfg.coupling_cruise):
                 if k in w["active"]:
                     continue
-                x = min(1.0, max(0.0, abs(e[k]) - cfg.couple_soft_frac * lim) / lim)
+                val = abs(e_h) if k == "h" else abs(e[k])
+                x = min(1.0, max(0.0, val - cfg.couple_soft_frac * lim) / lim)
                 couple += cfg.pen_couple * x * x
         side = self._side_penalty()
         sink = 0.0
@@ -1070,10 +1124,13 @@ class HelicopterEnvFlight(HelicopterEnvTakeoff):
         torque = torque_penalty(s["torque_psi"], s["rpm"], cfg.pen_torque_cont, cfg.pen_torque_over, cfg.pen_rpm_low,
                                 cfg.torque_cont_psi, cfg.torque_max_psi, cfg.rpm_low_warn)
         tlin = self._torque_lin(s)
-        r = track + guide + progress - sched - late - att - rate - smooth - couple - side - sink - torque - tlin
+        hpen = 0.0
+        if cfg.pen_cruise_h > 0.0 and not w["closed"] and ("h" not in w["active"] or w["category"] == "cruise_hold"):
+            hpen = cfg.pen_cruise_h * min(9.0, (max(0.0, abs(e_h) - 2.0) / 3.0) ** 2)      # üst sınır: 11 ft'te doyar
+        r = track + guide + progress - sched - late - att - rate - smooth - couple - side - sink - torque - tlin - hpen
         return float(r), dict(track=track, guide=guide, progress=progress, schedule=sched, late=late, attitude=att,
                               rate=rate, smooth=smooth, coupling=couple, side=-side, sink=-sink, torque=-torque,
-                              torque_lin=-tlin)
+                              torque_lin=-tlin, cruise_h=-hpen)
 
     def _flight_window(self) -> bool:
         """İleri uçuş / duruş penceresi (güvenlik sınırları ileri uçuşunkiler)."""

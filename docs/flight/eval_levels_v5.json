@@ -1,0 +1,359 @@
+{
+ "F3": {
+  "episode": 0.8,
+  "n": 20,
+  "termination": {
+   "time_limit": 20
+  },
+  "env_stages": {
+   "E0": 15,
+   "E1": 5
+  },
+  "categories": {
+   "bob": [
+    1.0,
+    5
+   ],
+   "cruise_h": [
+    1.0,
+    3
+   ],
+   "cruise_hold": [
+    1.0,
+    10
+   ],
+   "cruise_mix": [
+    0.7142857142857143,
+    14
+   ],
+   "cruise_psi": [
+    0.8571428571428571,
+    7
+   ],
+   "cruise_u": [
+    1.0,
+    1
+   ],
+   "hold": [
+    1.0,
+    4
+   ],
+   "interrupted": [
+    0.8333333333333334,
+    6
+   ],
+   "move": [
+    1.0,
+    6
+   ],
+   "takeoff": [
+    1.0,
+    6
+   ],
+   "turn": [
+    1.0,
+    8
+   ]
+  }
+ },
+ "F5": {
+  "episode": 1.0,
+  "n": 20,
+  "termination": {
+   "time_limit": 20
+  },
+  "env_stages": {
+   "E0": 11,
+   "E1": 9
+  },
+  "categories": {
+   "accel": [
+    1.0,
+    20
+   ],
+   "cruise_h": [
+    1.0,
+    13
+   ],
+   "cruise_mix": [
+    1.0,
+    10
+   ],
+   "cruise_psi": [
+    1.0,
+    10
+   ],
+   "cruise_u": [
+    1.0,
+    4
+   ],
+   "stop": [
+    1.0,
+    20
+   ],
+   "takeoff": [
+    1.0,
+    20
+   ]
+  }
+ },
+ "F7": {
+  "episode": 0.9,
+  "n": 20,
+  "termination": {
+   "time_limit": 20
+  },
+  "env_stages": {
+   "E2": 12,
+   "E1": 8
+  },
+  "categories": {
+   "accel": [
+    1.0,
+    7
+   ],
+   "bob": [
+    1.0,
+    1
+   ],
+   "climb_to": [
+    1.0,
+    1
+   ],
+   "cruise_h": [
+    0.9,
+    10
+   ],
+   "cruise_hold": [
+    1.0,
+    7
+   ],
+   "cruise_mix": [
+    1.0,
+    2
+   ],
+   "cruise_psi": [
+    1.0,
+    10
+   ],
+   "cruise_u": [
+    0.8,
+    5
+   ],
+   "hold": [
+    1.0,
+    7
+   ],
+   "interrupted": [
+    1.0,
+    3
+   ],
+   "land": [
+    1.0,
+    2
+   ],
+   "stop": [
+    1.0,
+    11
+   ],
+   "takeoff": [
+    1.0,
+    4
+   ],
+   "turn": [
+    1.0,
+    3
+   ]
+  }
+ },
+ "F8": {
+  "episode": 0.85,
+  "n": 20,
+  "termination": {
+   "time_limit": 20
+  },
+  "env_stages": {
+   "E2": 11,
+   "E1": 4,
+   "E3": 5
+  },
+  "categories": {
+   "accel": [
+    0.8,
+    5
+   ],
+   "bob": [
+    1.0,
+    1
+   ],
+   "climb_to": [
+    1.0,
+    1
+   ],
+   "cruise_h": [
+    0.8888888888888888,
+    9
+   ],
+   "cruise_hold": [
+    1.0,
+    6
+   ],
+   "cruise_mix": [
+    1.0,
+    2
+   ],
+   "cruise_psi": [
+    1.0,
+    9
+   ],
+   "cruise_u": [
+    0.8333333333333334,
+    6
+   ],
+   "hold": [
+    1.0,
+    4
+   ],
+   "interrupted": [
+    1.0,
+    3
+   ],
+   "land": [
+    1.0,
+    2
+   ],
+   "move": [
+    1.0,
+    5
+   ],
+   "stop": [
+    1.0,
+    7
+   ],
+   "takeoff": [
+    1.0,
+    8
+   ],
+   "turn": [
+    1.0,
+    4
+   ]
+  }
+ },
+ "F10": {
+  "episode": 0.85,
+  "n": 20,
+  "termination": {
+   "time_limit": 20
+  },
+  "env_stages": {
+   "E2": 10,
+   "E0": 3,
+   "E1": 3,
+   "E3": 4
+  },
+  "categories": {
+   "accel": [
+    0.6666666666666666,
+    3
+   ],
+   "bob": [
+    1.0,
+    5
+   ],
+   "climb_to": [
+    1.0,
+    2
+   ],
+   "cruise_h": [
+    1.0,
+    10
+   ],
+   "cruise_hold": [
+    1.0,
+    6
+   ],
+   "cruise_mix": [
+    1.0,
+    2
+   ],
+   "cruise_psi": [
+    1.0,
+    9
+   ],
+   "cruise_u": [
+    1.0,
+    2
+   ],
+   "hold": [
+    1.0,
+    7
+   ],
+   "interrupted": [
+    1.0,
+    5
+   ],
+   "land": [
+    1.0,
+    5
+   ],
+   "move": [
+    1.0,
+    4
+   ],
+   "pirouette": [
+    0.8571428571428571,
+    7
+   ],
+   "stop": [
+    1.0,
+    8
+   ],
+   "takeoff": [
+    1.0,
+    4
+   ],
+   "turn": [
+    0.6666666666666666,
+    6
+   ]
+  }
+ },
+ "F6": {
+  "episode": 1.0,
+  "n": 20,
+  "termination": {
+   "time_limit": 20
+  },
+  "env_stages": {
+   "E0": 13,
+   "E1": 7
+  },
+  "categories": {
+   "bob": [
+    1.0,
+    1
+   ],
+   "hold": [
+    1.0,
+    7
+   ],
+   "land": [
+    1.0,
+    20
+   ],
+   "move": [
+    1.0,
+    1
+   ],
+   "takeoff": [
+    1.0,
+    7
+   ],
+   "turn": [
+    1.0,
+    1
+   ]
+  }
+ }
+}

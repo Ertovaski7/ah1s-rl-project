@@ -153,6 +153,13 @@ python evaluate_flight.py --model models_flight/flight_v2.zip --suite test   # h
 python command_viz.py --wind-kt 15 --turb light                        # canlı 3D (varsayılan flight_v2), rüzgâr / tork / yakıt
 ```
 
+## 1.10. Yeni: `flight_v3` — ödül dengesi, rotor dt düzeltmesi, 120 kt zarfı (2026-10-02, bölüm 35)
+
+```bash
+python -m pytest -q tests                                              # duman testleri (env'ler kuruluyor mu)
+python evaluate_flight.py --model models_flight/flight_v3.zip --suite test --env '{"torque_density_climb": false, "next_at_deadline": false}'
+```
+
 ---
 
 # 2. Repo yapısı
@@ -2143,3 +2150,85 @@ yer tutucu panel), `config.py` (paneller, konumlar, sınırlar — `flight_curri
 yükler), `turkey.py` (kaba Türkiye ana hatları). Menüler jsbsim / torch olmadan da açılır; bunlar yalnızca simülasyon
 sürecinde yüklenir.
 
+---
+
+# 35. Bağımsız değerlendirme sonrası: ödül dengesi, rotor zaman adımı, 120 kt zarfı — `flight_v3` (2026-10-02, branch `reward-v3`)
+
+Bu oturumdaki bağımsız teknik değerlendirmenin bulguları ve kullanıcı kararları üzerine yapılan değişiklikler. Ayrıntı ve
+ölçümler: `docs/flight/README.md` bölüm 9. `legacy/` kapsam dışıdır (devre dışı eski sistem; hiçbir değişiklik dokunmaz).
+
+## 35.1. Düzeltmeler
+
+- **HEAD regresyonu:** 8c583eb `start_location`'ı `HelicopterEnvCommand.__init__`'e ekledi; kalkış / uçuş env'leri temel
+  init'i çağırmadığı için reset'te `AttributeError` veriyordu (`python helicopter_env_flight.py`, `evaluate_flight.py`,
+  eğitim çöküyordu; yalnızca `command_viz.py` çalışıyordu). Nitelik `HelicopterEnvTakeoff.__init__`'te de tanımlandı;
+  `tests/test_smoke.py` (`python -m pytest -q tests`) her env'i kurup adım attırıyor.
+- **Rotor zaman adımı** (`TakeoffEnvConfig.rotor_dt_mode`): "legacy" (varsayılan; eski modeller bit düzeyinde aynı)
+  `set_dt`'yi `load_model`'den sonra çağırır → FGRotor / FGTransmission 1/120 s ile integre ederken simülasyon 0.0075 s
+  ilerler (rotor tarafı ~%11 hızlı). "sim": `set_dt` önce → rotor ve simülasyon aynı dt'de; repo uçağının yer etkisi
+  çarpanı `ge/inflow-amplification` gerçek rotor dt'sine göre yazılır (A = e/(1−e), e = exp(−0.0075/0.09) → 11.51;
+  XML'deki 10.31 1/120 s içindi). Ölçüm: kolektif basamağında (0 → 0.62, 8800 lbs) 4 s'de irtifa 19.3 → 20.3 ft, tork
+  ±0.1 psi; `flight_v2` iki modda da aynı davranıyor (hızlanma / iniş probe'u farkları ≤ 0.1 ft). `flight_v3` "sim" ile
+  eğitildi (ayar model zip'inde taşınır; `evaluate_*` ve `command_viz.py` okur).
+- **Komut zarfı 130 → 120 kt** (`flight_curriculum.CMD_MAX_KT`): trim tablosu (probe e) 120 kt'a kadar ölçülü; üstünde
+  ileri besleme kırpılıp yanlış kalıyordu. F10 örneklemesi 15–115 kt başlangıç, 15–110 kt hızlanma. Held-out `d_130kt` →
+  `d_120kt` (komut zaten 120'ye kırpıldığı için fiziksel test aynı).
+- **`evaluate_flight.py` `episode_ok`:** 30 s hover senaryolarında süre bitince yarım kalan oto-tutma penceresi episode'u
+  "başarısız" gösteriyordu (hover_sakin 5/5 görev, "tüm görevler ✗"); kesilen pencereler artık sayılmıyor. Eski JSON'larda
+  etkilenen yalnızca 3 hover senaryosu: flight_v2 seçim 13/21 → **15/21**, held-out 28 → **29/35** okunmalı.
+
+## 35.2. Ödül değişiklikleri (`FlightEnvConfig`; eski modellerin değerlendirmesi ödüle bağlı değil)
+
+Ölçüm (`flight_v2`, kısa zincir 9700 lbs): getiri 709, görev bonusu 12 (%1.7); `track` + `guide` pozitif getirinin ~%99'u,
+bütün cezalar < %5. Görev erken bitince sıradaki görev hemen başlıyor ve episode kısalıyordu → erken bitirmek getiriyi
+düşürüyordu; `flight_v2` ileri uçuş görevlerini son sınırın %70–90'ında bitiriyordu (banda giriş / son sınır medyan
+0.75–0.86). Kullanıcı gözlemi: hızlanmada burun eğilip irtifa kaybı hemen cezalandırıldığı için ajan 3–4 s sonra
+ivmeden vazgeçiyordu. İniş probe'u: 10–20 ft'te 6.1–6.6 ft/s alçalıp son 5 ft'te 4.5–5.1 ft/s'den fren.
+
+| değişiklik | alan (varsayılan) | ne yapar |
+|---|---|---|
+| sıradaki görev son sınırda | `next_at_deadline` (True) | başarıyla biten pencereden sonra sıradaki görev son sınır + tutma süresinde başlar (`end_at_deadline`'ın her pencereye genellenmişi): erken varan hedefte daha çok adım geçirir, episode uzunluğu başarıdan bağımsız; sabit `_t` takvimli ve kesen `_frac` görevler etkilenmez |
+| erken bitirme bonusu | `w_task_early` (50) | başarıda +50·(1 − banda giriş / son sınır) ham (en çok 5 ölçekli), `w_task_success` 30'un üstüne |
+| hızlanmada irtifa payı | `accel_h_allow_ft` (30) | ileri uçuşta hız değişimi sürerken irtifa hatasının 30 ft · (kalan hız hatası oranı) kadarı takip çekirdeği, dikey hız yönlendirmesi, takvim gecikmesi ve kuplaj cezasında sayılmaz; hedefe yaklaştıkça pay sıfırlanır (başarı bandı ±12 ft ve kuplaj sınırı 40 ft değişmez; simetrik: yavaşlarken hız–irtifa takası) |
+| inişin son 20 ft'i | `pen_land_final` (3) | izin verilen alçalma 1.0 + 0.15·kızak yüksekliği ft/s (20 ft: 4.0, 10 ft: 2.5, 5 ft: 1.75); aşımın karesi · 3; yalnızca iniş penceresinde havadayken → manevra kabiliyetini etkilemez |
+| yere yakın attitude | `pen_land_att` (2) | iniş penceresinde kızak < 15 ft iken burun yukarı θ > 8° ve |φ| > 6° için ((aşım)/4°)² · 2 (iniş stres taraması: gust'lı inişte burun 3° → 13° kaldırılıp kuyruk çarpıyordu) |
+
+## 35.3. Eğitim ve sonuç
+
+Soy: flight_v2 → `fl_v3` (F13, 3 M adım, 70 dk, 3 env, `rotor_dt_mode: sim`, yeni ödül varsayılanları). Anlık görüntüler
+seçim takımı + hızlanma / iniş probe'u + 24 inişlik stres taraması + held-out ile karşılaştırıldı (`docs/flight/README.md`
+9.2). **Sonuç modeli `models_flight/flight_v3.zip` = fl_v3 1.5 M**: held-out güvenli 35/35 · tüm 29/35 · görev 117/128
+(flight_v2 düzeltilmiş ölçütle 35/35 · 29/35 · 116/128), sıcak gün 7/7 (6/7), seçim 17/21 · 100/105 (15/21 · 98/105),
+yeni seed'li seviyeler F3 %80 / F5 %95 / F6 %100 / F7 %85 / F8 %80 / F10 %80 (75 / 90 / 100 / 85 / 75 / 65), 60 → 100 kt
+banda giriş 29.5 s (35.9), iniş son 5 ft'te 3.7–3.9 ft/s (4.5–5.1), ADS-33 iniş yanal sapması 1.8 / 2.8 ft (3.0 / 3.6).
+Bedeli: held-out'ta 56 psi üstü 45 s (32). 2.0 M adayı daha yüksek görev başarısına rağmen held-out T2_t_turb inişinde
+kuyruk çarptığı için seçilmedi. İkinci tur (`fl_v3b`, `pen_land_att`) gust'lı iniş kazalarını (25 kt + orta türbülans +
+gust, 150–300 ft; flight_v2'de de 4/24) azaltmadı ve genel görevleri geriletti → model alınmadı.
+
+Açık konular: gust'lı inişte burun yukarı frenleme kazaları (ortak zayıflık), hızlanma rampası (2.5 ft/s²) ile sınırlı
+çeviklik, tek seed. Canlı uygulama ve `command_viz.py` varsayılanı artık `flight_v3` (yoksa flight_v2).
+
+## 35.4. Rüzgâr / gust altında iniş okulu, üç seed, regresyon kapısı — `flight_v4`
+
+Kullanıcı endişesi: iniş düzelirken ileri uçuş bozulmamalı. Ajan tek ağdır; bir beceri için güncellenen ağırlıklar
+diğerini de değiştirir. Çare: **regresyon kapısı** (`docs/flight/gate.py`): seçim takımı + 24 iniş + held-out; hiçbir
+kategori referansın 1'den fazla altına inemez, güvensiz sayısı artamaz. F14 (rüzgâr / gust altında iniş, %50 tekrar)
+flight_v3'ten üç seed ile 1.5 M adım eğitildi. Üç seed üç farklı şekilde bozuldu (biri inişi, biri ileri uçuşu, biri
+güvenliği); yalnızca seed 3'ün 1.5 M modeli kapıyı geçti → **`models_flight/flight_v4.zip`** (canlı uygulama ve
+`command_viz.py` varsayılanı). Held-out 35/35 güvenli · 30/35 · 119/128 (flight_v3 29/35 · 117/128), seviyeler
+F7 / F8 / F10 %90 / 90 / 85 (85 / 80 / 80), hızlanmada irtifa kaybı 0.1 ft (8.2), iniş son 5 ft'te 2.4–2.6 ft/s (3.7–3.9).
+Bedeli: 56 psi üstü süre arttı (held-out 45 → 60 s). Gust'lı iniş kazaları 2/24 (flight_v3 3/24): azalmadı. Ayrıntı:
+`docs/flight/README.md` 9.5. Rüzgârlı ileri uçuş karşılaştırması: 9.4.
+
+## 35.5. Unutmaya karşı öğretmensiz yöntem: rejim uzmanları + büyük batch — `flight_v5` (2026-10-03)
+
+Sorun: iniş ya da ileri uçuş iyileşince diğeri geriliyordu; aynı eğitim farklı seed'lerde farklı bozuluyordu. Kök
+nedenler: tek aksiyon ağı bütün görevleri taşıyor; her PPO güncellemesi yalnızca ~2 episode görüyordu (1 env × 4096
+adım, episode ~2000 adım). Öğretmen / öğrenci yöntemleri mentor kuralıyla yasak (BC buffer denendi, kullanılmadı).
+Çözüm: **rejim uzmanları** (`regime_policy.py`): aksiyon ağı iniş / ileri uçuş / hover uzmanlarına bölünür, gözlemdeki
+bayraklar seçer, eğitilmeyen rejim kilitlenir (`--freeze-regimes`); **16 paralel ortam** (her güncellemede 16 episode,
+~3 kat hız); **kararlı hedef** (F15'in irtifa cezası ileri uçuşu bozdu, F13 bozmadı). Bugünkü denemelerde kapıdan
+geçen / denenen: önceki yollar 1/14, bu yol 2/3 (yeterli+ ölçütüyle 3/3 gerilemesiz); kilitli iniş ve hover üç seed'de
+de referansla birebir aynı. **Sonuç modeli `models_flight/flight_v5.zip`**: seçim 19/21 · 103/105 (flight_v4
+17/21 · 101/105), held-out 35/35 güvenli · 31/35 · 121/128 (30/35 · 119/128), 56 psi üstü 31 s (60 s); iniş ve hover
+flight_v4 ile aynı. Ayrıntı ve önerilen eğitim yolu: `docs/flight/README.md` 9.6–9.7.

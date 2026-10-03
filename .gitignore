@@ -21,3 +21,6 @@ legacy/training/train_turn_full_entry_v13_gated_50_patch.py
 
 # git bundle dosyaları (teslim / yedek) — repoya eklenmesin
 *.bundle
+
+# eğitim koşuları (train_command_curriculum.py --out runs/...)
+runs/

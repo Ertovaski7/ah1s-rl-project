@@ -1,0 +1,116 @@
+[
+ {
+  "model": "/tmp/claude-0/-home-user-ah1s-rl-project/3c2ae793-4a98-541c-a552-99b9f532856e/scratchpad/snap_v4_s3_1500k.zip",
+  "rows": [
+   {
+    "kind": "turn",
+    "arg": 180.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 9.62406785125104,
+    "max_yaw": 29.10089984818227
+   },
+   {
+    "kind": "turn",
+    "arg": 180.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 5.095511678638954,
+    "max_yaw": 27.917894707241725
+   },
+   {
+    "kind": "turn",
+    "arg": -180.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 3.1651196845495075,
+    "max_yaw": 25.837253061060586
+   },
+   {
+    "kind": "turn",
+    "arg": -180.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 6.969586484462473,
+    "max_yaw": 25.936023194226866
+   },
+   {
+    "kind": "turn",
+    "arg": -270.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 3.4169508691283643,
+    "max_yaw": 26.014674964992707
+   },
+   {
+    "kind": "turn",
+    "arg": -270.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 7.635050328499789,
+    "max_yaw": 25.808098859502447
+   },
+   {
+    "kind": "turn",
+    "arg": 360.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 9.69816150174053,
+    "max_yaw": 32.94535302185362
+   },
+   {
+    "kind": "turn",
+    "arg": 360.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 8.574884624889116,
+    "max_yaw": 22.650246878204992
+   },
+   {
+    "kind": "pirouette",
+    "arg": 1.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 7.875554162467918,
+    "max_yaw": 9.246786092532693
+   },
+   {
+    "kind": "pirouette",
+    "arg": 1.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 8.02868400165184,
+    "max_yaw": 11.2804568506559
+   },
+   {
+    "kind": "pirouette",
+    "arg": -1.0,
+    "weight": 8800.0,
+    "success": true,
+    "max_xy": 8.680270897619415,
+    "max_yaw": 11.158627206561865
+   },
+   {
+    "kind": "pirouette",
+    "arg": -1.0,
+    "weight": 9700.0,
+    "success": true,
+    "max_xy": 9.586821641905981,
+    "max_yaw": 11.33207903328034
+   }
+  ],
+  "turn": {
+   "ok": 8,
+   "n": 8,
+   "xy_mean": 6.772416627894971,
+   "xy_max": 9.69816150174053,
+   "yaw_mean": 27.026305566908153
+  },
+  "pirouette": {
+   "ok": 4,
+   "n": 4,
+   "xy_mean": 8.542832675911288,
+   "xy_max": 9.586821641905981
+  }
+ }
+]

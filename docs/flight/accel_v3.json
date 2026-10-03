@@ -1,0 +1,95 @@
+{
+ "model": "/tmp/claude-0/-home-user-ah1s-rl-project/3c2ae793-4a98-541c-a552-99b9f532856e/scratchpad/snap_v3_1500k.zip",
+ "env": {
+  "density_obs": true,
+  "pen_turn_rate": 2.0,
+  "torque_feedback_climb": true,
+  "torque_density_climb": false,
+  "rotor_dt_mode": "sim",
+  "next_at_deadline": false
+ },
+ "rows": [
+  {
+   "id": "acc_20_120",
+   "success": true,
+   "settle_s": 70.9,
+   "deadline": 87.8,
+   "term": "time_limit",
+   "max_alt_loss_ft": 8.6,
+   "max_alt_gain_ft": 4.7,
+   "max_pitch": 18.2,
+   "t90_speed_s": 61.6,
+   "loss_first10s_ft": 8.6,
+   "dv_first10s_kt": 36.3
+  },
+  {
+   "id": "dec_120_20",
+   "success": true,
+   "settle_s": 66.5,
+   "deadline": 86.6,
+   "term": "time_limit",
+   "max_alt_loss_ft": 7.8,
+   "max_alt_gain_ft": 5.6,
+   "max_pitch": 4.7,
+   "t90_speed_s": 54.9,
+   "loss_first10s_ft": 2.5,
+   "dv_first10s_kt": 20.8
+  },
+  {
+   "id": "hover_to_100",
+   "success": true,
+   "settle_s": 69.1,
+   "deadline": 88.2,
+   "term": "time_limit",
+   "max_alt_loss_ft": 4.1,
+   "max_alt_gain_ft": 8.9,
+   "max_pitch": 21.0,
+   "t90_speed_s": 59.5,
+   "loss_first10s_ft": 1.6,
+   "dv_first10s_kt": 36.3
+  },
+  {
+   "id": "acc_60_100",
+   "success": true,
+   "settle_s": 29.5,
+   "deadline": 38.6,
+   "term": "time_limit",
+   "max_alt_loss_ft": 3.6,
+   "max_alt_gain_ft": 2.3,
+   "max_pitch": 12.3,
+   "t90_speed_s": 27.4,
+   "loss_first10s_ft": 3.6,
+   "dv_first10s_kt": 23.7
+  },
+  {
+   "id": "land_300",
+   "success": true,
+   "settle_s": 53.6,
+   "deadline": 90.4,
+   "term": "time_limit",
+   "touchdown_vs": -2.2679438879368345,
+   "xy_td": 3.64,
+   "max_sink_by_band": {
+    "15-20ft": 5.24,
+    "10-15ft": 4.47,
+    "5-10ft": 3.83,
+    "0-5ft": 3.65
+   }
+  },
+  {
+   "id": "land_50_wind",
+   "success": true,
+   "settle_s": 9.2,
+   "deadline": 27.6,
+   "term": "time_limit",
+   "touchdown_vs": -1.990172280456676,
+   "xy_td": 4.18,
+   "max_sink_by_band": {
+    "15-20ft": 5.16,
+    "10-15ft": 5.74,
+    "5-10ft": 5.19,
+    "0-5ft": 3.9
+   }
+  }
+ ]
+}

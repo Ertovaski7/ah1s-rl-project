@@ -40,10 +40,12 @@ CRUISE_MAX_ALT_FT = 1000.0
 # Doğal komut zarfı (2026-10-01; canlı / arayüz komutları — eğitim örneklemesi seviyenin zarfıyla, yukarıdaki sabitler
 # F1–F9 için birebir). Hız: AH-1S en yüksek düz uçuş hızı ~128 kt (Vertipedia) / ~130 KTAS @ 10,000 lbs 8 TOW (DTIC
 # ADA025476, YAH-1S 1975); bu modelde 130 kt ~38–40 psi (gerçekte TOW rampalarıyla ~%100). 10 kt altı → duruş (hover).
+# 2026-10-02: üst sınır 130 → 120 kt — trim tablosu (probe e) 120 kt'a kadar ölçüldü; 120 kt üstünde çizelge kırpılıp
+# ileri besleme yanlış kalıyordu (held-out d_130kt: 128 kt'a çıkıp bantta oturamadı). Kullanıcı kararı: zarf = tablo.
 # İrtifa: CG AGL; ileri uçuşta en az 50 ft, hover 12 ft (kızaklar ~6 ft). Vne (güvenlik): 170 kt (TOW ya da > 9500 lbs;
 # aircav.com).
 CMD_MIN_KT = 10.0
-CMD_MAX_KT = 130.0
+CMD_MAX_KT = 120.0
 CMD_MIN_ALT_FT = 50.0
 CMD_MAX_ALT_FT = 1500.0
 VNE_KT = 170.0
@@ -96,6 +98,8 @@ class FlightLevel(TakeoffLevel):
     # --- hover hassasiyeti: hover görevlerinde kuplaj sınırları ve hover bandının konum toleransı bu katsayıyla ------
     # (türbülans ölçeğinin üstüne; 0.5 → yerinde dönüşte konum kayması ≤ 10 ft, hover bandı 3–6 ft; ADS-33 ±3 / ±6 ft)
     hover_precision: float = 1.0
+    # --- ileri uçuşta irtifa hassasiyeti (2026-10-03): komut verilmeyen irtifa ekseninin kuplaj sınırı (40 ft) bu katsayıyla
+    cruise_h_precision: float = 1.0
     # --- hava sıcaklığı (standart günden sapma, °C; (0, 0) → kapalı, RNG'ye dokunmaz) ---------------------------------
     delta_T_C: tuple = (0.0, 0.0)
 
@@ -222,11 +226,13 @@ def find_flight_level(level, levels=None) -> int:
 #   F7     | karma (tüm görevler)                                            | E1 / E2
 #   F8     | karma + zincir, rüzgâr + türbülans                              | E1 / E2 / E3
 #   F9     | cila: F8 + daha çok hover manevrası, sakin hover manevrası tekrarı | E1 / E2 / E3
-#   F10    | doğal zarf (10–130 kt, 50–1500 ft, Δψ ≤ 270°), pirouette, hover   | E0–E3, hava sıcaklığı
+#   F10    | doğal zarf (10–120 kt, 50–1500 ft, Δψ ≤ 270°), pirouette, hover   | E0–E3, hava sıcaklığı
 #          | hassasiyeti ×0.5, hover dönüşü ≤ 360° (2026-10-01)                | standart −10…+30 °C
 #   F11    | hassasiyet okulu: dönüş / pirouette / kayma / bob, %50 F10 tekrarı | E0–E2, −10…+30 °C
 #   F12    | denge: F10 karışımı + %45 tekrar (F11 ×3, F6, F7, F8, F9)          | F10'un çevresi
 #   F13    | denge + iniş: F10 karışımı + %50 tekrar (F6a ×2, F6 ×2, F11 ×2, F8, F9) | F10'un çevresi
+#   F14    | rüzgâr / gust altında iniş okulu + %50 tekrar (F13, F10, F8, F9)  | E2 / E3, −10…+30 °C
+#   F15    | mükemmellik: ileri uçuşta irtifa tutma + düz tırmanış, %50 tekrar  | F10'un çevresi
 #
 # F11 / F12 (2026-10-01): F11'de 3.5 M adım hassasiyeti getirdi (yerinde dönüşte kayma 18 → 6 ft) ama genel becerileri
 # aşındırdı (seçim takımında tüm görevler 18/21 → 8/21: inişte collective ~0.2'de kalıp kızaklarda ağırlık < %70,
@@ -321,16 +327,16 @@ DEFAULT_FLIGHT_LEVELS: list[FlightLevel] = [
         fuel_lbs=_FUEL, env_probs={"E1": 0.3, "E2": 0.4, "E3": 0.3}, promote_threshold=0.6,
         rehearse=("F2", "F3", "F5", "F6", "F7", "F8"), p_rehearse=0.35),
     FlightLevel(
-        name="F10", description="Doğal zarf + hassasiyet + sıcak gün (2026-10-01): F9 karışımı; ileri uçuş 10–130 kt, "
+        name="F10", description="Doğal zarf + hassasiyet + sıcak gün (2026-10-01): F9 karışımı; ileri uçuş 10–120 kt (2026-10-02; önce 130), "
                                 "50–1500 ft, Δhız ≤ 50 kt, Δψ ≤ 270°, Δh ≤ 600 ft; hover dönüşü ≤ 360°, pirouette; hover "
                                 "hassasiyeti ×0.5; hava sıcaklığı standart −10…+30 °C",
         p_hover_start=0.4, hover_start_alt_ft=(15.0, 800.0), takeoff_alt_ft=(10.0, 1000.0), n_tasks=(1, 3),
         task_probs={"turn": 0.3, "move": 0.2, "bob": 0.2, "pirouette": 0.3}, turn_deg=(30.0, 360.0),
         pirouette_radius_ft=(80.0, 120.0), pirouette_s=(40.0, 60.0),
-        p_target_change=0.2, p_land=0.3, p_cruise_start=0.3, cruise_start_kt=(15.0, 125.0),
+        p_target_change=0.2, p_land=0.3, p_cruise_start=0.3, cruise_start_kt=(15.0, 115.0),
         cruise_start_alt_ft=(60.0, 1450.0), n_cruise=(1, 4), p_cruise_interrupt=0.25, du_kt=(10.0, 50.0),
         dpsi_deg=(20.0, 270.0), dh_ft=(50.0, 600.0), cruise_kt_env=(CMD_MIN_KT, CMD_MAX_KT),
-        cruise_alt_env=(CMD_MIN_ALT_FT, CMD_MAX_ALT_FT), p_accel=0.4, accel_kt=(15.0, 120.0), accel_climb_ft=(0.0, 300.0),
+        cruise_alt_env=(CMD_MIN_ALT_FT, CMD_MAX_ALT_FT), p_accel=0.4, accel_kt=(15.0, 110.0), accel_climb_ft=(0.0, 300.0),
         p_stop=0.6, p_chain=0.5, p_land_after_stop=0.3, p_touch_start=0.05, p_low_hover_start=0.05, climb_fps=10.0,
         descent_fps=5.0, lag_s=4.0, fuel_lbs=_FUEL, env_probs={"E0": 0.15, "E1": 0.25, "E2": 0.35, "E3": 0.25},
         hover_precision=0.5, delta_T_C=(-10.0, 30.0), promote_threshold=0.6,
@@ -357,6 +363,30 @@ DEFAULT_FLIGHT_LEVELS.append(replace(
     description="Denge + iniş (2026-10-01): F10 karışımı; tekrar %50 — F6a ×2, F6 ×2, F11 ×2, F8, F9",
     rehearse=("F6a", "F6a", "F6", "F6", "F11", "F11", "F8", "F9"), p_rehearse=0.5))
 
+# F14 (2026-10-02): rüzgâr ve gust altında iniş okulu. Sorun: 25 kt + orta türbülans + gust'ta 150–300 ft'ten inişte
+# flight_v2 / flight_v3 24 inişin 3–4'ünde kuyruk çarpması ya da devrilme (burun yukarı frenleme). Episode: hover'dan
+# (12–300 ft) ya da ileri uçuştan duruş → iniş, çevre E2 / E3 (rüzgâr 0–25 kt, hafif / orta türbülans, gust). Episode'ların
+# yarısı F13 / F10 / F8 / F9 tekrarı: ileri uçuş ve hassasiyet korunsun (unutmaya karşı).
+DEFAULT_FLIGHT_LEVELS.append(FlightLevel(
+    name="F14", description="Rüzgâr / gust altında iniş okulu (2026-10-02): hover 12–300 ft → iniş (%60) ya da ileri uçuş "
+                            "30–80 kt → duruş → iniş (%40); rüzgâr 0–25 kt, hafif / orta türbülans, gust; %50 tekrar "
+                            "F13 / F10 / F8 / F9",
+    p_hover_start=1.0, hover_start_alt_ft=(12.0, 300.0), n_tasks=(0, 1), task_probs={"move": 0.5, "bob": 0.5},
+    move_ft=(15.0, 40.0), bob_ft=(10.0, 30.0), p_land=1.0, p_cruise_start=0.4, cruise_start_kt=(30.0, 80.0),
+    cruise_start_alt_ft=(100.0, 400.0), n_cruise=(0, 0), p_stop=1.0, p_land_after_stop=1.0, stop_decel=(2.0, 3.0),
+    climb_fps=8.0, descent_fps=5.0, lag_s=4.0, fuel_lbs=_FUEL, env_probs={"E2": 0.4, "E3": 0.6}, hover_precision=0.5,
+    delta_T_C=(-10.0, 30.0), promote_threshold=0.6, rehearse=("F13", "F10", "F8", "F9"), p_rehearse=0.5))
+# F15 (2026-10-03): mükemmellik okulu — (a) ileri uçuşta irtifa tutma (dönüş / yavaşlama / tut; hızlanma hariç),
+# (b) tırmanışta sallanmadan düz iz (dikey kalkış, climb_to, bob-up). F10 karışımı, tırmanış ve dönüş ağırlıklı; kuplaj
+# sınırları sıkı (hover ×0.5, ileri uçuş irtifası ×0.5 → 20 ft); ödülde pen_climb_xy / pen_climb_rate / pen_cruise_h
+# (FlightEnvConfig, eğitimde --env-overrides ile). %50 tekrar F14 / F13 / F11 / F8 / F6.
+DEFAULT_FLIGHT_LEVELS.append(replace(
+    DEFAULT_FLIGHT_LEVELS[[lv.name for lv in DEFAULT_FLIGHT_LEVELS].index("F10")], name="F15",
+    description="Mükemmellik okulu (2026-10-03): F10 karışımı; tırmanış (kalkış 10–1000 ft, %40 hedef değişikliği, bob %40) ve "
+                "ileri uçuşta dönüş / yavaşlama ağırlıklı; hover ×0.5, ileri uçuş irtifa kuplajı ×0.5; %50 tekrar",
+    p_hover_start=0.3, p_target_change=0.4, task_probs={"turn": 0.15, "move": 0.15, "bob": 0.4, "pirouette": 0.3},
+    cruise_probs={"u": 0.25, "psi": 0.4, "h": 0.15, "mix": 0.2}, cruise_h_precision=0.5,
+    rehearse=("F14", "F13", "F11", "F8", "F6"), p_rehearse=0.5))
 
 __all__ = ["FlightLevel", "DEFAULT_FLIGHT_LEVELS", "ENV_STAGES", "find_flight_level", "flight_time_target",
            "cruise_yaw_rate_dps", "deadline_of", "CRUISE_MIN_KT", "CRUISE_MAX_KT", "CRUISE_MIN_ALT_FT",

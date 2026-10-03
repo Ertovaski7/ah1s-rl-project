@@ -1,0 +1,1229 @@
+{
+ "flight_v2": {
+  "rows": [
+   {
+    "id": "inis300_15kt_yan_hafif_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.8892781630062216,
+    "xy": 6.9,
+    "sink_last5ft": 5.62
+   },
+   {
+    "id": "inis300_15kt_yan_hafif_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.82911084629838,
+    "xy": 5.8,
+    "sink_last5ft": 5.24
+   },
+   {
+    "id": "inis50_15kt_yan_hafif_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.2059856355892506,
+    "xy": 6.2,
+    "sink_last5ft": 4.68
+   },
+   {
+    "id": "inis50_15kt_yan_hafif_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.4165020484707536,
+    "xy": 6.8,
+    "sink_last5ft": 4.49
+   },
+   {
+    "id": "inis150_15kt_yan_hafif_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.0953020467005206,
+    "xy": 6.2,
+    "sink_last5ft": 4.8
+   },
+   {
+    "id": "inis150_15kt_yan_hafif_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.339824323774788,
+    "xy": 6.1,
+    "sink_last5ft": 5.01
+   },
+   {
+    "id": "inis300_25kt_orta_gust_9700",
+    "seed": 0,
+    "term": "tail_strike",
+    "ok": false,
+    "touchdown": null,
+    "xy": 80.8,
+    "sink_last5ft": 7.84
+   },
+   {
+    "id": "inis300_25kt_orta_gust_9700",
+    "seed": 1,
+    "term": "tail_strike",
+    "ok": false,
+    "touchdown": null,
+    "xy": 74.6,
+    "sink_last5ft": null
+   },
+   {
+    "id": "inis50_25kt_orta_gust_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": -1.1705608668679146,
+    "xy": 4.1,
+    "sink_last5ft": 3.33
+   },
+   {
+    "id": "inis50_25kt_orta_gust_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -3.3240428362884296,
+    "xy": 5.6,
+    "sink_last5ft": 5.47
+   },
+   {
+    "id": "inis150_25kt_orta_gust_9400",
+    "seed": 0,
+    "term": "rollover",
+    "ok": false,
+    "touchdown": null,
+    "xy": 24.5,
+    "sink_last5ft": 12.13
+   },
+   {
+    "id": "inis150_25kt_orta_gust_9400",
+    "seed": 1,
+    "term": "tail_strike",
+    "ok": false,
+    "touchdown": null,
+    "xy": 48.8,
+    "sink_last5ft": 5.57
+   },
+   {
+    "id": "inis300_20kt_arka_hafif_gust_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.005876943770861,
+    "xy": 7.1,
+    "sink_last5ft": 5.08
+   },
+   {
+    "id": "inis300_20kt_arka_hafif_gust_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.1470158497931258,
+    "xy": 5.3,
+    "sink_last5ft": 4.41
+   },
+   {
+    "id": "inis50_20kt_arka_hafif_gust_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.976434036318481,
+    "xy": 3.9,
+    "sink_last5ft": 3.94
+   },
+   {
+    "id": "inis50_20kt_arka_hafif_gust_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -0.7854045976204477,
+    "xy": 2.9,
+    "sink_last5ft": 3.21
+   },
+   {
+    "id": "inis150_20kt_arka_hafif_gust_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.8926573493975205,
+    "xy": 4.1,
+    "sink_last5ft": 3.33
+   },
+   {
+    "id": "inis150_20kt_arka_hafif_gust_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.584588486133919,
+    "xy": 5.8,
+    "sink_last5ft": 3.82
+   },
+   {
+    "id": "inis300_sakin_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.8359186430654875,
+    "xy": 4.0,
+    "sink_last5ft": 4.47
+   },
+   {
+    "id": "inis300_sakin_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.922762040325054,
+    "xy": 4.0,
+    "sink_last5ft": 4.36
+   },
+   {
+    "id": "inis50_sakin_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.5464086033060105,
+    "xy": 3.9,
+    "sink_last5ft": 4.52
+   },
+   {
+    "id": "inis50_sakin_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.4821739061713406,
+    "xy": 3.6,
+    "sink_last5ft": 4.55
+   },
+   {
+    "id": "inis150_sakin_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.75634655518817,
+    "xy": 4.0,
+    "sink_last5ft": 4.29
+   },
+   {
+    "id": "inis150_sakin_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.8074397676906107,
+    "xy": 4.0,
+    "sink_last5ft": 4.41
+   }
+  ],
+  "n_ok": 19,
+  "n": 24,
+  "unsafe": [
+   [
+    "inis300_25kt_orta_gust_9700",
+    0,
+    "tail_strike"
+   ],
+   [
+    "inis300_25kt_orta_gust_9700",
+    1,
+    "tail_strike"
+   ],
+   [
+    "inis150_25kt_orta_gust_9400",
+    0,
+    "rollover"
+   ],
+   [
+    "inis150_25kt_orta_gust_9400",
+    1,
+    "tail_strike"
+   ]
+  ],
+  "td_median": -2.378163186122771,
+  "td_min": -3.3240428362884296,
+  "hard": []
+ },
+ "snap_v3_1500k": {
+  "rows": [
+   {
+    "id": "inis300_15kt_yan_hafif_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.7552581757845904,
+    "xy": 6.3,
+    "sink_last5ft": 4.6
+   },
+   {
+    "id": "inis300_15kt_yan_hafif_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.5334705379278986,
+    "xy": 4.1,
+    "sink_last5ft": 4.3
+   },
+   {
+    "id": "inis50_15kt_yan_hafif_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.042146359185803,
+    "xy": 5.3,
+    "sink_last5ft": 4.06
+   },
+   {
+    "id": "inis50_15kt_yan_hafif_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.9548018013026849,
+    "xy": 5.2,
+    "sink_last5ft": 4.19
+   },
+   {
+    "id": "inis150_15kt_yan_hafif_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.1654487670938183,
+    "xy": 4.8,
+    "sink_last5ft": 3.87
+   },
+   {
+    "id": "inis150_15kt_yan_hafif_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.351025126671618,
+    "xy": 3.6,
+    "sink_last5ft": 4.3
+   },
+   {
+    "id": "inis300_25kt_orta_gust_9700",
+    "seed": 0,
+    "term": "tail_strike",
+    "ok": false,
+    "touchdown": null,
+    "xy": 71.5,
+    "sink_last5ft": 23.11
+   },
+   {
+    "id": "inis300_25kt_orta_gust_9700",
+    "seed": 1,
+    "term": "rollover",
+    "ok": false,
+    "touchdown": null,
+    "xy": 52.9,
+    "sink_last5ft": 5.07
+   },
+   {
+    "id": "inis50_25kt_orta_gust_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": -0.31550956669555336,
+    "xy": 2.4,
+    "sink_last5ft": 2.91
+   },
+   {
+    "id": "inis50_25kt_orta_gust_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": -2.7829317539311766,
+    "xy": 5.2,
+    "sink_last5ft": 3.19
+   },
+   {
+    "id": "inis150_25kt_orta_gust_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": -4.151902797132961,
+    "xy": 11.0,
+    "sink_last5ft": 6.11
+   },
+   {
+    "id": "inis150_25kt_orta_gust_9400",
+    "seed": 1,
+    "term": "rollover",
+    "ok": false,
+    "touchdown": -3.4557083864655627,
+    "xy": 16.6,
+    "sink_last5ft": 5.16
+   },
+   {
+    "id": "inis300_20kt_arka_hafif_gust_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.8826665069085284,
+    "xy": 6.6,
+    "sink_last5ft": 3.56
+   },
+   {
+    "id": "inis300_20kt_arka_hafif_gust_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.622841199608317,
+    "xy": 5.2,
+    "sink_last5ft": 3.76
+   },
+   {
+    "id": "inis50_20kt_arka_hafif_gust_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.2083474678251362,
+    "xy": 4.2,
+    "sink_last5ft": 3.14
+   },
+   {
+    "id": "inis50_20kt_arka_hafif_gust_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.5142786014296257,
+    "xy": 5.9,
+    "sink_last5ft": 2.51
+   },
+   {
+    "id": "inis150_20kt_arka_hafif_gust_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.4943134656792494,
+    "xy": 4.6,
+    "sink_last5ft": 3.15
+   },
+   {
+    "id": "inis150_20kt_arka_hafif_gust_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.0774677025620927,
+    "xy": 3.8,
+    "sink_last5ft": 2.95
+   },
+   {
+    "id": "inis300_sakin_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.4627266290411063,
+    "xy": 3.4,
+    "sink_last5ft": 3.94
+   },
+   {
+    "id": "inis300_sakin_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.4014535764340454,
+    "xy": 3.3,
+    "sink_last5ft": 3.66
+   },
+   {
+    "id": "inis50_sakin_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.0899702742407325,
+    "xy": 3.5,
+    "sink_last5ft": 2.77
+   },
+   {
+    "id": "inis50_sakin_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.0703619188150775,
+    "xy": 3.3,
+    "sink_last5ft": 2.6
+   },
+   {
+    "id": "inis150_sakin_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.41246022071678,
+    "xy": 3.3,
+    "sink_last5ft": 3.65
+   },
+   {
+    "id": "inis150_sakin_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.9088845506760723,
+    "xy": 3.4,
+    "sink_last5ft": 3.35
+   }
+  ],
+  "n_ok": 18,
+  "n": 24,
+  "unsafe": [
+   [
+    "inis300_25kt_orta_gust_9700",
+    0,
+    "tail_strike"
+   ],
+   [
+    "inis300_25kt_orta_gust_9700",
+    1,
+    "rollover"
+   ],
+   [
+    "inis150_25kt_orta_gust_9400",
+    1,
+    "rollover"
+   ]
+  ],
+  "td_median": -2.3762393515528317,
+  "td_min": -4.151902797132961,
+  "hard": [
+   [
+    "inis150_25kt_orta_gust_9400",
+    0,
+    -4.15
+   ]
+  ]
+ },
+ "snap_v3_2000k": {
+  "rows": [
+   {
+    "id": "inis300_15kt_yan_hafif_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.2899125067040527,
+    "xy": 5.2,
+    "sink_last5ft": 4.27
+   },
+   {
+    "id": "inis300_15kt_yan_hafif_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.414703663380523,
+    "xy": 4.0,
+    "sink_last5ft": 4.16
+   },
+   {
+    "id": "inis50_15kt_yan_hafif_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.4527568915611724,
+    "xy": 4.0,
+    "sink_last5ft": 3.36
+   },
+   {
+    "id": "inis50_15kt_yan_hafif_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.58344840876041,
+    "xy": 3.6,
+    "sink_last5ft": 3.7
+   },
+   {
+    "id": "inis150_15kt_yan_hafif_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.024073622104547,
+    "xy": 4.7,
+    "sink_last5ft": 3.5
+   },
+   {
+    "id": "inis150_15kt_yan_hafif_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.574744407279657,
+    "xy": 3.9,
+    "sink_last5ft": 3.81
+   },
+   {
+    "id": "inis300_25kt_orta_gust_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": -3.5246241997583057,
+    "xy": 7.7,
+    "sink_last5ft": 4.89
+   },
+   {
+    "id": "inis300_25kt_orta_gust_9700",
+    "seed": 1,
+    "term": "tail_strike",
+    "ok": false,
+    "touchdown": null,
+    "xy": 39.2,
+    "sink_last5ft": 11.09
+   },
+   {
+    "id": "inis50_25kt_orta_gust_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": -2.9926057298937954,
+    "xy": 4.7,
+    "sink_last5ft": 3.1
+   },
+   {
+    "id": "inis50_25kt_orta_gust_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": -2.3961133371414216,
+    "xy": 3.3,
+    "sink_last5ft": 2.4
+   },
+   {
+    "id": "inis150_25kt_orta_gust_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": -4.124086605919201,
+    "xy": 7.6,
+    "sink_last5ft": 5.07
+   },
+   {
+    "id": "inis150_25kt_orta_gust_9400",
+    "seed": 1,
+    "term": "tail_strike",
+    "ok": false,
+    "touchdown": null,
+    "xy": 11.4,
+    "sink_last5ft": 5.42
+   },
+   {
+    "id": "inis300_20kt_arka_hafif_gust_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.7257474072061583,
+    "xy": 6.2,
+    "sink_last5ft": 5.49
+   },
+   {
+    "id": "inis300_20kt_arka_hafif_gust_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.680874750457928,
+    "xy": 5.6,
+    "sink_last5ft": 3.64
+   },
+   {
+    "id": "inis50_20kt_arka_hafif_gust_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -0.500262941369341,
+    "xy": 3.8,
+    "sink_last5ft": 3.53
+   },
+   {
+    "id": "inis50_20kt_arka_hafif_gust_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.4917420623780264,
+    "xy": 5.5,
+    "sink_last5ft": 3.01
+   },
+   {
+    "id": "inis150_20kt_arka_hafif_gust_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.8246365392753052,
+    "xy": 4.3,
+    "sink_last5ft": 2.84
+   },
+   {
+    "id": "inis150_20kt_arka_hafif_gust_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.9366977903171088,
+    "xy": 4.6,
+    "sink_last5ft": 3.4
+   },
+   {
+    "id": "inis300_sakin_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.5083681684831975,
+    "xy": 2.5,
+    "sink_last5ft": 3.53
+   },
+   {
+    "id": "inis300_sakin_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.6340116630465658,
+    "xy": 3.1,
+    "sink_last5ft": 3.5
+   },
+   {
+    "id": "inis50_sakin_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.1478300956483856,
+    "xy": 2.6,
+    "sink_last5ft": 2.51
+   },
+   {
+    "id": "inis50_sakin_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.189687932634395,
+    "xy": 2.6,
+    "sink_last5ft": 2.44
+   },
+   {
+    "id": "inis150_sakin_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.2497344285722063,
+    "xy": 3.0,
+    "sink_last5ft": 3.07
+   },
+   {
+    "id": "inis150_sakin_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.676506175846584,
+    "xy": 3.1,
+    "sink_last5ft": 2.97
+   }
+  ],
+  "n_ok": 18,
+  "n": 24,
+  "unsafe": [
+   [
+    "inis300_25kt_orta_gust_9700",
+    1,
+    "tail_strike"
+   ],
+   [
+    "inis150_25kt_orta_gust_9400",
+    1,
+    "tail_strike"
+   ]
+  ],
+  "td_median": -2.405408500260972,
+  "td_min": -4.124086605919201,
+  "hard": [
+   [
+    "inis150_25kt_orta_gust_9400",
+    0,
+    -4.12
+   ]
+  ]
+ },
+ "snap_v3_2500k": {
+  "rows": [
+   {
+    "id": "inis300_15kt_yan_hafif_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.8398053487116834,
+    "xy": 5.2,
+    "sink_last5ft": 3.59
+   },
+   {
+    "id": "inis300_15kt_yan_hafif_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.9592635773527267,
+    "xy": 3.9,
+    "sink_last5ft": 3.48
+   },
+   {
+    "id": "inis50_15kt_yan_hafif_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.262517730158178,
+    "xy": 4.6,
+    "sink_last5ft": 3.6
+   },
+   {
+    "id": "inis50_15kt_yan_hafif_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.6027899424936567,
+    "xy": 3.7,
+    "sink_last5ft": 3.16
+   },
+   {
+    "id": "inis150_15kt_yan_hafif_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.19830293573581,
+    "xy": 4.0,
+    "sink_last5ft": 2.38
+   },
+   {
+    "id": "inis150_15kt_yan_hafif_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.910691217175652,
+    "xy": 3.1,
+    "sink_last5ft": 3.31
+   },
+   {
+    "id": "inis300_25kt_orta_gust_9700",
+    "seed": 0,
+    "term": "tail_strike",
+    "ok": false,
+    "touchdown": null,
+    "xy": 92.7,
+    "sink_last5ft": null
+   },
+   {
+    "id": "inis300_25kt_orta_gust_9700",
+    "seed": 1,
+    "term": "tail_strike",
+    "ok": false,
+    "touchdown": null,
+    "xy": 83.5,
+    "sink_last5ft": null
+   },
+   {
+    "id": "inis50_25kt_orta_gust_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": null,
+    "xy": 6.0,
+    "sink_last5ft": 3.03
+   },
+   {
+    "id": "inis50_25kt_orta_gust_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": null,
+    "xy": 6.7,
+    "sink_last5ft": 2.86
+   },
+   {
+    "id": "inis150_25kt_orta_gust_9400",
+    "seed": 0,
+    "term": "rollover",
+    "ok": false,
+    "touchdown": null,
+    "xy": 31.1,
+    "sink_last5ft": 6.55
+   },
+   {
+    "id": "inis150_25kt_orta_gust_9400",
+    "seed": 1,
+    "term": "tail_strike",
+    "ok": false,
+    "touchdown": null,
+    "xy": 54.6,
+    "sink_last5ft": null
+   },
+   {
+    "id": "inis300_20kt_arka_hafif_gust_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -3.611923750755322,
+    "xy": 6.6,
+    "sink_last5ft": 6.63
+   },
+   {
+    "id": "inis300_20kt_arka_hafif_gust_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.9390529453710117,
+    "xy": 8.5,
+    "sink_last5ft": 4.74
+   },
+   {
+    "id": "inis50_20kt_arka_hafif_gust_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.3866008223870856,
+    "xy": 4.1,
+    "sink_last5ft": 1.79
+   },
+   {
+    "id": "inis50_20kt_arka_hafif_gust_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.9562247557626475,
+    "xy": 3.3,
+    "sink_last5ft": 2.16
+   },
+   {
+    "id": "inis150_20kt_arka_hafif_gust_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.8448505265919402,
+    "xy": 4.7,
+    "sink_last5ft": 3.28
+   },
+   {
+    "id": "inis150_20kt_arka_hafif_gust_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.057539268603096,
+    "xy": 6.4,
+    "sink_last5ft": 2.73
+   },
+   {
+    "id": "inis300_sakin_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.066782940868194,
+    "xy": 2.6,
+    "sink_last5ft": 2.46
+   },
+   {
+    "id": "inis300_sakin_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.1773576767426444,
+    "xy": 2.6,
+    "sink_last5ft": 2.59
+   },
+   {
+    "id": "inis50_sakin_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.2062839333796636,
+    "xy": 3.0,
+    "sink_last5ft": 2.39
+   },
+   {
+    "id": "inis50_sakin_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -0.4770147226604671,
+    "xy": 2.9,
+    "sink_last5ft": 2.39
+   },
+   {
+    "id": "inis150_sakin_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -0.5888624617629531,
+    "xy": 2.4,
+    "sink_last5ft": 2.64
+   },
+   {
+    "id": "inis150_sakin_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.483017877462835,
+    "xy": 2.5,
+    "sink_last5ft": 2.43
+   }
+  ],
+  "n_ok": 18,
+  "n": 24,
+  "unsafe": [
+   [
+    "inis300_25kt_orta_gust_9700",
+    0,
+    "tail_strike"
+   ],
+   [
+    "inis300_25kt_orta_gust_9700",
+    1,
+    "tail_strike"
+   ],
+   [
+    "inis150_25kt_orta_gust_9400",
+    0,
+    "rollover"
+   ],
+   [
+    "inis150_25kt_orta_gust_9400",
+    1,
+    "tail_strike"
+   ]
+  ],
+  "td_median": -1.9248720812733318,
+  "td_min": -3.611923750755322,
+  "hard": []
+ },
+ "snap_v3_3000k": {
+  "rows": [
+   {
+    "id": "inis300_15kt_yan_hafif_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.9421396384807663,
+    "xy": 3.0,
+    "sink_last5ft": 3.92
+   },
+   {
+    "id": "inis300_15kt_yan_hafif_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.313736223720933,
+    "xy": 1.8,
+    "sink_last5ft": 3.37
+   },
+   {
+    "id": "inis50_15kt_yan_hafif_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.54378691371167,
+    "xy": 3.5,
+    "sink_last5ft": 3.4
+   },
+   {
+    "id": "inis50_15kt_yan_hafif_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.8750076379059106,
+    "xy": 2.8,
+    "sink_last5ft": 3.65
+   },
+   {
+    "id": "inis150_15kt_yan_hafif_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.5421619536207112,
+    "xy": 4.7,
+    "sink_last5ft": 2.74
+   },
+   {
+    "id": "inis150_15kt_yan_hafif_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.1311321166127,
+    "xy": 2.6,
+    "sink_last5ft": 3.39
+   },
+   {
+    "id": "inis300_25kt_orta_gust_9700",
+    "seed": 0,
+    "term": "tail_strike",
+    "ok": false,
+    "touchdown": null,
+    "xy": 56.8,
+    "sink_last5ft": 7.34
+   },
+   {
+    "id": "inis300_25kt_orta_gust_9700",
+    "seed": 1,
+    "term": "tail_strike",
+    "ok": false,
+    "touchdown": null,
+    "xy": 119.7,
+    "sink_last5ft": null
+   },
+   {
+    "id": "inis50_25kt_orta_gust_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": null,
+    "xy": 6.8,
+    "sink_last5ft": 2.53
+   },
+   {
+    "id": "inis50_25kt_orta_gust_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": null,
+    "xy": 5.5,
+    "sink_last5ft": 2.82
+   },
+   {
+    "id": "inis150_25kt_orta_gust_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": false,
+    "touchdown": -1.1625940609044954,
+    "xy": 9.1,
+    "sink_last5ft": 3.82
+   },
+   {
+    "id": "inis150_25kt_orta_gust_9400",
+    "seed": 1,
+    "term": "rollover",
+    "ok": false,
+    "touchdown": null,
+    "xy": 19.6,
+    "sink_last5ft": 4.03
+   },
+   {
+    "id": "inis300_20kt_arka_hafif_gust_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -3.3964517895318918,
+    "xy": 8.2,
+    "sink_last5ft": 5.1
+   },
+   {
+    "id": "inis300_20kt_arka_hafif_gust_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.9954710798766582,
+    "xy": 5.3,
+    "sink_last5ft": 4.58
+   },
+   {
+    "id": "inis50_20kt_arka_hafif_gust_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -0.5405584636731848,
+    "xy": 4.1,
+    "sink_last5ft": 1.99
+   },
+   {
+    "id": "inis50_20kt_arka_hafif_gust_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -0.8390622660985455,
+    "xy": 2.6,
+    "sink_last5ft": 2.08
+   },
+   {
+    "id": "inis150_20kt_arka_hafif_gust_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -3.197868166587425,
+    "xy": 5.9,
+    "sink_last5ft": 3.59
+   },
+   {
+    "id": "inis150_20kt_arka_hafif_gust_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -0.7348644802441155,
+    "xy": 3.7,
+    "sink_last5ft": 2.73
+   },
+   {
+    "id": "inis300_sakin_9700",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.3441842165215783,
+    "xy": 0.6,
+    "sink_last5ft": 2.98
+   },
+   {
+    "id": "inis300_sakin_9700",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -2.2838716379218105,
+    "xy": 0.5,
+    "sink_last5ft": 2.97
+   },
+   {
+    "id": "inis50_sakin_9100",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.5568379549026408,
+    "xy": 1.8,
+    "sink_last5ft": 2.39
+   },
+   {
+    "id": "inis50_sakin_9100",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.6513250159227566,
+    "xy": 2.0,
+    "sink_last5ft": 2.11
+   },
+   {
+    "id": "inis150_sakin_9400",
+    "seed": 0,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.3022136727612266,
+    "xy": 1.5,
+    "sink_last5ft": 2.45
+   },
+   {
+    "id": "inis150_sakin_9400",
+    "seed": 1,
+    "term": "time_limit",
+    "ok": true,
+    "touchdown": -1.5271210905558348,
+    "xy": 1.3,
+    "sink_last5ft": 2.49
+   }
+  ],
+  "n_ok": 18,
+  "n": 24,
+  "unsafe": [
+   [
+    "inis300_25kt_orta_gust_9700",
+    0,
+    "tail_strike"
+   ],
+   [
+    "inis300_25kt_orta_gust_9700",
+    1,
+    "tail_strike"
+   ],
+   [
+    "inis150_25kt_orta_gust_9400",
+    1,
+    "rollover"
+   ]
+  ],
+  "td_median": -1.8750076379059106,
+  "td_min": -3.3964517895318918,
+  "hard": []
+ }
+}

@@ -1,0 +1,57 @@
+kategori                       referans       aday  durum
+güvensiz (toplam)                     2          2  ok
+iniş-stres/başarılı            18/24      19/24     ↑
+secim/accel                    14/14       5/14     KALDI
+secim/cruise_h                  6/8        1/8      KALDI
+secim/cruise_hold               4/4        0/4      KALDI
+secim/cruise_mix                6/6        4/6      KALDI
+secim/cruise_psi               14/14       7/14     KALDI
+secim/cruise_u                  6/8        3/8      KALDI
+secim/hold                     13/13      13/13     ok
+secim/land                     13/13      13/13     ok
+secim/stop                     13/13      13/13     ok
+secim/takeoff                  12/12      12/12     ok
+test/accel                     11/15       4/15     KALDI
+test/bob                        2/2        2/2      ok
+test/climb_to                   1/1        0/1      ok
+test/cruise_h                   5/5        1/5      KALDI
+test/cruise_hold                9/9        2/9      KALDI
+test/cruise_mix                12/13      11/13     ok
+test/cruise_psi                13/15       5/15     KALDI
+test/cruise_u                   4/4        1/4      KALDI
+test/hold                      15/16      12/13     KALDI
+test/land                      15/15      15/15     ok
+test/move                       0/1        1/1      ↑
+test/pirouette                  2/2        2/2      ok
+test/stop                      14/14      14/14     ok
+test/takeoff                   14/14      11/14     KALDI
+test/turn                       2/2        2/2      ok
+
+SONUÇ: KALDI
+
+bilgi: yeterli+ sayısı ve banda giriş / son sınır medyanı (referans → aday)
+  secim/accel                yeterli+  14/14  →  13/14    giriş/sınır 0.75 → 0.72
+  secim/cruise_h             yeterli+   8/8   →   5/8     giriş/sınır 0.90 → 0.99  ← yeterli+ geriledi
+  secim/cruise_hold          yeterli+   4/4   →   4/4     giriş/sınır 0.01 → —
+  secim/cruise_mix           yeterli+   6/6   →   6/6     giriş/sınır 0.67 → 0.76
+  secim/cruise_psi           yeterli+  14/14  →  14/14    giriş/sınır 0.53 → 0.73
+  secim/cruise_u             yeterli+   8/8   →   7/8     giriş/sınır 0.75 → 0.73
+  secim/hold                 yeterli+  13/13  →  13/13    giriş/sınır 0.01 → 0.01
+  secim/land                 yeterli+  13/13  →  13/13    giriş/sınır 0.61 → 0.61
+  secim/stop                 yeterli+  13/13  →  13/13    giriş/sınır 0.70 → 0.70
+  secim/takeoff              yeterli+  12/12  →  12/12    giriş/sınır 0.46 → 0.50
+  test/accel                 yeterli+  15/15  →  14/15    giriş/sınır 0.74 → 0.76
+  test/bob                   yeterli+   2/2   →   2/2     giriş/sınır 0.53 → 0.63
+  test/climb_to              yeterli+   1/1   →   0/1     giriş/sınır 0.76 → —
+  test/cruise_h              yeterli+   5/5   →   5/5     giriş/sınır 0.72 → 0.79
+  test/cruise_hold           yeterli+   9/9   →   9/9     giriş/sınır 0.01 → 0.01
+  test/cruise_mix            yeterli+  13/13  →  13/13    giriş/sınır 0.75 → 0.71
+  test/cruise_psi            yeterli+  15/15  →  14/15    giriş/sınır 0.73 → 0.93
+  test/cruise_u              yeterli+   4/4   →   4/4     giriş/sınır 0.72 → 0.60
+  test/hold                  yeterli+  16/16  →  13/13    giriş/sınır 0.01 → 0.01  ← yeterli+ geriledi
+  test/land                  yeterli+  15/15  →  15/15    giriş/sınır 0.66 → 0.65
+  test/move                  yeterli+   1/1   →   1/1     giriş/sınır — → 0.85
+  test/pirouette             yeterli+   2/2   →   2/2     giriş/sınır 0.78 → 0.78
+  test/stop                  yeterli+  14/14  →  14/14    giriş/sınır 0.68 → 0.68
+  test/takeoff               yeterli+  14/14  →  11/14    giriş/sınır 0.63 → 0.67  ← yeterli+ geriledi
+  test/turn                  yeterli+   2/2   →   2/2     giriş/sınır 0.50 → 0.69
